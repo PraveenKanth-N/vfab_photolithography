@@ -18,6 +18,7 @@ public class SpinCoaterController : MonoBehaviour
     public int selectedPRIndex = 0;       
 
     [Header("UI Control Inputs (Standard Sliders)")]
+    public Button startSpinButton;              
     public Button dispenseButton;
     public Slider speedSlider;
     public Slider timeSlider;
@@ -41,20 +42,27 @@ public class SpinCoaterController : MonoBehaviour
     private ClamshellLidController lidController;
 
     void Start()
-    {
-        if (waferObject != null) originalWaferScale = waferObject.localScale;
-        lidController = Object.FindAnyObjectByType<ClamshellLidController>();
+{
+    if (waferObject != null) originalWaferScale = waferObject.localScale;
+    lidController = Object.FindAnyObjectByType<ClamshellLidController>();
 
-        // FORCE CODE INTEGRATION HOOK FOR THE DISPENSE BUTTON:
-        if (dispenseButton != null)
-        {
-            dispenseButton.onClick.RemoveAllListeners(); // Clear old loose hooks
-            dispenseButton.onClick.AddListener(TriggerFluidDispenser); // Lock it in!
-        }
-        
-        InitializeEquipmentUI();
-        UpdateCoaterUI("Awaiting substrate insertion...");
+    // 1. HARDCODED DISPENSE BUTTON HOOK:
+    if (dispenseButton != null)
+    {
+        dispenseButton.onClick.RemoveAllListeners(); 
+        dispenseButton.onClick.AddListener(TriggerFluidDispenser); 
     }
+    
+    // 2. FIXED: ADD THE MISSING START SPIN BUTTON LISTENER HOOK RIGHT HERE!
+    if (startSpinButton != null)
+    {
+        startSpinButton.onClick.RemoveAllListeners(); // Clear out any loose or dead hooks
+        startSpinButton.onClick.AddListener(BeginAutomatedRecipe); // Connect it straight to the spin loop!
+    }
+    
+    InitializeEquipmentUI();
+    UpdateCoaterUI("Awaiting substrate insertion...");
+}
 
     void Update()
     {
@@ -214,6 +222,11 @@ public class SpinCoaterController : MonoBehaviour
         if (dispenseButton != null) 
         {
             dispenseButton.interactable = (currentCoaterState == CoaterState.WaferLoaded);
+        }
+
+        if (startSpinButton != null)
+        {
+            startSpinButton.interactable = canSpinNow;
         }
 
         // Keep your recipe tuning inputs accessible
