@@ -9,75 +9,95 @@ public class SpinCoaterController : MonoBehaviour
     
     [Header("Process Tracking")]
     public CoaterState currentCoaterState = CoaterState.Empty;
-    public float targetRPM = 4000f;
-    public float spinDuration = 5f; 
-    private float spinTimer = 0f;
+    private float recipeTimer = 0f;
+    private string currentPhaseName = "Idle";
 
-    [Header("Wafer Reference")]
+    [Header("Equipment Controls (Inputs)")]
+    public float targetSpinSpeed = 3000f; 
+    public float targetSpinTime = 30f;    
+    public int selectedPRIndex = 0;       
+
+    [Header("UI Control Inputs (Standard Sliders)")]
+    public Button dispenseButton;
+    public Slider speedSlider;
+    public Slider timeSlider;
+
+    [Header("UI Control Inputs (TMPro Dropdown)")]
+    public TMP_Dropdown prDropdown; // <-- Converted to TextMeshPro dropdown asset
+
+    [Header("UI Display Outputs (TMPro Text)")]
+    public TMP_Text coaterStatusText;     // <-- Modern crisp text components
+    public TMP_Text speedReadoutText;
+    public TMP_Text timeReadoutText;
+    public TMP_Text thicknessDisplayText; 
+
+    [Header("References")]
     public Transform waferObject; 
     private Vector3 originalWaferScale;
-
-    [Header("Fluid Management System")]
     public GameObject dropletPrefab;       
     public Transform dropletSpawnPoint;    
-    public int dropCount = 3;              
-    public float timeBetweenDrops = 0.25f;
-
-    [Header("UI Control Inputs")]
-    public Button dispenseButton;
-    public Button startSpinButton;
-    public Slider rpmSlider;
-    public TMP_Text coaterStatusText;
-
-    [Header("Chemical Material Swaps")]
     public Material liquidAmberMaterial; 
 
-    // NEW: Reference to the hinge tracking script to verify open/close status
     private ClamshellLidController lidController;
 
     void Start()
     {
         if (waferObject != null) originalWaferScale = waferObject.localScale;
-
-        // Automatically locate the lid component sitting on your hinge parent asset
         lidController = Object.FindAnyObjectByType<ClamshellLidController>();
-        if (lidController == null) lidController = GetComponentInChildren<ClamshellLidController>();
 
-        if (dispenseButton != null) dispenseButton.onClick.AddListener(TriggerFluidDispenser);
-        if (startSpinButton != null) startSpinButton.onClick.AddListener(BeginHighSpeedSpin);
+        // FORCE CODE INTEGRATION HOOK FOR THE DISPENSE BUTTON:
+        if (dispenseButton != null)
+        {
+            dispenseButton.onClick.RemoveAllListeners(); // Clear old loose hooks
+            dispenseButton.onClick.AddListener(TriggerFluidDispenser); // Lock it in!
+        }
         
-        if (rpmSlider != null) { rpmSlider.minValue = 3000f; rpmSlider.maxValue = 5000f; rpmSlider.value = 4000f; }
-
+        InitializeEquipmentUI();
         UpdateCoaterUI("Awaiting substrate insertion...");
     }
 
     void Update()
     {
-        // Continuously capture slider modifications before spin tracking runs
-        if (rpmSlider != null && currentCoaterState != CoaterState.Spinning) 
+        if (currentCoaterState != CoaterState.Spinning) 
         {
-            targetRPM = rpmSlider.value;
-        }
-
-        if (currentCoaterState == CoaterState.Spinning)
-        {
-            spinTimer += Time.deltaTime;
-
-            if (waferObject != null)
-            {
-                waferObject.Rotate(Vector3.up * targetRPM * Time.deltaTime);
-                float thinningFactor = Mathf.Lerp(1.0f, 0.85f, spinTimer / spinDuration);
-                waferObject.localScale = new Vector3(originalWaferScale.x, originalWaferScale.y * thinningFactor, originalWaferScale.z);
-            }
-
-            if (spinTimer >= spinDuration)
-            {
-                CompleteSpinCycle();
-            }
+            CapturePanelInputs();
         }
     }
 
-    void TriggerFluidDispenser()
+    void InitializeEquipmentUI()
+    {
+        if (speedSlider != null) { speedSlider.minValue = 2000f; speedSlider.maxValue = 5000f; speedSlider.value = 3000f; }
+        if (timeSlider != null) { timeSlider.minValue = 15f; timeSlider.maxValue = 60f; timeSlider.value = 30f; }
+        
+        if (prDropdown != null)
+        {
+            prDropdown.ClearOptions(); // TMPro uses the exact same PascalCase method call structure!
+            
+            // Create TMPro specific option datasets
+            var optionsList = new System.Collections.Generic.List<TMP_Dropdown.OptionData>();
+            optionsList.Add(new TMP_Dropdown.OptionData("PR-1000"));
+            optionsList.Add(new TMP_Dropdown.OptionData("PR-1200"));
+            optionsList.Add(new TMP_Dropdown.OptionData("PR-1500"));
+            
+            prDropdown.AddOptions(optionsList);
+            prDropdown.RefreshShownValue();
+        }
+        
+        if (thicknessDisplayText != null) thicknessDisplayText.text = "Thickness: --- nm";
+    }
+
+    void CapturePanelInputs()
+    {
+        if (speedSlider != null) targetSpinSpeed = speedSlider.value;
+        if (timeSlider != null) targetSpinTime = timeSlider.value;
+        if (prDropdown != null) selectedPRIndex = prDropdown.value;
+
+        if (speedReadoutText != null) speedReadoutText.text = $"Set Speed: {targetSpinSpeed:F0} RPM";
+        if (timeReadoutText != null) timeReadoutText.text = $"Set Time: {targetSpinTime:F0} Seconds";
+    }
+
+    // Call this via your UI Dispense Button component hook setup
+    public void TriggerFluidDispenser()
     {
         if (currentCoaterState != CoaterState.WaferLoaded) return;
         StartCoroutine(DispenseFluidSequence());
@@ -86,16 +106,17 @@ public class SpinCoaterController : MonoBehaviour
     IEnumerator DispenseFluidSequence()
     {
         currentCoaterState = CoaterState.PRDispensing;
-        UpdateCoaterUI("Dispenser line engaged. Delivering polymer photoresist matrix...");
+        string prName = prDropdown.options[selectedPRIndex].text;
+        UpdateCoaterUI($"Dispensing chemical matrix: {prName}...");
 
-        for (int i = 0; i < dropCount; i++)
+        for (int i = 0; i < 3; i++)
         {
             if (dropletPrefab != null && dropletSpawnPoint != null)
             {
                 GameObject drop = Instantiate(dropletPrefab, dropletSpawnPoint.position, Quaternion.identity);
                 Destroy(drop, 1.5f);
             }
-            yield return new WaitForSeconds(timeBetweenDrops);
+            yield return new WaitForSeconds(0.25f);
         }
 
         yield return new WaitForSeconds(0.4f);
@@ -104,57 +125,103 @@ public class SpinCoaterController : MonoBehaviour
         Renderer waferRen = waferObject.GetComponent<Renderer>();
         if (waferRen != null && liquidAmberMaterial != null) waferRen.material = liquidAmberMaterial;
 
-        UpdateCoaterUI("Dispense operation complete. Puddle ready for spin stabilization cycle.");
+        UpdateCoaterUI("Dispense complete. Chemical logged. Secure lid to spin.");
     }
 
-    void BeginHighSpeedSpin()
+    // Call this via your UI Start Spin Button component hook setup
+    public void BeginAutomatedRecipe()
     {
         if (currentCoaterState != CoaterState.PRDispensed) return;
 
-        // FIXED QUIRK 2: INTERLOCK INTERCEPTOR
-        // If the physical lid object is open, reject execution and throw a warning notice!
-        if (lidController != null)
+        if (lidController != null && lidController.isOpen)
         {
-            // Accessing our open toggle tracker inside ClamshellLidController
-            // Note: If 'isOpen' is private in your script, make sure to add "public" before "bool isOpen" in ClamshellLidController!
-            System.Reflection.FieldInfo openField = lidController.GetType().GetField("isOpen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-            bool isLidOpen = openField != null ? (bool)openField.GetValue(lidController) : false;
-
-            if (isLidOpen)
-            {
-                UpdateCoaterUI("ERROR: Safety interlock violation! Seal clamshell shield before executing motor spin loop.");
-                Debug.LogWarning("POLOS Coater: Spin cycle blocked. Vacuum chamber ambient shroud must be locked.");
-                return; // Stop right here, don't spin!
-            }
+            UpdateCoaterUI("ERROR: Safety interlock violation! Chamber must be sealed to spin.");
+            return;
         }
 
-        // FIXED QUIRK 1: Grab the current real value from the UI slider right at the frame of ignition
-        if (rpmSlider != null) targetRPM = rpmSlider.value;
+        StartCoroutine(AutomatedSpinRecipeRoutine());
+    }
 
+    IEnumerator AutomatedSpinRecipeRoutine()
+    {
         currentCoaterState = CoaterState.Spinning;
-        spinTimer = 0f;
-        UpdateCoaterUI($"Spinning chuck assembly at {targetRPM:F0} RPM...");
+        recipeTimer = 0f;
+
+        // --- STAGE 1: AUTOMATED SPREADING PHASE (Fixed Safety Profile) ---
+        currentPhaseName = "SPREADING";
+        float spreadDuration = 5f;
+        float spreadRPM = 500f;
+        
+        while (recipeTimer < spreadDuration)
+        {
+            recipeTimer += Time.deltaTime;
+            if (waferObject != null) waferObject.Rotate(Vector3.up * spreadRPM * 0.2f * Time.deltaTime);
+            UpdateCoaterUI($"[{currentPhaseName}] Speed: {spreadRPM:F0} RPM | Time Left: {(spreadDuration - recipeTimer):F1}s");
+            yield return null;
+        }
+
+        // --- STAGE 2: AUTOMATED CASTING PHASE (User Configured Controls) ---
+        currentPhaseName = "CASTING";
+        recipeTimer = 0f;
+        
+        while (recipeTimer < targetSpinTime)
+        {
+            recipeTimer += Time.deltaTime;
+            if (waferObject != null)
+            {
+                waferObject.Rotate(Vector3.up * targetSpinSpeed * 0.2f * Time.deltaTime);
+                float thinningFactor = Mathf.Lerp(1.0f, 0.82f, recipeTimer / targetSpinTime);
+                waferObject.localScale = new Vector3(originalWaferScale.x, originalWaferScale.y * thinningFactor, originalWaferScale.z);
+            }
+            UpdateCoaterUI($"[{currentPhaseName}] Speed: {targetSpinSpeed:F0} RPM | Time Left: {(targetSpinTime - recipeTimer):F1}s");
+            yield return null;
+        }
+
+        CompleteSpinCycle();
     }
 
     void CompleteSpinCycle()
     {
         currentCoaterState = CoaterState.Complete;
         if (waferObject != null) waferObject.localRotation = Quaternion.identity;
-        UpdateCoaterUI("Spin coating cycle finished! Uniform polymer layer stabilized.");
+        
+        float baseThickness = selectedPRIndex == 0 ? 1000f : (selectedPRIndex == 1 ? 1200f : 1500f);
+        float customThicknessOutput = baseThickness * (3000f / targetSpinSpeed);
+
+        if (thicknessDisplayText != null)
+        {
+            thicknessDisplayText.text = $"Thickness: {customThicknessOutput:F0} nm";
+        }
+        
+        UpdateCoaterUI("Spin cycle complete. Uniform film thickness achieved.");
     }
 
     public void LoadWaferIntoCoater()
     {
         currentCoaterState = CoaterState.WaferLoaded;
-        UpdateCoaterUI("Substrate registered on chuck. Ready for chemical dispensing.");
+        UpdateCoaterUI("Substrate loaded. Ready for chemical dispensing.");
     }
 
     void UpdateCoaterUI(string message = "")
     {
-        if (dispenseButton != null) dispenseButton.interactable = (currentCoaterState == CoaterState.WaferLoaded);
-        if (startSpinButton != null) startSpinButton.interactable = (currentCoaterState == CoaterState.PRDispensed || currentCoaterState == CoaterState.Spinning);
-        if (rpmSlider != null) rpmSlider.interactable = (currentCoaterState == CoaterState.PRDispensed);
+        // Unlocked as soon as a wafer is dropped on the chuck
+        bool canSelectRecipe = (currentCoaterState == CoaterState.WaferLoaded || currentCoaterState == CoaterState.PRDispensed);
         
+        // Unlocked ONLY after the liquid chemical puddle has been applied
+        bool canSpinNow = (currentCoaterState == CoaterState.PRDispensed);
+        
+        // FIXED: The Dispense button is now perfectly active ONLY when a bare wafer is waiting for its chemical coat!
+        if (dispenseButton != null) 
+        {
+            dispenseButton.interactable = (currentCoaterState == CoaterState.WaferLoaded);
+        }
+
+        // Keep your recipe tuning inputs accessible
+        if (speedSlider != null) speedSlider.interactable = canSelectRecipe;
+        if (timeSlider != null) timeSlider.interactable = canSelectRecipe;
+        if (prDropdown != null) prDropdown.interactable = canSelectRecipe;
+        
+        // Update the master display board
         if (coaterStatusText != null && message != "") coaterStatusText.text = "POLOS Coater: " + message;
     }
 }

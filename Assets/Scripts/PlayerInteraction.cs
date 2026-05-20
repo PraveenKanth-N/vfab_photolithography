@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
+using TMPro;
 
 public class PlayerInteraction : MonoBehaviour
 {
@@ -66,14 +67,43 @@ public class PlayerInteraction : MonoBehaviour
         {
             GameObject UI_Target = results[0].gameObject;
             
-            // Check if clicking a dropdown item template choice or the dropdown itself
-            if (UI_Target.name.Contains("Item") || UI_Target.GetComponent<Toggle>() != null || UI_Target.name.Contains("Blocker"))
+            // 1. FILTER OUT BLOCKERS: If we hit a dropdown background click-catcher, skip past it!
+            if ((UI_Target.name.Contains("Blocker") || UI_Target.name.Contains("Template")) && results.Count > 1)
             {
-                ExecuteEvents.Execute(UI_Target, pointerData, ExecuteEvents.pointerClickHandler);
-                Debug.Log($"Crosshair clicked Dropdown Option: Element '{UI_Target.name}'");
+                // Force focus down to the actual option list items sitting beneath the veil
+                for (int i = 1; i < results.Count; i++)
+                {
+                    if (!results[i].gameObject.name.Contains("Blocker"))
+                    {
+                        UI_Target = results[i].gameObject;
+                        break;
+                    }
+                }
+            }
+            
+            // 2. TRIGGER SELECTION: Fire a direct click event on whatever component or text item we hit
+            Toggle toggleComponent = UI_Target.GetComponent<Toggle>();
+            if (toggleComponent == null) toggleComponent = UI_Target.GetComponentInParent<Toggle>();
+            
+            // TMPro menu option items are structured as Toggles under the hood!
+            if (toggleComponent != null || UI_Target.name.Contains("Item"))
+            {
+                GameObject clickTarget = toggleComponent != null ? toggleComponent.gameObject : UI_Target;
+                ExecuteEvents.Execute(clickTarget, pointerData, ExecuteEvents.pointerClickHandler);
+                Debug.Log($"Crosshair intercepted choice layer assignment on: '{clickTarget.name}'");
                 return true;
             }
 
+            // 3. DROPDOWN INITIAL CLOSURE/OPENING HOOKS
+            TMP_Dropdown tmpDropdown = UI_Target.GetComponent<TMP_Dropdown>();
+            if (tmpDropdown == null) tmpDropdown = UI_Target.GetComponentInParent<TMP_Dropdown>();
+            if (tmpDropdown != null)
+            {
+                ExecuteEvents.Execute(tmpDropdown.gameObject, pointerData, ExecuteEvents.pointerClickHandler);
+                return true;
+            }
+
+            // 4. STANDARD BUTTON HANDLERS
             Button button = UI_Target.GetComponent<Button>();
             if (button == null) button = UI_Target.GetComponentInParent<Button>();
             if (button != null && button.interactable)
@@ -82,6 +112,7 @@ public class PlayerInteraction : MonoBehaviour
                 return true; 
             }
 
+            // 5. SLIDER ADJUSTMENT AXIS
             Slider slider = UI_Target.GetComponent<Slider>();
             if (slider == null) slider = UI_Target.GetComponentInParent<Slider>();
             if (slider != null && slider.interactable)
