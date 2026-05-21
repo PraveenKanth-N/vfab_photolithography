@@ -16,7 +16,7 @@ public class PlayerInteraction : MonoBehaviour
     private GameObject heldObject = null;
     private Rigidbody heldRigidbody = null;
     
-    // Cache the original layer of the wafer so we can restore it when placed
+    // Cache the original layer of the object so we can restore it when placed
     private int originalLayer; 
     private int ignoreRaycastLayer;
 
@@ -131,67 +131,93 @@ public class PlayerInteraction : MonoBehaviour
         return false;
     }
 
-    void TryPickUpObject() {
-    Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-    RaycastHit hit;
-
-    if (Physics.Raycast(ray, out hit, interactionDistance))
+    void TryPickUpObject() 
     {
-        GameObject target = hit.collider.gameObject;
-        string nameLower = target.name.ToLower();
+        Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        RaycastHit hit;
 
-        // Case 1: Direct hit on the wafer mesh collider
-        if (nameLower.Contains("wafer")) 
+        if (Physics.Raycast(ray, out hit, interactionDistance))
         {
-            HotplateController hotplate = Object.FindAnyObjectByType<HotplateController>();
-            if (hotplate != null && hotplate.currentState != HotplateController.HotplateState.Baking)
+            GameObject target = hit.collider.gameObject;
+            string nameLower = target.name.ToLower();
+
+            // Case 1: Direct hit on the wafer mesh collider
+            if (nameLower.Contains("wafer")) 
             {
-                // If it was sitting on the hotplate, reset the hotplate back to default idle state
-                Collider[] hotplateHits = Physics.OverlapSphere(hotplate.transform.position + new Vector3(0f, 0.5f, 0f), 0.6f);
-                foreach (Collider col in hotplateHits)
+                HotplateController hotplate = Object.FindAnyObjectByType<HotplateController>();
+                if (hotplate != null && hotplate.currentState != HotplateController.HotplateState.Baking)
                 {
-                    if (col.gameObject == hit.collider.gameObject)
+                    Collider[] hotplateHits = Physics.OverlapSphere(hotplate.transform.position + new Vector3(0f, 0.5f, 0f), 0.6f);
+                    foreach (Collider col in hotplateHits)
                     {
-                        hotplate.currentState = HotplateController.HotplateState.Idle;
-                        hotplate.BeginThermalBakeCycle(); // Re-runs internal UI update to clear messages
-                        break;
+                        if (col.gameObject == hit.collider.gameObject)
+                        {
+                            hotplate.currentState = HotplateController.HotplateState.Idle;
+                            hotplate.BeginThermalBakeCycle(); 
+                            break;
+                        }
+                    }
+                }
+
+                ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
+                if (aligner != null && aligner.currentStationState != ExposureStationController.ExposureState.Exposing)
+                {
+                    if (aligner.waferDockPosition != null && Vector3.Distance(hit.collider.gameObject.transform.position, aligner.waferDockPosition.position) < 0.2f)
+                    {
+                        aligner.currentStationState = ExposureStationController.ExposureState.Empty;
+                        aligner.isVacuumSealed = false;
+                        aligner.RegisterWaferInsertion(null); 
+                        if (aligner.stationStatusText != null) aligner.stationStatusText.text = "SUSS Aligner: Substrate removed. System ready.";
+                    }
+                }
+                
+                // FIXED: Direct hook to our generalized pickup method
+                PickUpHeldObject(target);
+                return;
+            }
+            
+            // Case 2: Hit the spin coater base or hotplate, but the wafer is sitting inside/on it
+            if (nameLower.Contains("spin") || nameLower.Contains("coater") || nameLower.Contains("bottom") || nameLower.Contains("hotplate"))
+            {
+                Collider[] collidersCloseBy = Physics.OverlapSphere(hit.point, 0.5f);
+                foreach (Collider nearbyCollider in collidersCloseBy)
+                {
+                    if (nearbyCollider.gameObject.name.ToLower().Contains("wafer"))
+                    {
+                        PickUpHeldObject(nearbyCollider.gameObject);
+                        
+                        SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
+                        if (coater == null) coater = target.GetComponent<SpinCoaterController>();
+                        if (coater != null) 
+                        {
+                            coater.currentCoaterState = SpinCoaterController.CoaterState.Empty;
+                        }
+                        return;
                     }
                 }
             }
-            PickUpWafer(target);
-            return;
-        }
-        
-        // Case 2: Hit the spin coater base or hotplate, but the wafer is sitting inside/on it
-        if (nameLower.Contains("spin") || nameLower.Contains("coater") || nameLower.Contains("bottom") || nameLower.Contains("hotplate"))
-        {
-            // Scan a tiny physical sphere (radius of 0.5 units) around the hit point to find any wafer
-            Collider[] collidersCloseBy = Physics.OverlapSphere(hit.point, 0.5f);
-            foreach (Collider nearbyCollider in collidersCloseBy)
+
+            // Case 3: Hit the physical Photomask Tray frame asset
+            if (nameLower.Contains("mask") || nameLower.Contains("tray"))
             {
-                if (nearbyCollider.gameObject.name.ToLower().Contains("wafer"))
+                ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
+                if (aligner != null && aligner.isMaskTrayInserted)
                 {
-                    // Found it nearby! Pick it up.
-                    PickUpWafer(nearbyCollider.gameObject);
-                    
-                    // Reset the spin coater state back to empty so safety protocols activate
-                    SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
-                    if (coater == null) coater = target.GetComponent<SpinCoaterController>();
-                    if (coater != null) 
-                    {
-                        coater.currentCoaterState = SpinCoaterController.CoaterState.Empty;
-                    }
-                    return;
+                    Debug.LogWarning("Cannot pick up tray while it is locked inside the exposure housing shroud.");
+                    return; 
                 }
+                
+                // FIXED: Replaced compile error 'CaptureTargetObject' with our solid generalized handler!
+                PickUpHeldObject(target);
+                return;
             }
         }
     }
-}
 
-    // Helper method to keep things clean
-    void PickUpWafer(GameObject wafer)
+    // FIXED: Renamed from PickUpWafer to a clean, universal operational system method
+    void PickUpHeldObject(GameObject targetAsset)
     {
-        heldObject = wafer;
+        heldObject = targetAsset;
         heldRigidbody = heldObject.GetComponent<Rigidbody>();
 
         if (heldRigidbody != null) heldRigidbody.isKinematic = true; 
@@ -207,11 +233,13 @@ public class PlayerInteraction : MonoBehaviour
         heldObject.transform.localPosition = Vector3.zero;
         heldObject.transform.localRotation = Quaternion.identity;
         
-        Debug.Log($"SUCCESS: Retreived substrate '{heldObject.name}' from station.");
+        Debug.Log($"SUCCESS: Picked up '{heldObject.name}' and attached to player socket.");
     }
 
     void TryPlaceObject()
     {
+        if (heldObject == null) return;
+
         Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
         RaycastHit hit;
 
@@ -223,6 +251,12 @@ public class PlayerInteraction : MonoBehaviour
             // Inside Case 1: Spin Coater Placement Block
             if (targetName.Contains("spin") || targetName.Contains("coater"))
             {
+                if (heldObject.name.ToLower().Contains("mask")) 
+                {
+                    Debug.LogWarning("Operation Denied: Cannot insert a photomask into the liquid spin coater vacuum chuck.");
+                    return;
+                }
+
                 SpinCoaterController coater = target.GetComponent<SpinCoaterController>();
                 if (coater == null) coater = target.GetComponentInParent<SpinCoaterController>();
 
@@ -232,7 +266,6 @@ public class PlayerInteraction : MonoBehaviour
                     DetachHeldObject();
                     coater.LoadWaferIntoCoater(); 
                     
-                    // SNAP POSITION AND FORCE THE WAFER TO LIE PERFECTLY FLAT
                     heldObject.transform.position = target.transform.position + new Vector3(0f, 0.2f, 0f);
                     heldObject.transform.rotation = Quaternion.identity; 
                     
@@ -250,7 +283,6 @@ public class PlayerInteraction : MonoBehaviour
                 heldObject.transform.position = target.transform.position + new Vector3(0f, 0.25f, 0f);
                 heldObject.transform.rotation = Quaternion.identity;
                 
-                // NEW: Alert the hotplate script to start checking thermal state parameters!
                 HotplateController hotplate = target.GetComponent<HotplateController>();
                 if (hotplate != null)
                 {
@@ -258,15 +290,73 @@ public class PlayerInteraction : MonoBehaviour
                 }
 
                 heldObject = null;
-                Debug.Log("SUCCESS: Placed wafer back onto hotplate element.");
+                Debug.Log("SUCCESS: Placed object onto hotplate element.");
                 return;
+            }
+
+            // Inside Case 3: SUSS Exposure Aligner Machine Placement Block
+            if (targetName.Contains("exposure") || targetName.Contains("aligner") || targetName.Contains("machine"))
+            {
+                // ROUTE A: Handling Mask Tray Insertion
+                if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
+                {
+                    ExposureStationController aligner = target.GetComponent<ExposureStationController>();
+                    if (aligner == null) aligner = target.GetComponentInParent<ExposureStationController>();
+
+                    if (aligner != null)
+                    {
+                        RestoreHeldObjectLayer();
+                        DetachHeldObject();
+                        
+                        heldObject.transform.SetParent(aligner.transform);
+                        // Using your customized local position alignments!
+                        heldObject.transform.localPosition = new Vector3(0.4f, 0f, 0.8f); 
+                        heldObject.transform.localRotation = Quaternion.identity;
+                        
+                        aligner.maskTrayTransform = heldObject.transform; 
+                        aligner.isMaskTrayInserted = false;
+                        
+                        heldObject = null;
+                        Debug.Log("SUCCESS: Photomask tray loaded onto carrier rails.");
+                        return;
+                    }
+                }
+                
+                // ROUTE B: Handling Wafer Substrate Insertion
+                if (heldObject.name.ToLower().Contains("wafer"))
+                {
+                    ExposureStationController aligner = target.GetComponent<ExposureStationController>();
+                    if (aligner == null) aligner = target.GetComponentInParent<ExposureStationController>();
+
+                    if (aligner != null)
+                    {
+                        RestoreHeldObjectLayer();
+                        DetachHeldObject();
+                        
+                        aligner.RegisterWaferInsertion(heldObject); 
+                        
+                        if (aligner.waferDockPosition != null)
+                        {
+                            heldObject.transform.position = aligner.waferDockPosition.position;
+                            heldObject.transform.rotation = aligner.waferDockPosition.rotation;
+                        }
+                        else
+                        {
+                            heldObject.transform.position = target.transform.position + new Vector3(0f, 0.15f, 0f);
+                            heldObject.transform.rotation = Quaternion.identity;
+                        }
+                        
+                        heldObject = null;
+                        return;
+                    }
+                }
             }
 
             Debug.LogWarning($"Placement rejected: Crosshair targeting non-registered object '{target.name}'");
         }
         else
         {
-            Debug.LogWarning("Placement rejected: Raycast extended into open air. Aim lower at your bench stations!");
+            Debug.LogWarning("Placement rejected: Raycast extended into open air.");
         }
     }
 

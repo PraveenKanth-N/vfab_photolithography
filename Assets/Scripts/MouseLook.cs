@@ -74,7 +74,6 @@ public class MouseLook : MonoBehaviour
         isCursorLocked = true;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        Debug.Log("Mouse cursor captured and hidden.");
     }
 
     void UnlockCursor()
@@ -82,6 +81,5 @@ public class MouseLook : MonoBehaviour
         isCursorLocked = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        Debug.Log("Mouse cursor released safely.");
     }
 }
