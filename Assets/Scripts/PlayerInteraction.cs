@@ -143,6 +143,21 @@ public class PlayerInteraction : MonoBehaviour
         // Case 1: Direct hit on the wafer mesh collider
         if (nameLower.Contains("wafer")) 
         {
+            HotplateController hotplate = Object.FindAnyObjectByType<HotplateController>();
+            if (hotplate != null && hotplate.currentState != HotplateController.HotplateState.Baking)
+            {
+                // If it was sitting on the hotplate, reset the hotplate back to default idle state
+                Collider[] hotplateHits = Physics.OverlapSphere(hotplate.transform.position + new Vector3(0f, 0.5f, 0f), 0.6f);
+                foreach (Collider col in hotplateHits)
+                {
+                    if (col.gameObject == hit.collider.gameObject)
+                    {
+                        hotplate.currentState = HotplateController.HotplateState.Idle;
+                        hotplate.BeginThermalBakeCycle(); // Re-runs internal UI update to clear messages
+                        break;
+                    }
+                }
+            }
             PickUpWafer(target);
             return;
         }
