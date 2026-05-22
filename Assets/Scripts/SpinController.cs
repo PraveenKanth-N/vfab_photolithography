@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
+using Unity.InferenceEngine; // Modernized Inference Engine API
 
 public class SpinCoaterController : MonoBehaviour
 {
@@ -12,64 +14,91 @@ public class SpinCoaterController : MonoBehaviour
     private float recipeTimer = 0f;
     private string currentPhaseName = "Idle";
 
-    [Header("Equipment Controls (Inputs)")]
-    public float targetSpinSpeed = 3000f; 
-    public float targetSpinTime = 30f;    
-    public int selectedPRIndex = 0;       
-
-    [Header("UI Control Inputs (Standard Sliders)")]
+    [Header("UI Controls (Inputs)")]
     public Button startSpinButton;              
     public Button dispenseButton;
-    public Slider speedSlider;
-    public Slider timeSlider;
-
-    [Header("UI Control Inputs (TMPro Dropdown)")]
-    public TMP_Dropdown prDropdown; // <-- Converted to TextMeshPro dropdown asset
+    public Slider speedSlider;                  // Min: 2000, Max: 5000
+    public Slider timeSlider;                   // Min: 15, Max: 60
+    public TMP_Dropdown prDropdown;             // Options: PR-1000, PR-1200, PR-1500
 
     [Header("UI Display Outputs (TMPro Text)")]
-    public TMP_Text coaterStatusText;     // <-- Modern crisp text components
+    public TMP_Text coaterStatusText;     
     public TMP_Text speedReadoutText;
     public TMP_Text timeReadoutText;
-    public TMP_Text thicknessDisplayText; 
+    public TMP_Text thicknessTextDisplay;       // Live ML thickness value monitor
 
-    [Header("References")]
+    [Header("Physical Equipment References")]
     public Transform waferObject; 
+    public Transform rotorSpindleChuck;
+    public Renderer waferRenderer;              // Wafer mesh rendering target
     private Vector3 originalWaferScale;  
-    public Material liquidAmberMaterial; 
+    private Material wetCoatingMaterialInstance;
 
     [Header("Dynamic Fluid Animations")]
-    public Renderer waferRenderer;          // Assign your physical wafer's Renderer component
-    private Material wetCoatingMaterialInstance;
     public float fluidSpreadSpeed = 2.5f;
-    public ParticleSystem dropEmitterParticles; // Assign your new PR_Drop_Emitter here
+    public ParticleSystem dropEmitterParticles;  // Tight, dense nozzle stream emitter
+    public ParticleSystem fluidSplatterParticles; // Centrifugal waste spray emitter
+
+    [Header("ML Inference Engine Integration")]
+    public ModelAsset modelAsset;               // Target: PR_Coating_Model.onnx asset container
+    private Worker engine;                      // FIXED: Replaced IWorker with concrete Worker class
+    private Texture2D mlDataLookupTexture;
+    private const int RADIAL_SAMPLES = 256;
 
     private ClamshellLidController lidController;
 
     void Start()
-{
-    if (waferObject != null) originalWaferScale = waferObject.localScale;
-    lidController = Object.FindAnyObjectByType<ClamshellLidController>();
+    {
+        if (waferObject != null) originalWaferScale = waferObject.localScale;
+        
+        // Find safety systems in scene context
+        lidController = Object.FindAnyObjectByType<ClamshellLidController>();
 
-    // 1. HARDCODED DISPENSE BUTTON HOOK:
-    if (dispenseButton != null)
-    {
-        dispenseButton.onClick.RemoveAllListeners(); 
-        dispenseButton.onClick.AddListener(TriggerFluidDispenser); 
+        // Setup UI Interactive Listener Hooks safely
+        if (dispenseButton != null)
+        {
+            dispenseButton.onClick.RemoveAllListeners(); 
+            dispenseButton.onClick.AddListener(TriggerFluidDispenser); 
+        }
+        
+        if (startSpinButton != null)
+        {
+            startSpinButton.onClick.RemoveAllListeners(); 
+            startSpinButton.onClick.AddListener(BeginAutomatedRecipe); 
+        }
+        
+        // Initialize the modern Inference Engine Engine Architecture
+        if (modelAsset != null)
+        {
+            Model model = ModelLoader.Load(modelAsset);
+            
+            // FIXED: Replaced WorkerFactory.CreateWorker with a direct constructor call
+            engine = new Worker(model, BackendType.GPUCompute);
+        }
+        else
+        {
+            Debug.LogError("Inference Engine Error: Missing PR_Coating_Model.onnx assignment reference!");
+        }
+
+        // Allocate the 1D RGFloat profile texture buffer
+        mlDataLookupTexture = new Texture2D(RADIAL_SAMPLES, 1, TextureFormat.RGFloat, false);
+        mlDataLookupTexture.wrapMode = TextureWrapMode.Clamp; 
+        mlDataLookupTexture.filterMode = FilterMode.Bilinear;
+
+        Color[] clearPixels = new Color[RADIAL_SAMPLES];
+        for(int i = 0; i < RADIAL_SAMPLES; i++) clearPixels[i] = new Color(0f, 0f, 0f, 1f); 
+        mlDataLookupTexture.SetPixels(clearPixels);
+        mlDataLookupTexture.Apply();
+
+        if (waferRenderer != null) waferRenderer.material.SetTexture("_MLDataTex", mlDataLookupTexture);
+
+        InitializeEquipmentUI();
+        UpdateCoaterUI("Awaiting substrate insertion...");
     }
-    
-    // 2. FIXED: ADD THE MISSING START SPIN BUTTON LISTENER HOOK RIGHT HERE!
-    if (startSpinButton != null)
-    {
-        startSpinButton.onClick.RemoveAllListeners(); // Clear out any loose or dead hooks
-        startSpinButton.onClick.AddListener(BeginAutomatedRecipe); // Connect it straight to the spin loop!
-    }
-    
-    InitializeEquipmentUI();
-    UpdateCoaterUI("Awaiting substrate insertion...");
-}
 
     void Update()
     {
+        // Only allow sliders to overwrite target profiles when stationary
         if (currentCoaterState != CoaterState.Spinning) 
         {
             CapturePanelInputs();
@@ -83,32 +112,29 @@ public class SpinCoaterController : MonoBehaviour
         
         if (prDropdown != null)
         {
-            prDropdown.ClearOptions(); // TMPro uses the exact same PascalCase method call structure!
-            
-            // Create TMPro specific option datasets
-            var optionsList = new System.Collections.Generic.List<TMP_Dropdown.OptionData>();
-            optionsList.Add(new TMP_Dropdown.OptionData("PR-1000"));
-            optionsList.Add(new TMP_Dropdown.OptionData("PR-1200"));
-            optionsList.Add(new TMP_Dropdown.OptionData("PR-1500"));
-            
+            prDropdown.ClearOptions();
+            var optionsList = new List<TMP_Dropdown.OptionData>
+            {
+                new TMP_Dropdown.OptionData("PR-1000"),
+                new TMP_Dropdown.OptionData("PR-1200"),
+                new TMP_Dropdown.OptionData("PR-1500")
+            };
             prDropdown.AddOptions(optionsList);
             prDropdown.RefreshShownValue();
         }
         
-        if (thicknessDisplayText != null) thicknessDisplayText.text = "Thickness: --- nm";
+        if (thicknessTextDisplay != null) thicknessTextDisplay.text = "Thickness: 0.0 nm";
     }
 
     void CapturePanelInputs()
     {
-        if (speedSlider != null) targetSpinSpeed = speedSlider.value;
-        if (timeSlider != null) targetSpinTime = timeSlider.value;
-        if (prDropdown != null) selectedPRIndex = prDropdown.value;
+        float speedVal = speedSlider != null ? speedSlider.value : 3000f;
+        float timeVal = timeSlider != null ? timeSlider.value : 30f;
 
-        if (speedReadoutText != null) speedReadoutText.text = $"Set Speed: {targetSpinSpeed:F0} RPM";
-        if (timeReadoutText != null) timeReadoutText.text = $"Set Time: {targetSpinTime:F0} Seconds";
+        if (speedReadoutText != null) speedReadoutText.text = $"Set Speed: {speedVal:F0} RPM";
+        if (timeReadoutText != null) timeReadoutText.text = $"Set Time: {timeVal:F0} Seconds";
     }
 
-    // Call this via your UI Dispense Button component hook setup
     public void TriggerFluidDispenser()
     {
         if (currentCoaterState != CoaterState.WaferLoaded) return;
@@ -118,30 +144,35 @@ public class SpinCoaterController : MonoBehaviour
     IEnumerator DispenseFluidSequence()
     {
         currentCoaterState = CoaterState.PRDispensing;
-        string prName = prDropdown.options[selectedPRIndex].text;
+        string prName = prDropdown != null ? prDropdown.options[prDropdown.value].text : "PR";
         UpdateCoaterUI($"Dispensing chemical matrix: {prName}...");
 
-        // 1. Trigger the realistic fluid particle stream burst instantly
-        if (dropEmitterParticles != null)
-        {
-            dropEmitterParticles.Play();
-        }
+        if (dropEmitterParticles != null) dropEmitterParticles.Play();
 
-        // Wait a brief fraction of a second for the stream to hit the plate face
         yield return new WaitForSeconds(0.2f);
 
-        // 2. Run your smooth Shader Graph wave expansion
-        if (waferRenderer != null)
+        float progressMultiplier = 0f;
+        while (progressMultiplier < 1.0f)
         {
-            wetCoatingMaterialInstance = waferRenderer.material;
+            progressMultiplier += Time.deltaTime * (fluidSpreadSpeed / 2f);
             
-            float progressMultiplier = 0f;
-            while (progressMultiplier < 1.0f)
+            // Dynamically paint a soft expanding boundary into our texture array data
+            for (int i = 0; i < RADIAL_SAMPLES; i++)
             {
-                progressMultiplier += Time.deltaTime * (fluidSpreadSpeed / 2f);
-                wetCoatingMaterialInstance.SetFloat("_CoatingProgress", progressMultiplier);
-                yield return null;
+                float radiusNormalized = (float)i / (RADIAL_SAMPLES - 1);
+                // If the sample radius is within our current distribution wave front, set coverage to 1
+                float coverage = (radiusNormalized <= progressMultiplier) ? 1f : 0f;
+                
+                // Baseline unspun thickness profile setup (approx 1500nm puddle)
+                float initialThickness = (radiusNormalized <= progressMultiplier) ? 1500f : 0f;
+                
+                mlDataLookupTexture.SetPixel(i, 0, new Color(coverage, initialThickness, 0f, 1f));
             }
+            mlDataLookupTexture.Apply();
+            
+            if (waferRenderer != null) waferRenderer.material.SetTexture("_MLDataTex", mlDataLookupTexture);
+            
+            yield return null;
         }
 
         yield return new WaitForSeconds(0.3f);
@@ -149,7 +180,6 @@ public class SpinCoaterController : MonoBehaviour
         UpdateCoaterUI("Dispense complete. Chemical wet-film uniform. Secure glass lid to spin.");
     }
 
-    // Call this via your UI Start Spin Button component hook setup
     public void BeginAutomatedRecipe()
     {
         if (currentCoaterState != CoaterState.PRDispensed) return;
@@ -166,55 +196,122 @@ public class SpinCoaterController : MonoBehaviour
     IEnumerator AutomatedSpinRecipeRoutine()
     {
         currentCoaterState = CoaterState.Spinning;
-        recipeTimer = 0f;
+        
+        float targetSpinSpeed = speedSlider != null ? speedSlider.value : 3000f;
+        float targetSpinTime = timeSlider != null ? timeSlider.value : 30f;
 
-        // --- STAGE 1: AUTOMATED SPREADING PHASE (Fixed Safety Profile) ---
+        // --- STAGE 1: AUTOMATED SPREADING PHASE ---
         currentPhaseName = "SPREADING";
+        recipeTimer = 0f;
         float spreadDuration = 5f;
         float spreadRPM = 500f;
         
         while (recipeTimer < spreadDuration)
         {
             recipeTimer += Time.deltaTime;
+            
+            // Spin physical transforms smoothly
             if (waferObject != null) waferObject.Rotate(Vector3.up * spreadRPM * 0.2f * Time.deltaTime);
+            if (rotorSpindleChuck != null) rotorSpindleChuck.Rotate(Vector3.up * spreadRPM * 0.2f * Time.deltaTime);
+            
             UpdateCoaterUI($"[{currentPhaseName}] Speed: {spreadRPM:F0} RPM | Time Left: {(spreadDuration - recipeTimer):F1}s");
             yield return null;
         }
 
-        // --- STAGE 2: AUTOMATED CASTING PHASE (User Configured Controls) ---
+        // --- STAGE 2: AUTOMATED CASTING PHASE (Inference Engine Driven) ---
         currentPhaseName = "CASTING";
         recipeTimer = 0f;
+        if (fluidSplatterParticles != null) fluidSplatterParticles.Play();
         
         while (recipeTimer < targetSpinTime)
         {
             recipeTimer += Time.deltaTime;
+            
             if (waferObject != null)
             {
                 waferObject.Rotate(Vector3.up * targetSpinSpeed * 0.2f * Time.deltaTime);
+                
+                // Visual flattening factor estimation
                 float thinningFactor = Mathf.Lerp(1.0f, 0.82f, recipeTimer / targetSpinTime);
                 waferObject.localScale = new Vector3(originalWaferScale.x, originalWaferScale.y * thinningFactor, originalWaferScale.z);
             }
+            if (rotorSpindleChuck != null) rotorSpindleChuck.Rotate(Vector3.up * targetSpinSpeed * 0.2f * Time.deltaTime);
+
+            // Execute neural networks on this frame step
+            ExecuteMLInferenceLoop(targetSpinSpeed, recipeTimer);
+
             UpdateCoaterUI($"[{currentPhaseName}] Speed: {targetSpinSpeed:F0} RPM | Time Left: {(targetSpinTime - recipeTimer):F1}s");
             yield return null;
         }
 
+        if (fluidSplatterParticles != null) fluidSplatterParticles.Stop();
         CompleteSpinCycle();
+    }
+
+    void ExecuteMLInferenceLoop(float currentRPM, float currentTime) {
+        if (engine == null || waferRenderer == null) return;
+
+        // 1. Construct input data array [256 steps, 3 coordinates each]
+        float[] inputs = new float[RADIAL_SAMPLES * 3];
+        for (int i = 0; i < RADIAL_SAMPLES; i++)
+        {
+            float radiusNormalized = (float)i / (RADIAL_SAMPLES - 1); 
+            inputs[i * 3 + 0] = currentRPM;
+            inputs[i * 3 + 1] = currentTime;
+            inputs[i * 3 + 2] = radiusNormalized;
+        }
+
+        TensorShape shape = new TensorShape(RADIAL_SAMPLES, 3);
+        
+        // 2. Wrap inputs and schedule execution asynchronously on GPU
+        using Tensor<float> inputTensor = new Tensor<float>(shape, inputs);
+        engine.Schedule(inputTensor);
+
+        // 3. Peek the raw output tensor reference from the engine
+        Tensor<float> gpuOutputTensor = engine.PeekOutput() as Tensor<float>;
+        
+        if (gpuOutputTensor != null)
+        {
+            // 4. CRITICAL MODERN STEP: Download the GPU memory back to a CPU-readable copy
+            using Tensor<float> cpuCopyTensor = gpuOutputTensor.ReadbackAndClone() as Tensor<float>;
+            
+            // 5. MODERN API CONVERSION: Safely dump structural data to standard array
+            float[] mlPredictions = cpuCopyTensor.DownloadToArray();
+
+            float centerThicknessSample = 0f;
+
+            // 6. Parse network predictions straight into your custom dynamic shader texture
+            for (int i = 0; i < RADIAL_SAMPLES; i++)
+            {
+                float predictedThickness = mlPredictions[i * 2 + 0]; 
+                float predictedCoverage = mlPredictions[i * 2 + 1];  
+
+                if (i == 0) {
+                    centerThicknessSample = predictedThickness;
+                    Debug.Log($"Live ML Output - Time: {currentTime:F2}s | Thickness: {centerThicknessSample:F1}nm");
+                }
+
+                mlDataLookupTexture.SetPixel(i, 0, new Color(predictedCoverage, predictedThickness, 0f, 1f));
+            }
+            mlDataLookupTexture.Apply();
+
+            // Feed the live lookup map to your wafer material instance properties
+            waferRenderer.material.SetTexture("_MLDataTex", mlDataLookupTexture);
+
+            if (thicknessTextDisplay != null)
+            {
+                thicknessTextDisplay.text = centerThicknessSample > 0 
+                    ? $"Thickness: {centerThicknessSample:F1} nm" 
+                    : "Thickness: 0.0 nm";
+            }
+        }
     }
 
     void CompleteSpinCycle()
     {
         currentCoaterState = CoaterState.Complete;
         if (waferObject != null) waferObject.localRotation = Quaternion.identity;
-        
-        float baseThickness = selectedPRIndex == 0 ? 1000f : (selectedPRIndex == 1 ? 1200f : 1500f);
-        float customThicknessOutput = baseThickness * (3000f / targetSpinSpeed);
-
-        if (thicknessDisplayText != null)
-        {
-            thicknessDisplayText.text = $"Thickness: {customThicknessOutput:F0} nm";
-        }
-        
-        UpdateCoaterUI("Spin cycle complete. Uniform film thickness achieved.");
+        UpdateCoaterUI("Spin cycle complete. Uniform film thickness achieved via neural inference model.");
     }
 
     public void LoadWaferIntoCoater()
@@ -225,29 +322,21 @@ public class SpinCoaterController : MonoBehaviour
 
     void UpdateCoaterUI(string message = "")
     {
-        // Unlocked as soon as a wafer is dropped on the chuck
         bool canSelectRecipe = (currentCoaterState == CoaterState.WaferLoaded || currentCoaterState == CoaterState.PRDispensed);
-        
-        // Unlocked ONLY after the liquid chemical puddle has been applied
         bool canSpinNow = (currentCoaterState == CoaterState.PRDispensed);
         
-        // FIXED: The Dispense button is now perfectly active ONLY when a bare wafer is waiting for its chemical coat!
-        if (dispenseButton != null) 
-        {
-            dispenseButton.interactable = (currentCoaterState == CoaterState.WaferLoaded);
-        }
+        if (dispenseButton != null) dispenseButton.interactable = (currentCoaterState == CoaterState.WaferLoaded);
+        if (startSpinButton != null) startSpinButton.interactable = canSpinNow;
 
-        if (startSpinButton != null)
-        {
-            startSpinButton.interactable = canSpinNow;
-        }
-
-        // Keep your recipe tuning inputs accessible
         if (speedSlider != null) speedSlider.interactable = canSelectRecipe;
         if (timeSlider != null) timeSlider.interactable = canSelectRecipe;
         if (prDropdown != null) prDropdown.interactable = canSelectRecipe;
         
-        // Update the master display board
-        if (coaterStatusText != null && message != "") coaterStatusText.text = "POLOS Coater: " + message;
+        if (coaterStatusText != null && !string.IsNullOrEmpty(message)) coaterStatusText.text = "POLOS Coater: " + message;
+    }
+
+    private void OnDestroy()
+    {
+        engine?.Dispose();
     }
 }
