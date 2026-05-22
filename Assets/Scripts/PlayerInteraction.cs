@@ -144,6 +144,23 @@ public class PlayerInteraction : MonoBehaviour
             // Case 1: Direct hit on the wafer mesh collider
             if (nameLower.Contains("wafer")) 
             {
+                // Connect to our exposure system to evaluate your streamlined pickup rules
+                ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
+                if (aligner != null)
+                {
+                    // Is the wafer sitting inside this specific machine dock?
+                    if (aligner.waferDockPosition != null && Vector3.Distance(target.transform.position, aligner.waferDockPosition.position) < 0.3f)
+                    {
+                        // FIXED SIMPLIFIED LOGIC RULE: If vacuum lines are active, freeze it!
+                        if (aligner.isVacuumSealed)
+                        {
+                            Debug.LogWarning("Pickup Denied: Cannot retrieve substrate while the vacuum chuck seal is engaged.");
+                            return; 
+                        }
+                    }
+                }
+
+                // Hotplate cleanup logic hook integration
                 HotplateController hotplate = Object.FindAnyObjectByType<HotplateController>();
                 if (hotplate != null && hotplate.currentState != HotplateController.HotplateState.Baking)
                 {
@@ -153,25 +170,11 @@ public class PlayerInteraction : MonoBehaviour
                         if (col.gameObject == hit.collider.gameObject)
                         {
                             hotplate.currentState = HotplateController.HotplateState.Idle;
-                            hotplate.BeginThermalBakeCycle(); 
                             break;
                         }
                     }
                 }
-
-                ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
-                if (aligner != null && aligner.currentStationState != ExposureStationController.ExposureState.Exposing)
-                {
-                    if (aligner.waferDockPosition != null && Vector3.Distance(hit.collider.gameObject.transform.position, aligner.waferDockPosition.position) < 0.2f)
-                    {
-                        aligner.currentStationState = ExposureStationController.ExposureState.Empty;
-                        aligner.isVacuumSealed = false;
-                        aligner.RegisterWaferInsertion(null); 
-                        if (aligner.stationStatusText != null) aligner.stationStatusText.text = "SUSS Aligner: Substrate removed. System ready.";
-                    }
-                }
                 
-                // FIXED: Direct hook to our generalized pickup method
                 PickUpHeldObject(target);
                 return;
             }
@@ -207,14 +210,12 @@ public class PlayerInteraction : MonoBehaviour
                     return; 
                 }
                 
-                // FIXED: Replaced compile error 'CaptureTargetObject' with our solid generalized handler!
                 PickUpHeldObject(target);
                 return;
             }
         }
     }
 
-    // FIXED: Renamed from PickUpWafer to a clean, universal operational system method
     void PickUpHeldObject(GameObject targetAsset)
     {
         heldObject = targetAsset;
@@ -309,7 +310,6 @@ public class PlayerInteraction : MonoBehaviour
                         DetachHeldObject();
                         
                         heldObject.transform.SetParent(aligner.transform);
-                        // Using your customized local position alignments!
                         heldObject.transform.localPosition = new Vector3(0.4f, 0f, 0.8f); 
                         heldObject.transform.localRotation = Quaternion.identity;
                         
@@ -333,8 +333,7 @@ public class PlayerInteraction : MonoBehaviour
                         RestoreHeldObjectLayer();
                         DetachHeldObject();
                         
-                        aligner.RegisterWaferInsertion(heldObject); 
-                        
+                        // FIXED: Old RegisterWaferInsertion line dropped to accommodate open logic pipeline loop!
                         if (aligner.waferDockPosition != null)
                         {
                             heldObject.transform.position = aligner.waferDockPosition.position;
