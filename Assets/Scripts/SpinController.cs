@@ -34,10 +34,14 @@ public class SpinCoaterController : MonoBehaviour
 
     [Header("References")]
     public Transform waferObject; 
-    private Vector3 originalWaferScale;
-    public GameObject dropletPrefab;       
-    public Transform dropletSpawnPoint;    
+    private Vector3 originalWaferScale;  
     public Material liquidAmberMaterial; 
+
+    [Header("Dynamic Fluid Animations")]
+    public Renderer waferRenderer;          // Assign your physical wafer's Renderer component
+    private Material wetCoatingMaterialInstance;
+    public float fluidSpreadSpeed = 2.5f;
+    public ParticleSystem dropEmitterParticles; // Assign your new PR_Drop_Emitter here
 
     private ClamshellLidController lidController;
 
@@ -117,23 +121,32 @@ public class SpinCoaterController : MonoBehaviour
         string prName = prDropdown.options[selectedPRIndex].text;
         UpdateCoaterUI($"Dispensing chemical matrix: {prName}...");
 
-        for (int i = 0; i < 3; i++)
+        // 1. Trigger the realistic fluid particle stream burst instantly
+        if (dropEmitterParticles != null)
         {
-            if (dropletPrefab != null && dropletSpawnPoint != null)
-            {
-                GameObject drop = Instantiate(dropletPrefab, dropletSpawnPoint.position, Quaternion.identity);
-                Destroy(drop, 1.5f);
-            }
-            yield return new WaitForSeconds(0.25f);
+            dropEmitterParticles.Play();
         }
 
-        yield return new WaitForSeconds(0.4f);
-        currentCoaterState = CoaterState.PRDispensed;
-        
-        Renderer waferRen = waferObject.GetComponent<Renderer>();
-        if (waferRen != null && liquidAmberMaterial != null) waferRen.material = liquidAmberMaterial;
+        // Wait a brief fraction of a second for the stream to hit the plate face
+        yield return new WaitForSeconds(0.2f);
 
-        UpdateCoaterUI("Dispense complete. Chemical logged. Secure lid to spin.");
+        // 2. Run your smooth Shader Graph wave expansion
+        if (waferRenderer != null)
+        {
+            wetCoatingMaterialInstance = waferRenderer.material;
+            
+            float progressMultiplier = 0f;
+            while (progressMultiplier < 1.0f)
+            {
+                progressMultiplier += Time.deltaTime * (fluidSpreadSpeed / 2f);
+                wetCoatingMaterialInstance.SetFloat("_CoatingProgress", progressMultiplier);
+                yield return null;
+            }
+        }
+
+        yield return new WaitForSeconds(0.3f);
+        currentCoaterState = CoaterState.PRDispensed;
+        UpdateCoaterUI("Dispense complete. Chemical wet-film uniform. Secure glass lid to spin.");
     }
 
     // Call this via your UI Start Spin Button component hook setup
