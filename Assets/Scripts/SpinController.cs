@@ -107,7 +107,7 @@ public class SpinCoaterController : MonoBehaviour
 
     void InitializeEquipmentUI()
     {
-        if (speedSlider != null) { speedSlider.minValue = 2000f; speedSlider.maxValue = 5000f; speedSlider.value = 3000f; }
+        if (speedSlider != null) { speedSlider.minValue = 1000f; speedSlider.maxValue = 7000f; speedSlider.value = 3000f; }
         if (timeSlider != null) { timeSlider.minValue = 15f; timeSlider.maxValue = 60f; timeSlider.value = 30f; }
         
         if (prDropdown != null)
@@ -278,7 +278,7 @@ public class SpinCoaterController : MonoBehaviour
             // 5. MODERN API CONVERSION: Safely dump structural data to standard array
             float[] mlPredictions = cpuCopyTensor.DownloadToArray();
 
-            float centerThicknessSample = 0f;
+            float centerThicknessSample = mlPredictions[0];
 
             // 6. Parse network predictions straight into your custom dynamic shader texture
             for (int i = 0; i < RADIAL_SAMPLES; i++)
@@ -291,6 +291,7 @@ public class SpinCoaterController : MonoBehaviour
                     Debug.Log($"Live ML Output - Time: {currentTime:F2}s | Thickness: {centerThicknessSample:F1}nm");
                 }
 
+                float normalizedThicknessForShader = Mathf.Clamp01(predictedThickness);
                 mlDataLookupTexture.SetPixel(i, 0, new Color(predictedCoverage, predictedThickness, 0f, 1f));
             }
             mlDataLookupTexture.Apply();
