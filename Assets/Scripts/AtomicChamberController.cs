@@ -18,10 +18,10 @@ public class AtomicChamberController : MonoBehaviour
 
     [Header("Tuning Parameters")]
     public int solventCount = 150;
-    public int pacCount = 40;
+    public int pacCount = 60;
     
     [Header("Microscopic Kinetics")]
-    public float brownianJitter = 0.05f;
+    public float brownianJitter = 0.006f;
     public float solventDriftSpeed = 2f;
     public float dissolutionScatterSpeed = 3f;
 
@@ -29,20 +29,36 @@ public class AtomicChamberController : MonoBehaviour
     private List<Transform> pacAtoms = new List<Transform>();
     private List<Vector3> initialPACPositions = new List<Vector3>();
     
+    public enum MicroscopePhase { Off, WetLiquid, BakedSolid, Dissolving }
+    private MicroscopePhase currentPhase = MicroscopePhase.Off;
     private bool isFluidState = false;
+
+    private void Awake() {
+        ClearChamber();
+    }
 
     private void Start()
     {
         gameObject.SetActive(false);
     }
 
-    private void Update()
-    {
-        // 1. Continuous Brownian Motion Jitter during the wet/fluid phases
-        if (isFluidState)
+   private void Update() {
+        switch (currentPhase)
         {
-            ApplyBrownianMotion(solventAtoms, brownianJitter);
-            ApplyBrownianMotion(pacAtoms, brownianJitter * 0.5f); // PACs are heavier, jitter less
+            case MicroscopePhase.WetLiquid:
+                // High energy, fluid exploration jitter
+                ApplyBrownianMotion(solventAtoms, brownianJitter);
+                ApplyBrownianMotion(pacAtoms, brownianJitter * 0.6f);
+                break;
+
+            case MicroscopePhase.BakedSolid:
+                // Solid-state lattice hum (Molecules are locked but vibrating tightly)
+                ApplyBrownianMotion(pacAtoms, brownianJitter * 0.15f); // 85% restriction!
+                break;
+
+            case MicroscopePhase.Dissolving:
+                // Handled dynamically by the Step 4 coroutine scattering vectors
+                break;
         }
     }
 
@@ -53,6 +69,8 @@ public class AtomicChamberController : MonoBehaviour
     {
         ClearChamber();
         isFluidState = true;
+        gameObject.SetActive(true);
+        currentPhase = MicroscopePhase.WetLiquid;
 
         solventGroup.localPosition = Vector3.zero;
         pacGroup.localPosition = Vector3.zero;
@@ -63,7 +81,7 @@ public class AtomicChamberController : MonoBehaviour
         // Spawn Solvents (Teal)
         for (int i = 0; i < solventCount; i++)
         {
-            Vector3 randomPos = GetRandomLocalPosition(1f);
+            Vector3 randomPos = GetRandomLocalPosition(0.6f);
             GameObject solvent = Instantiate(atomPrefab, solventGroup);
             solvent.layer = LayerMask.NameToLayer("MicroscopeView");
             solvent.transform.localPosition = randomPos;
@@ -105,21 +123,27 @@ public class AtomicChamberController : MonoBehaviour
             solventGroup.Translate(Vector3.up * solventDriftSpeed * Time.deltaTime, Space.Self);
 
             // Compress ceiling
-            chamberCeiling.localScale = new Vector3(1f, Mathf.Lerp(1f, finalThicknessRatio, t), 1f);
+            float initialCeilingY = 2.5f; // Top of your 5-unit cube
+            float targetCeilingY = -2.5f + (5f * finalThicknessRatio); // Maps ratio directly to remaining height
+
+            chamberCeiling.localPosition = new Vector3(
+                chamberCeiling.localPosition.x, 
+                Mathf.Lerp(initialCeilingY, targetCeilingY, t), 
+                chamberCeiling.localPosition.z
+            );
 
             // Tightly pack PACs toward the floor plane (Increases density, retains object scale)
-            for (int i = 0; i < pacAtoms.Count; i++)
-            {
+            for (int i = 0; i < pacAtoms.Count; i++) {
                 if (pacAtoms[i] == null) continue;
+                
                 Vector3 initialPos = initialPACPositions[i];
+                floorY = -chamberBounds.y / 2f; 
+                
+                // Math: Scale the distance from the floor by the thickness ratio
                 float targetY = floorY + ((initialPos.y - floorY) * finalThicknessRatio);
                 
-                // Keep structural X/Z positions, smoothly flatten Y coordinates down
-                Vector3 compactedPos = new Vector3(initialPos.x, targetY, initialPos.z);
-                pacAtoms[i].localPosition = compactedPos;
-                
-                // Update their tracking array so Brownian motion jitter bases off new compressed anchors
-                initialPACPositions[i] = compactedPos;
+                // Smoothly interpolate the position over time
+                pacAtoms[i].localPosition = new Vector3(initialPos.x, Mathf.Lerp(initialPos.y, targetY, t), initialPos.z);
             }
 
             yield return null;
@@ -127,9 +151,11 @@ public class AtomicChamberController : MonoBehaviour
 
         // Post-bake: Matrix has solidified into a film grid. Stop fluid vibrations.
         isFluidState = false;
+        currentPhase = MicroscopePhase.BakedSolid;
 
         foreach (Transform s in solventAtoms) if (s != null) Destroy(s.gameObject);
         solventAtoms.Clear();
+        
     }
 
     /// <summary>
@@ -153,7 +179,9 @@ public class AtomicChamberController : MonoBehaviour
     public IEnumerator AnimateDevelopment(float duration)
     {
         float elapsed = 0f;
+        
         isFluidState = false; // Dev solution breaks the solid grid matrix completely
+        currentPhase = MicroscopePhase.Dissolving;
 
         // Generate random dissipation velocity vectors for every remaining atom
         Vector3[] scatterDirections = new Vector3[pacAtoms.Count];
@@ -238,7 +266,7 @@ public class AtomicChamberController : MonoBehaviour
     public void TestSpin() { InitializeWetMatrix(); }
 
     [ContextMenu("Test Step 2: Post-Bake")]
-    public void TestBake() { StartCoroutine(AnimateSoftBake(0.85f, 2.0f)); }
+    public void TestBake() { StartCoroutine(AnimateSoftBake(0.55f, 2.0f)); }
 
     [ContextMenu("Test Step 3: Post-Exposure")]
     public void TestExposure() { AnimateExposure(0.7f, acidIonMaterial); }
