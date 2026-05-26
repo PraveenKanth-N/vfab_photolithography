@@ -147,6 +147,37 @@ public class SpinCoaterController : MonoBehaviour
         string prName = prDropdown != null ? prDropdown.options[prDropdown.value].text : "PR";
         UpdateCoaterUI($"Dispensing chemical matrix: {prName}...");
 
+        // --- INTEGRATION TRIGGER: STEP 1 (Post-Dispense / Wet Matrix Generation) ---
+        if (MicroscopeInterfaceManager.Instance != null)
+        {
+            // 1. Awaken the hidden microscope chamber subsystem
+            MicroscopeInterfaceManager.Instance.SetChamberState(true);
+            
+            AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
+            if (chamber != null)
+            {
+                // Dynamic Variant Mapping: Adjust initial chemistry bounds based on selected photoresist viscosity profile
+                if (prName == "PR-1500") // High Viscosity option
+                {
+                    chamber.solventCount = 500;
+                    chamber.pacCount = 150;
+                }
+                else if (prName == "PR-1000") // Low Viscosity option
+                {
+                    chamber.solventCount = 250;
+                    chamber.pacCount = 70;
+                }
+                else // Default standard configuration (PR-1200)
+                {
+                    chamber.solventCount = 380;
+                    chamber.pacCount = 110;
+                }
+
+                // Initialize the live, vibrating, fluid molecular matrix simulation frame
+                chamber.InitializeWetMatrix();
+            }
+        }
+
         if (dropEmitterParticles != null) dropEmitterParticles.Play();
 
         yield return new WaitForSeconds(0.2f);
@@ -223,6 +254,16 @@ public class SpinCoaterController : MonoBehaviour
         recipeTimer = 0f;
         if (fluidSplatterParticles != null) fluidSplatterParticles.Play();
         
+        if (MicroscopeInterfaceManager.Instance != null)
+        {
+            AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
+            if (chamber != null)
+            {
+                // Run the molecular shedding animation over the duration of the spin cycle
+                StartCoroutine(chamber.AnimateCentrifugalThinning(targetSpinTime));
+            }
+        }
+
         while (recipeTimer < targetSpinTime)
         {
             recipeTimer += Time.deltaTime;

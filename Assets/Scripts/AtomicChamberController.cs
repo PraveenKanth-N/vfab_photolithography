@@ -4,88 +4,92 @@ using UnityEngine;
 
 public class AtomicChamberController : MonoBehaviour
 {
+    public enum MicroscopePhase { Off, WetLiquid, BakedSolid, Dissolving }
+
     [Header("Chamber Structure")]
-    public Transform chamberCeiling;
+    [Tooltip("Assign your new flat Film_Surface_Interface Quad/Plane object here.")]
+    public Transform filmSurfaceInterface;
     public Transform solventGroup;
     public Transform pacGroup;
     public Vector3 chamberBounds = new Vector3(5f, 5f, 5f);
 
     [Header("Atom Prefabs & Materials")]
     public GameObject atomPrefab;
-    public Material solventMaterial; // Must support transparency (_Alpha)
-    public Material pacMaterial;     // Red/Amber
-    public Material acidIonMaterial;
+    public Material solventMaterial;      // Teal
+    public Material pacMaterial;          // Red/Amber
+    public Material acidIonMaterial;      // Neon Lime Green
 
     [Header("Tuning Parameters")]
-    public int solventCount = 150;
-    public int pacCount = 60;
+    public int solventCount = 380;        // Initial massive puddle crowd volume
+    public int pacCount = 110;
     
     [Header("Microscopic Kinetics")]
-    public float brownianJitter = 0.006f;
-    public float solventDriftSpeed = 2f;
-    public float dissolutionScatterSpeed = 3f;
+    public float brownianJitter = 0.05f;
+    public float solventEvaporationSpeed = 2.5f;
 
     private List<Transform> solventAtoms = new List<Transform>();
     private List<Transform> pacAtoms = new List<Transform>();
     private List<Vector3> initialPACPositions = new List<Vector3>();
     
-    public enum MicroscopePhase { Off, WetLiquid, BakedSolid, Dissolving }
     private MicroscopePhase currentPhase = MicroscopePhase.Off;
-    private bool isFluidState = false;
 
-    private void Awake() {
+    private void Awake()
+    {
+        // Clean out any editor-mode leftovers so we start fresh and dynamic
         ClearChamber();
     }
 
-    private void Start()
+    private void Update()
     {
-        gameObject.SetActive(false);
-    }
-
-   private void Update() {
+        // Continuous, frame-rate independent Brownian Motion Jitter
         switch (currentPhase)
         {
             case MicroscopePhase.WetLiquid:
-                // High energy, fluid exploration jitter
                 ApplyBrownianMotion(solventAtoms, brownianJitter);
                 ApplyBrownianMotion(pacAtoms, brownianJitter * 0.6f);
                 break;
 
             case MicroscopePhase.BakedSolid:
-                // Solid-state lattice hum (Molecules are locked but vibrating tightly)
-                ApplyBrownianMotion(pacAtoms, brownianJitter * 0.15f); // 85% restriction!
-                break;
-
-            case MicroscopePhase.Dissolving:
-                // Handled dynamically by the Step 4 coroutine scattering vectors
+                ApplyBrownianMotion(pacAtoms, brownianJitter * 0.12f); // Tight lattice hum
                 break;
         }
     }
 
     /// <summary>
-    /// Step 1: Spawns the highly fluid, jittering wet photoresist layer.
+    /// Step 1: Spawns the highly dense, chaotic initial wet puddle matrix.
     /// </summary>
     public void InitializeWetMatrix()
     {
         ClearChamber();
-        isFluidState = true;
-        gameObject.SetActive(true);
         currentPhase = MicroscopePhase.WetLiquid;
 
         solventGroup.localPosition = Vector3.zero;
         pacGroup.localPosition = Vector3.zero;
-        pacGroup.localScale = Vector3.one;
-        chamberCeiling.localScale = Vector3.one;
-        solventMaterial.SetFloat("_Alpha", 1f);
+        
+        // Reset surface plane to top boundary ceiling
+        if (filmSurfaceInterface != null)
+        {
+            filmSurfaceInterface.gameObject.SetActive(true);
+            filmSurfaceInterface.localPosition = new Vector3(0f, chamberBounds.y / 2f, 0f); // Y = 2.5f
+        }
+
+        // Safety reset for transparency on base material asset
+        if (solventMaterial != null) solventMaterial.SetFloat("_Alpha", 1f);
+
+        // Capture the active camera's current layer so spawned atoms are guaranteed visible
+        int renderingLayer = gameObject.layer;
 
         // Spawn Solvents (Teal)
         for (int i = 0; i < solventCount; i++)
         {
-            Vector3 randomPos = GetRandomLocalPosition(0.6f);
+            Vector3 randomPos = GetRandomLocalPosition(0.65f);
             GameObject solvent = Instantiate(atomPrefab, solventGroup);
-            solvent.layer = LayerMask.NameToLayer("MicroscopeView");
+            
+            // CRITICAL RENDER FIX: Force clone to match the controller's exact layer mask
+            solvent.layer = renderingLayer;
+            
             solvent.transform.localPosition = randomPos;
-            solvent.transform.localScale = Vector3.one * 0.15f;
+            solvent.transform.localScale = Vector3.one * 0.14f;
             solvent.GetComponent<MeshRenderer>().material = solventMaterial;
             solventAtoms.Add(solvent.transform);
         }
@@ -93,11 +97,14 @@ public class AtomicChamberController : MonoBehaviour
         // Spawn PACs (Red)
         for (int i = 0; i < pacCount; i++)
         {
-            Vector3 randomPos = GetRandomLocalPosition(1f);
+            Vector3 randomPos = GetRandomLocalPosition(0.65f);
             GameObject pac = Instantiate(atomPrefab, pacGroup);
-            pac.layer = LayerMask.NameToLayer("MicroscopeView");
+            
+            // CRITICAL RENDER FIX: Force clone to match the controller's exact layer mask
+            pac.layer = renderingLayer;
+            
             pac.transform.localPosition = randomPos;
-            pac.transform.localScale = Vector3.one * 0.25f;
+            pac.transform.localScale = Vector3.one * 0.22f;
             pac.GetComponent<MeshRenderer>().material = pacMaterial;
             
             pacAtoms.Add(pac.transform);
@@ -106,117 +113,170 @@ public class AtomicChamberController : MonoBehaviour
     }
 
     /// <summary>
-    /// Step 2: Animates vertical matrix compaction and solvent boiling.
+    /// Step 1.5: Simulates centrifugal fluid ejection during high RPM spin.
+    /// </summary>
+    public IEnumerator AnimateCentrifugalThinning(float duration)
+    {
+        float elapsed = 0f;
+        int targetSolventCount = 60; 
+        int targetPACCount = 45;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+
+            if (solventAtoms.Count > targetSolventCount && Random.value > 0.6f)
+            {
+                int removeCount = Mathf.Min(4, solventAtoms.Count - targetSolventCount);
+                for (int i = 0; i < removeCount; i++)
+                {
+                    int index = Random.Range(0, solventAtoms.Count);
+                    if (solventAtoms[index] != null) Destroy(solventAtoms[index].gameObject);
+                    solventAtoms.RemoveAt(index);
+                }
+            }
+            yield return null;
+        }
+    }
+
+    /// <summary>
+    /// Step 2: Animates vertical matrix compaction and solvent outgassing.
     /// </summary>
     public IEnumerator AnimateSoftBake(float finalThicknessRatio, float duration)
     {
         float elapsed = 0f;
-        float floorY = -chamberBounds.y / 2f;
+        float floorY = -chamberBounds.y / 2f;      // -2.5f
+        float initialCeilingY = chamberBounds.y / 2f; // 2.5f
+        float targetCeilingY = floorY + (chamberBounds.y * finalThicknessRatio);
+
+        // Cache runtime materials to prevent modifying project source assets
+        List<Material> solventInstances = new List<Material>();
+        foreach (Transform s in solventAtoms)
+        {
+            if (s != null) solventInstances.Add(s.GetComponent<MeshRenderer>().material);
+        }
 
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
 
-            // Evaporate solvents upward
-            solventMaterial.SetFloat("_Alpha", Mathf.Lerp(1f, 0f, t));
-            solventGroup.Translate(Vector3.up * solventDriftSpeed * Time.deltaTime, Space.Self);
+            // 1. Opcacity fade directly on runtime clones
+            float currentAlpha = Mathf.Lerp(1f, 0f, t);
+            foreach (Material mat in solventInstances)
+            {
+                if (mat != null && mat.HasProperty("_Alpha"))
+                {
+                    mat.SetFloat("_Alpha", currentAlpha);
+                }
+            }
 
-            // Compress ceiling
-            float initialCeilingY = 2.5f; // Top of your 5-unit cube
-            float targetCeilingY = -2.5f + (5f * finalThicknessRatio); // Maps ratio directly to remaining height
+            solventGroup.Translate(Vector3.up * solventEvaporationSpeed * Time.deltaTime, Space.Self);
 
-            chamberCeiling.localPosition = new Vector3(
-                chamberCeiling.localPosition.x, 
-                Mathf.Lerp(initialCeilingY, targetCeilingY, t), 
-                chamberCeiling.localPosition.z
-            );
+            // 2. Slide boundary plane position
+            if (filmSurfaceInterface != null)
+            {
+                filmSurfaceInterface.localPosition = new Vector3(
+                    filmSurfaceInterface.localPosition.x,
+                    Mathf.Lerp(initialCeilingY, targetCeilingY, t),
+                    filmSurfaceInterface.localPosition.z
+                );
+            }
 
-            // Tightly pack PACs toward the floor plane (Increases density, retains object scale)
-            for (int i = 0; i < pacAtoms.Count; i++) {
+            // 3. Compact PAC structures
+            for (int i = 0; i < pacAtoms.Count; i++)
+            {
                 if (pacAtoms[i] == null) continue;
-                
                 Vector3 initialPos = initialPACPositions[i];
-                floorY = -chamberBounds.y / 2f; 
-                
-                // Math: Scale the distance from the floor by the thickness ratio
                 float targetY = floorY + ((initialPos.y - floorY) * finalThicknessRatio);
                 
-                // Smoothly interpolate the position over time
                 pacAtoms[i].localPosition = new Vector3(initialPos.x, Mathf.Lerp(initialPos.y, targetY, t), initialPos.z);
             }
 
             yield return null;
         }
 
-        // Post-bake: Matrix has solidified into a film grid. Stop fluid vibrations.
-        isFluidState = false;
         currentPhase = MicroscopePhase.BakedSolid;
 
         foreach (Transform s in solventAtoms) if (s != null) Destroy(s.gameObject);
         solventAtoms.Clear();
-        
     }
 
     /// <summary>
-    /// Step 3: Swaps target percentages into green acid ions.
+    /// Step 3: Progressive chemical transformation wave fade-in.
     /// </summary>
-    public void AnimateExposure(float conversionEfficiency, Material acidIonMaterial)
+    public void AnimateExposure(float conversionEfficiency, Material targetAcidIonMaterial)
+    {
+        if (targetAcidIonMaterial == null) targetAcidIonMaterial = acidIonMaterial;
+        StartCoroutine(ChemicalTransformationRoutine(conversionEfficiency, targetAcidIonMaterial));
+    }
+
+    private IEnumerator ChemicalTransformationRoutine(float conversionEfficiency, Material targetMat)
     {
         int targetConversionCount = Mathf.RoundToInt(pacAtoms.Count * conversionEfficiency);
+        float elapsed = 0f;
+        float fadeDuration = 1.8f; 
+
+        List<MeshRenderer> targets = new List<MeshRenderer>();
         for (int i = 0; i < targetConversionCount; i++)
         {
-            if (pacAtoms[i] != null)
+            if (pacAtoms[i] != null) targets.Add(pacAtoms[i].GetComponent<MeshRenderer>());
+        }
+
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / fadeDuration;
+
+            foreach (var renderer in targets)
             {
-                pacAtoms[i].GetComponent<MeshRenderer>().material = acidIonMaterial;
+                if (renderer != null)
+                {
+                    renderer.material.Lerp(renderer.material, targetMat, t);
+                }
             }
+            yield return null;
         }
     }
 
     /// <summary>
-    /// Step 4: Random directional scattering and visual opacity dissolution fade.
+    /// Step 4: Random scattering dissolution.
     /// </summary>
     public IEnumerator AnimateDevelopment(float duration)
     {
         float elapsed = 0f;
-        
-        isFluidState = false; // Dev solution breaks the solid grid matrix completely
-        currentPhase = MicroscopePhase.Dissolving;
+        currentPhase = MicroscopePhase.Off; 
 
-        // Generate random dissipation velocity vectors for every remaining atom
         Vector3[] scatterDirections = new Vector3[pacAtoms.Count];
         List<Material> activeMaterials = new List<Material>();
 
         for (int i = 0; i < pacAtoms.Count; i++)
         {
-            scatterDirections[i] = Random.onUnitSphere; // Perfect 360-degree distribution
-            if (pacAtoms[i] != null)
-            {
-                activeMaterials.Add(pacAtoms[i].GetComponent<MeshRenderer>().material);
-            }
+            scatterDirections[i] = Random.onUnitSphere;
+            if (pacAtoms[i] != null) activeMaterials.Add(pacAtoms[i].GetComponent<MeshRenderer>().material);
         }
+
+        if (filmSurfaceInterface != null) filmSurfaceInterface.gameObject.SetActive(false);
 
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
 
-            // 1. Move balls outward in their designated random directions
             for (int i = 0; i < pacAtoms.Count; i++)
             {
                 if (pacAtoms[i] != null)
                 {
-                    pacAtoms[i].Translate(scatterDirections[i] * dissolutionScatterSpeed * Time.deltaTime, Space.Self);
+                    pacAtoms[i].Translate(scatterDirections[i] * 1.2f * Time.deltaTime, Space.Self);
                 }
             }
 
-            // 2. Smoothly fade materials away into transparency
-            float rapidFade = Mathf.Pow(t, 2);
+            float rapidExponentialFade = Mathf.Pow(t, 2.5f);
             foreach (Material mat in activeMaterials)
             {
                 if (mat != null && mat.HasProperty("_Alpha"))
                 {
-                    mat.SetFloat("_Alpha", Mathf.Lerp(1f, 0f, rapidFade));
+                    mat.SetFloat("_Alpha", Mathf.Lerp(1f, 0f, rapidExponentialFade));
                 }
             }
 
@@ -261,17 +321,4 @@ public class AtomicChamberController : MonoBehaviour
         pacAtoms.Clear();
         initialPACPositions.Clear();
     }
-
-    [ContextMenu("Test Step 1: Post-Spin")]
-    public void TestSpin() { InitializeWetMatrix(); }
-
-    [ContextMenu("Test Step 2: Post-Bake")]
-    public void TestBake() { StartCoroutine(AnimateSoftBake(0.55f, 2.0f)); }
-
-    [ContextMenu("Test Step 3: Post-Exposure")]
-    public void TestExposure() { AnimateExposure(0.7f, acidIonMaterial); }
-
-    [ContextMenu("Test Step 4: Post-Develop")]
-    public void TestDevelop() { StartCoroutine(AnimateDevelopment(2.0f)); }
 }
-

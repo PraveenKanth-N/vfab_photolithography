@@ -33,6 +33,9 @@ public class ExposureStationController : MonoBehaviour
     public Transform maskTrayTransform;          
     public Transform waferDockPosition;          
 
+    [Header("Materials")]
+    public Material acidIonMaterial;
+
     [HideInInspector] public bool wasWaferExposedSuccessfully = false;
     [HideInInspector] public float loggedTimeValue = 0f;
     [HideInInspector] public float loggedIntensityValue = 0f;
@@ -142,6 +145,22 @@ public class ExposureStationController : MonoBehaviour
         
         loggedTimeValue = exposureTimeSetting;
         loggedIntensityValue = uvIntensitySetting;
+
+        // --- INTEGRATION TRIGGER: STEP 3 (Photolytic Energy Conversion) ---
+        if (MicroscopeInterfaceManager.Instance != null)
+        {
+            AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
+            if (chamber != null)
+            {
+                // Math: Energy Dose = Intensity * Duration
+                float totalEnergyDose = loggedIntensityValue * loggedTimeValue;
+
+                // Physics Mapping: If dosage is optimized, trigger a high-percentage molecular flip.
+                // If user leaves sliders at absolute lowest values, conversion efficiency stalls at 25%.
+                float targetConversionEfficiency = (totalEnergyDose > 120f) ? 0.85f : 0.25f;
+                chamber.AnimateExposure(targetConversionEfficiency, acidIonMaterial);
+            }
+        }
 
         Debug.Log($"ML DATA POINT LOGGED (EXPOSURE): Time={loggedTimeValue}s, Intensity={loggedIntensityValue}mW/cm²");
         UpdateExposureStationUI("Exposure complete! Latent image stabilized.");

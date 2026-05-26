@@ -102,6 +102,24 @@ public class HotplateController : MonoBehaviour
         currentState = HotplateState.Baking;
         bakeTimer = 0f;
         UpdateHotplateUI("Bake cycle running. Thermally processing substrate matrix...");
+
+        // --- INTEGRATION TRIGGER: STEP 2 (Thermal Matrix Compaction) ---
+        if (MicroscopeInterfaceManager.Instance != null)
+        {
+            AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
+            if (chamber != null)
+            {
+                // Dynamic Variant Mapping:
+                // If under-heated (<90C) or under-baked, matrix contraction stops short (leaves residual solvents).
+                // If ideal thermal profile is applied, it successfully compresses down to 55% volume matrix (0.55f).
+                float targetThicknessRatio = (targetTemperature < 90f || targetBakeTime < 45f) ? 0.75f : 0.55f;
+                
+                // Matches the fast-forwarded simulation hardware clock duration scale
+                float animationDuration = targetBakeTime * 0.1f;
+
+                StartCoroutine(chamber.AnimateSoftBake(targetThicknessRatio, animationDuration));
+            }
+        }
     }
 
     void CompleteSoftBake()
