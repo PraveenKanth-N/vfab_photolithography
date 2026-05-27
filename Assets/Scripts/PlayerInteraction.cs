@@ -16,7 +16,6 @@ public class PlayerInteraction : MonoBehaviour
     private GameObject heldObject = null;
     private Rigidbody heldRigidbody = null;
     
-    // Cache the original layer of the object so we can restore it when placed
     private int originalLayer; 
     private int ignoreRaycastLayer;
 
@@ -24,8 +23,6 @@ public class PlayerInteraction : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        
-        // Find the built-in "Ignore Raycast" layer ID (usually index 2)
         ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
     }
 
@@ -35,13 +32,8 @@ public class PlayerInteraction : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            // FIRST PRIORITY: Try to click UI world-space buttons using the crosshair
-            if (TryClickWorldUI())
-            {
-                return; // If we clicked a wall button successfully, stop here!
-            }
+            if (TryClickWorldUI()) return;
 
-            // SECOND PRIORITY: Handle physical pick up and drop tracking
             if (heldObject == null)
             {
                 TryPickUpObject();
@@ -67,10 +59,8 @@ public class PlayerInteraction : MonoBehaviour
         {
             GameObject UI_Target = results[0].gameObject;
             
-            // 1. FILTER OUT BLOCKERS: If we hit a dropdown background click-catcher, skip past it!
             if ((UI_Target.name.Contains("Blocker") || UI_Target.name.Contains("Template")) && results.Count > 1)
             {
-                // Force focus down to the actual option list items sitting beneath the veil
                 for (int i = 1; i < results.Count; i++)
                 {
                     if (!results[i].gameObject.name.Contains("Blocker"))
@@ -81,20 +71,16 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
             
-            // 2. TRIGGER SELECTION: Fire a direct click event on whatever component or text item we hit
             Toggle toggleComponent = UI_Target.GetComponent<Toggle>();
             if (toggleComponent == null) toggleComponent = UI_Target.GetComponentInParent<Toggle>();
             
-            // TMPro menu option items are structured as Toggles under the hood!
             if (toggleComponent != null || UI_Target.name.Contains("Item"))
             {
                 GameObject clickTarget = toggleComponent != null ? toggleComponent.gameObject : UI_Target;
                 ExecuteEvents.Execute(clickTarget, pointerData, ExecuteEvents.pointerClickHandler);
-                Debug.Log($"Crosshair intercepted choice layer assignment on: '{clickTarget.name}'");
                 return true;
             }
 
-            // 3. DROPDOWN INITIAL CLOSURE/OPENING HOOKS
             TMP_Dropdown tmpDropdown = UI_Target.GetComponent<TMP_Dropdown>();
             if (tmpDropdown == null) tmpDropdown = UI_Target.GetComponentInParent<TMP_Dropdown>();
             if (tmpDropdown != null)
@@ -103,7 +89,6 @@ public class PlayerInteraction : MonoBehaviour
                 return true;
             }
 
-            // 4. STANDARD BUTTON HANDLERS
             Button button = UI_Target.GetComponent<Button>();
             if (button == null) button = UI_Target.GetComponentInParent<Button>();
             if (button != null && button.interactable)
@@ -112,7 +97,6 @@ public class PlayerInteraction : MonoBehaviour
                 return true; 
             }
 
-            // 5. SLIDER ADJUSTMENT AXIS
             Slider slider = UI_Target.GetComponent<Slider>();
             if (slider == null) slider = UI_Target.GetComponentInParent<Slider>();
             if (slider != null && slider.interactable)
@@ -141,26 +125,18 @@ public class PlayerInteraction : MonoBehaviour
             GameObject target = hit.collider.gameObject;
             string nameLower = target.name.ToLower();
 
-            // Case 1: Direct hit on the wafer mesh collider
             if (nameLower.Contains("wafer")) 
             {
-                // Connect to our exposure system to evaluate your streamlined pickup rules
                 ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
-                if (aligner != null)
+                if (aligner != null && aligner.waferDockPosition != null && Vector3.Distance(target.transform.position, aligner.waferDockPosition.position) < 0.3f)
                 {
-                    // Is the wafer sitting inside this specific machine dock?
-                    if (aligner.waferDockPosition != null && Vector3.Distance(target.transform.position, aligner.waferDockPosition.position) < 0.3f)
+                    if (aligner.isVacuumSealed)
                     {
-                        // FIXED SIMPLIFIED LOGIC RULE: If vacuum lines are active, freeze it!
-                        if (aligner.isVacuumSealed)
-                        {
-                            Debug.LogWarning("Pickup Denied: Cannot retrieve substrate while the vacuum chuck seal is engaged.");
-                            return; 
-                        }
+                        Debug.LogWarning("Pickup Denied: Vacuum chuck active.");
+                        return; 
                     }
                 }
 
-                // Hotplate cleanup logic hook integration
                 HotplateController hotplate = Object.FindAnyObjectByType<HotplateController>();
                 if (hotplate != null && hotplate.currentState != HotplateController.HotplateState.Baking)
                 {
@@ -175,38 +151,47 @@ public class PlayerInteraction : MonoBehaviour
                     }
                 }
                 
+                // --- INTEGRATION: CHECK IF WAFER IS INSIDE A BEAKER ON PICKUP ---
+                FluidInteractionController liquid = target.GetComponentInParent<FluidInteractionController>();
+                if (liquid == null) liquid = Object.FindAnyObjectByType<FluidInteractionController>(); 
+                if (liquid != null && Vector3.Distance(target.transform.position, liquid.transform.position) < 0.8f)
+                {
+                    // Trigger removal splash surge!
+                    liquid.TriggerWaferInteractionSpike();
+                }
+
                 PickUpHeldObject(target);
                 return;
             }
             
-            // Case 2: Hit the spin coater base or hotplate, but the wafer is sitting inside/on it
-            if (nameLower.Contains("spin") || nameLower.Contains("coater") || nameLower.Contains("bottom") || nameLower.Contains("hotplate"))
+            if (nameLower.Contains("spin") || nameLower.Contains("coater") || nameLower.Contains("bottom") || nameLower.Contains("hotplate") || nameLower.Contains("beaker"))
             {
                 Collider[] collidersCloseBy = Physics.OverlapSphere(hit.point, 0.5f);
                 foreach (Collider nearbyCollider in collidersCloseBy)
                 {
                     if (nearbyCollider.gameObject.name.ToLower().Contains("wafer"))
                     {
+                        // --- INTEGRATION: TRIGGER SPLASH ON RADIAL AREA EXTRACTION ---
+                        FluidInteractionController liquid = target.GetComponentInChildren<FluidInteractionController>();
+                        if (liquid == null) liquid = target.GetComponent<FluidInteractionController>();
+                        if (liquid != null) liquid.TriggerWaferInteractionSpike();
+
                         PickUpHeldObject(nearbyCollider.gameObject);
                         
                         SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
                         if (coater == null) coater = target.GetComponent<SpinCoaterController>();
-                        if (coater != null) 
-                        {
-                            coater.currentCoaterState = SpinCoaterController.CoaterState.Empty;
-                        }
+                        if (coater != null) coater.currentCoaterState = SpinCoaterController.CoaterState.Empty;
                         return;
                     }
                 }
             }
 
-            // Case 3: Hit the physical Photomask Tray frame asset
             if (nameLower.Contains("mask") || nameLower.Contains("tray"))
             {
                 ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
                 if (aligner != null && aligner.isMaskTrayInserted)
                 {
-                    Debug.LogWarning("Cannot pick up tray while it is locked inside the exposure housing shroud.");
+                    Debug.LogWarning("Cannot pick up tray while locked in housing.");
                     return; 
                 }
                 
@@ -233,8 +218,6 @@ public class PlayerInteraction : MonoBehaviour
         heldObject.transform.SetParent(waferHolderSocket);
         heldObject.transform.localPosition = Vector3.zero;
         heldObject.transform.localRotation = Quaternion.identity;
-        
-        Debug.Log($"SUCCESS: Picked up '{heldObject.name}' and attached to player socket.");
     }
 
     void TryPlaceObject()
@@ -249,14 +232,10 @@ public class PlayerInteraction : MonoBehaviour
             GameObject target = hit.collider.gameObject;
             string targetName = target.name.ToLower();
 
-            // Inside Case 1: Spin Coater Placement Block
+            // Inside Case 1: Spin Coater
             if (targetName.Contains("spin") || targetName.Contains("coater"))
             {
-                if (heldObject.name.ToLower().Contains("mask")) 
-                {
-                    Debug.LogWarning("Operation Denied: Cannot insert a photomask into the liquid spin coater vacuum chuck.");
-                    return;
-                }
+                if (heldObject.name.ToLower().Contains("mask")) return;
 
                 SpinCoaterController coater = target.GetComponent<SpinCoaterController>();
                 if (coater == null) coater = target.GetComponentInParent<SpinCoaterController>();
@@ -266,39 +245,31 @@ public class PlayerInteraction : MonoBehaviour
                     RestoreHeldObjectLayer();
                     DetachHeldObject();
                     coater.LoadWaferIntoCoater(); 
-                    
                     heldObject.transform.position = target.transform.position + new Vector3(0f, 0.2f, 0f);
                     heldObject.transform.rotation = Quaternion.identity; 
-                    
                     heldObject = null;
                     return;
                 }
             }
             
-            // Inside Case 2: Hotplate Placement Block
+            // Inside Case 2: Hotplate
             if (targetName.Contains("hotplate"))
             {
                 RestoreHeldObjectLayer();
                 DetachHeldObject();
-                
                 heldObject.transform.position = target.transform.position + new Vector3(0f, 0.25f, 0f);
                 heldObject.transform.rotation = Quaternion.identity;
                 
                 HotplateController hotplate = target.GetComponent<HotplateController>();
-                if (hotplate != null)
-                {
-                    hotplate.RegisterWaferPlacement(heldObject);
-                }
+                if (hotplate != null) hotplate.RegisterWaferPlacement(heldObject);
 
                 heldObject = null;
-                Debug.Log("SUCCESS: Placed object onto hotplate element.");
                 return;
             }
 
-            // Inside Case 3: SUSS Exposure Aligner Machine Placement Block
+            // Inside Case 3: Exposure Aligner Machine
             if (targetName.Contains("exposure") || targetName.Contains("aligner") || targetName.Contains("machine"))
             {
-                // ROUTE A: Handling Mask Tray Insertion
                 if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
                 {
                     ExposureStationController aligner = target.GetComponent<ExposureStationController>();
@@ -308,21 +279,16 @@ public class PlayerInteraction : MonoBehaviour
                     {
                         RestoreHeldObjectLayer();
                         DetachHeldObject();
-                        
                         heldObject.transform.SetParent(aligner.transform);
                         heldObject.transform.localPosition = new Vector3(0.4f, 0f, 0.8f); 
                         heldObject.transform.localRotation = Quaternion.identity;
-                        
                         aligner.maskTrayTransform = heldObject.transform; 
                         aligner.isMaskTrayInserted = false;
-                        
                         heldObject = null;
-                        Debug.Log("SUCCESS: Photomask tray loaded onto carrier rails.");
                         return;
                     }
                 }
                 
-                // ROUTE B: Handling Wafer Substrate Insertion
                 if (heldObject.name.ToLower().Contains("wafer"))
                 {
                     ExposureStationController aligner = target.GetComponent<ExposureStationController>();
@@ -332,8 +298,6 @@ public class PlayerInteraction : MonoBehaviour
                     {
                         RestoreHeldObjectLayer();
                         DetachHeldObject();
-                        
-                        // FIXED: Old RegisterWaferInsertion line dropped to accommodate open logic pipeline loop!
                         if (aligner.waferDockPosition != null)
                         {
                             heldObject.transform.position = aligner.waferDockPosition.position;
@@ -344,18 +308,45 @@ public class PlayerInteraction : MonoBehaviour
                             heldObject.transform.position = target.transform.position + new Vector3(0f, 0.15f, 0f);
                             heldObject.transform.rotation = Quaternion.identity;
                         }
-                        
                         heldObject = null;
                         return;
                     }
                 }
             }
 
-            Debug.LogWarning($"Placement rejected: Crosshair targeting non-registered object '{target.name}'");
-        }
-        else
-        {
-            Debug.LogWarning("Placement rejected: Raycast extended into open air.");
+            // --- INSIDE NEW CASE 4: THE DEVELOPER BEAKER DROPPER ZONE ---
+            if (targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
+            {
+                if (heldObject.name.ToLower().Contains("wafer"))
+                {
+                    // Find the fluid controller component on the target beaker structure
+                    FluidInteractionController liquid = target.GetComponentInChildren<FluidInteractionController>();
+                    if (liquid == null) liquid = target.GetComponent<FluidInteractionController>();
+                    if (liquid == null) liquid = target.GetComponentInParent<FluidInteractionController>();
+
+                    if (liquid != null)
+                    {
+                        RestoreHeldObjectLayer();
+                        DetachHeldObject();
+
+                        // 1. Physically seat the wafer flat inside the beaker's core base
+                        heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.2f, 0f);
+                        heldObject.transform.rotation = Quaternion.identity;
+
+                        // 2. Set parent to the beaker so if you pick up/slide the beaker, the wafer moves with it!
+                        heldObject.transform.SetParent(liquid.transform);
+
+                        // 3. Trigger our newly exposed explicit surge spike function!
+                        liquid.TriggerWaferInteractionSpike();
+
+                        heldObject = null;
+                        Debug.Log("[INTERACTION] Wafer cleanly submerged into chemical solution context.");
+                        return;
+                    }
+                }
+            }
+
+            Debug.LogWarning($"Placement rejected: Targeting non-registered object '{target.name}'");
         }
     }
 
