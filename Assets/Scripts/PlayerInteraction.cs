@@ -151,36 +151,48 @@ public class PlayerInteraction : MonoBehaviour
                     }
                 }
                 
-                // --- INTEGRATION: CHECK IF WAFER IS INSIDE A BEAKER ON PICKUP ---
                 FluidInteractionController liquid = target.GetComponentInParent<FluidInteractionController>();
                 if (liquid == null) liquid = Object.FindAnyObjectByType<FluidInteractionController>(); 
                 if (liquid != null && Vector3.Distance(target.transform.position, liquid.transform.position) < 0.8f)
                 {
-                    // Trigger removal splash surge!
                     liquid.TriggerWaferInteractionSpike();
+                }
+
+                // --- FIX: DETECT IF THE WAFER IS CURRENTLY SEATED INSIDE A SPIN COATER CHUCK ---
+                SpinCoaterController coaterCheck = target.GetComponentInParent<SpinCoaterController>();
+                if (coaterCheck != null)
+                {
+                    // Force the coater to clear its state machine layers cleanly before we steal the transform
+                    coaterCheck.RemoveWafer();
                 }
 
                 PickUpHeldObject(target);
                 return;
             }
             
-            if (nameLower.Contains("spin") || nameLower.Contains("coater") || nameLower.Contains("bottom") || nameLower.Contains("hotplate") || nameLower.Contains("beaker"))
+            if (nameLower.Contains("spin") || nameLower.Contains("coater") || nameLower.Contains("chuck") || nameLower.Contains("base"))
             {
+                SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
+                if (coater == null) coater = target.GetComponent<SpinCoaterController>();
+                if (coater == null) coater = target.GetComponentInChildren<SpinCoaterController>();
+
+                if (coater != null)
+                {
+                    GameObject extractedWafer = coater.RemoveWafer();
+                    if (extractedWafer != null)
+                    {
+                        PickUpHeldObject(extractedWafer);
+                        return; 
+                    }
+                }
+
                 Collider[] collidersCloseBy = Physics.OverlapSphere(hit.point, 0.5f);
                 foreach (Collider nearbyCollider in collidersCloseBy)
                 {
                     if (nearbyCollider.gameObject.name.ToLower().Contains("wafer"))
                     {
-                        // --- INTEGRATION: TRIGGER SPLASH ON RADIAL AREA EXTRACTION ---
-                        FluidInteractionController liquid = target.GetComponentInChildren<FluidInteractionController>();
-                        if (liquid == null) liquid = target.GetComponent<FluidInteractionController>();
-                        if (liquid != null) liquid.TriggerWaferInteractionSpike();
-
                         PickUpHeldObject(nearbyCollider.gameObject);
-                        
-                        SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
-                        if (coater == null) coater = target.GetComponent<SpinCoaterController>();
-                        if (coater != null) coater.currentCoaterState = SpinCoaterController.CoaterState.Empty;
+                        if (coater != null) coater.RemoveWafer(); 
                         return;
                     }
                 }
@@ -215,9 +227,15 @@ public class PlayerInteraction : MonoBehaviour
             child.gameObject.layer = ignoreRaycastLayer;
         }
 
+        // Snap it to the hand socket tree
         heldObject.transform.SetParent(waferHolderSocket);
         heldObject.transform.localPosition = Vector3.zero;
         heldObject.transform.localRotation = Quaternion.identity;
+
+        if (heldObject.name.ToLower().Contains("wafer"))
+        {
+            heldObject.transform.localScale = new Vector3(0.65f, 0.013f, 0.65f);
+        }
     }
 
     void TryPlaceObject()
@@ -232,27 +250,35 @@ public class PlayerInteraction : MonoBehaviour
             GameObject target = hit.collider.gameObject;
             string targetName = target.name.ToLower();
 
-            // Inside Case 1: Spin Coater
-            if (targetName.Contains("spin") || targetName.Contains("coater"))
+            if (targetName.Contains("spin") || targetName.Contains("coater") || targetName.Contains("chuck") || targetName.Contains("base"))
             {
                 if (heldObject.name.ToLower().Contains("mask")) return;
 
                 SpinCoaterController coater = target.GetComponent<SpinCoaterController>();
                 if (coater == null) coater = target.GetComponentInParent<SpinCoaterController>();
+                if (coater == null) coater = target.GetComponentInChildren<SpinCoaterController>();
 
                 if (coater != null)
                 {
                     RestoreHeldObjectLayer();
-                    DetachHeldObject();
-                    coater.LoadWaferIntoCoater(); 
-                    heldObject.transform.position = target.transform.position + new Vector3(0f, 0.2f, 0f);
-                    heldObject.transform.rotation = Quaternion.identity; 
-                    heldObject = null;
+                    
+                    GameObject objectToPlace = heldObject;
+                    DetachHeldObject(); 
+
+                    bool success = coater.RegisterWaferPlacement(objectToPlace);
+
+                    if (success)
+                    {
+                        heldObject = null;
+                    }
+                    else
+                    {
+                        PickUpHeldObject(objectToPlace);
+                    }
                     return;
                 }
             }
             
-            // Inside Case 2: Hotplate
             if (targetName.Contains("hotplate"))
             {
                 RestoreHeldObjectLayer();
@@ -267,7 +293,6 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // Inside Case 3: Exposure Aligner Machine
             if (targetName.Contains("exposure") || targetName.Contains("aligner") || targetName.Contains("machine"))
             {
                 if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
@@ -314,12 +339,10 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
-            // --- INSIDE NEW CASE 4: THE DEVELOPER BEAKER DROPPER ZONE ---
             if (targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
             {
                 if (heldObject.name.ToLower().Contains("wafer"))
                 {
-                    // Find the fluid controller component on the target beaker structure
                     FluidInteractionController liquid = target.GetComponentInChildren<FluidInteractionController>();
                     if (liquid == null) liquid = target.GetComponent<FluidInteractionController>();
                     if (liquid == null) liquid = target.GetComponentInParent<FluidInteractionController>();
@@ -329,18 +352,12 @@ public class PlayerInteraction : MonoBehaviour
                         RestoreHeldObjectLayer();
                         DetachHeldObject();
 
-                        // 1. Physically seat the wafer flat inside the beaker's core base
                         heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.2f, 0f);
                         heldObject.transform.rotation = Quaternion.identity;
-
-                        // 2. Set parent to the beaker so if you pick up/slide the beaker, the wafer moves with it!
                         heldObject.transform.SetParent(liquid.transform);
-
-                        // 3. Trigger our newly exposed explicit surge spike function!
                         liquid.TriggerWaferInteractionSpike();
 
                         heldObject = null;
-                        Debug.Log("[INTERACTION] Wafer cleanly submerged into chemical solution context.");
                         return;
                     }
                 }

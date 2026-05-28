@@ -46,6 +46,7 @@ public class SpinCoaterController : MonoBehaviour
     private const int RADIAL_SAMPLES = 256;
 
     private ClamshellLidController lidController;
+    private GameObject hostedWaferObjectRef = null;
 
     void Start()
     {
@@ -241,10 +242,6 @@ public class SpinCoaterController : MonoBehaviour
         {
             recipeTimer += Time.deltaTime;
             
-            // Spin physical transforms smoothly
-            if (waferObject != null) waferObject.Rotate(Vector3.up * spreadRPM * 0.2f * Time.deltaTime);
-            if (rotorSpindleChuck != null) rotorSpindleChuck.Rotate(Vector3.up * spreadRPM * 0.2f * Time.deltaTime);
-            
             UpdateCoaterUI($"[{currentPhaseName}] Speed: {spreadRPM:F0} RPM | Time Left: {(spreadDuration - recipeTimer):F1}s");
             yield return null;
         }
@@ -267,18 +264,6 @@ public class SpinCoaterController : MonoBehaviour
         while (recipeTimer < targetSpinTime)
         {
             recipeTimer += Time.deltaTime;
-            
-            if (waferObject != null)
-            {
-                waferObject.Rotate(Vector3.up * targetSpinSpeed * 0.2f * Time.deltaTime);
-                
-                // Visual flattening factor estimation
-                float thinningFactor = Mathf.Lerp(1.0f, 0.82f, recipeTimer / targetSpinTime);
-                waferObject.localScale = new Vector3(originalWaferScale.x, originalWaferScale.y * thinningFactor, originalWaferScale.z);
-            }
-            if (rotorSpindleChuck != null) rotorSpindleChuck.Rotate(Vector3.up * targetSpinSpeed * 0.2f * Time.deltaTime);
-
-            // Execute neural networks on this frame step
             ExecuteMLInferenceLoop(targetSpinSpeed, recipeTimer);
 
             UpdateCoaterUI($"[{currentPhaseName}] Speed: {targetSpinSpeed:F0} RPM | Time Left: {(targetSpinTime - recipeTimer):F1}s");
@@ -356,10 +341,90 @@ public class SpinCoaterController : MonoBehaviour
         UpdateCoaterUI("Spin cycle complete. Uniform film thickness achieved via neural inference model.");
     }
 
-    public void LoadWaferIntoCoater()
+    // --- RESTORED ORIGINAL PLACEMENT METHOD ---
+    public bool RegisterWaferPlacement(GameObject wafer)
     {
+        if (currentCoaterState != CoaterState.Empty)
+        {
+            Debug.LogWarning($"[{gameObject.name}] Placement Rejected: Spin coater state is {currentCoaterState}, not Empty.");
+            return false;
+        }
+
+        if (lidController != null && !lidController.isOpen)
+        {
+            Debug.LogWarning($"[{gameObject.name}] Placement Rejected: Cannot insert substrate while safety cover is sealed.");
+            return false;
+        }
+
+        waferObject = wafer.transform;
+
+        // PARENT COUPLING WITH MATRIX MAINTENANCE
+        if (rotorSpindleChuck != null)
+        {
+            wafer.transform.SetParent(rotorSpindleChuck, true);
+            
+            // Apply your custom alignment tweaks cleanly
+            wafer.transform.localPosition = new Vector3(0.006f, 0.02f, 0.015f); 
+            wafer.transform.localRotation = Quaternion.identity;
+        }
+        else
+        {
+            wafer.transform.SetParent(transform);
+            wafer.transform.position = transform.position + new Vector3(0f, 0.2f, 0f);
+            wafer.transform.rotation = Quaternion.identity;
+        }
+
+        wafer.transform.localScale = Vector3.one; // Reset local multipliers to baseline unity unity units
+        
+        // Force the absolute physical proportions across the rendering matrix pipeline
+        Vector3 currentWorldScale = wafer.transform.lossyScale;
+        wafer.transform.localScale = new Vector3(
+            0.65f / (currentWorldScale.x != 0 ? currentWorldScale.x : 1f),
+            0.013f / (currentWorldScale.y != 0 ? currentWorldScale.y : 1f),
+            0.65f / (currentWorldScale.z != 0 ? currentWorldScale.z : 1f)
+        );
+
+        Rigidbody rb = wafer.GetComponent<Rigidbody>();
+        if (rb != null) rb.isKinematic = true;
+
         currentCoaterState = CoaterState.WaferLoaded;
         UpdateCoaterUI("Substrate loaded. Ready for chemical dispensing.");
+        
+        return true;
+    }
+
+    public GameObject RemoveWafer()
+    {
+        if (currentCoaterState == CoaterState.Spinning || currentCoaterState == CoaterState.PRDispensing)
+        {
+            Debug.LogWarning($"[{gameObject.name}] Extraction Denied: Process active.");
+            return null;
+        }
+
+        GameObject waferToReturn = null;
+        if (rotorSpindleChuck != null && rotorSpindleChuck.childCount > 0)
+        {
+            foreach (Transform child in rotorSpindleChuck)
+            {
+                if (child.name.ToLower().Contains("wafer"))
+                {
+                    waferToReturn = child.gameObject;
+                    break;
+                }
+            }
+        }
+
+        if (waferToReturn != null)
+        {
+            // Reset proportions back to standard world space scale values right before unbinding
+            waferToReturn.transform.localScale = new Vector3(0.65f, 0.013f, 0.65f);
+        }
+
+        waferObject = null;
+        currentCoaterState = CoaterState.Empty;
+        UpdateCoaterUI("Awaiting substrate insertion...");
+
+        return waferToReturn;
     }
 
     void UpdateCoaterUI(string message = "")
