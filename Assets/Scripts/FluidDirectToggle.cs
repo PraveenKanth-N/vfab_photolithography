@@ -62,17 +62,6 @@ public class FluidInteractionController : MonoBehaviour
             originalBeakerLocalPos = beakerParentTransform.localPosition;
             originalBeakerLocalRot = beakerParentTransform.localRotation;
         }
-
-        UnityEngine.UI.Slider sceneSlider = Object.FindAnyObjectByType<UnityEngine.UI.Slider>();
-        if (sceneSlider != null)
-        {
-            sceneSlider.minValue = 15f;
-            sceneSlider.maxValue = 40f;
-            sceneSlider.wholeNumbers = true;
-            
-            uiSwerveDuration = 30f;
-            sceneSlider.value = uiSwerveDuration; 
-        }
     }
 
     void Update()
@@ -82,20 +71,13 @@ public class FluidInteractionController : MonoBehaviour
         float dt = Mathf.Max(Time.deltaTime, 0.001f);
         timer += dt * waveSpeed;
 
-        // --- PART 1: TRACK PHYSICAL VELOCITY (ALWAYS RUNNING) ---
-        Vector3 currentPosition = transform.position;
-        Vector3 displacement = currentPosition - lastPosition;
-        float frameVelocity = (displacement / dt).magnitude;
-        
-        // CRUCIAL: Always update this every single frame so it never caches a stale position!
-        lastPosition = currentPosition; 
-
-        // --- PART 2: CONTROL THE STATE MACHINE ---
+        // --- PART 1: PHYSICAL SHAKING & AUTOMATED SWERVING ---
         if (isSwerving)
         {
             RunAutomatedSwerveCycle(dt);
             
             // Apply continuous frame-rate independent tracking to our direction vectors
+            // This completely eradicates the "teleportation" bug!
             spikeDirX = Mathf.Lerp(spikeDirX, targetDirX, dt * directionalSmoothSpeed);
             spikeDirZ = Mathf.Lerp(spikeDirZ, targetDirZ, dt * directionalSmoothSpeed);
             
@@ -112,44 +94,42 @@ public class FluidInteractionController : MonoBehaviour
         }
         else
         {
-            // Smoothly return the beaker container chassis to rest
             if (beakerParentTransform != null)
             {
                 beakerParentTransform.localPosition = Vector3.Lerp(beakerParentTransform.localPosition, originalBeakerLocalPos, dt * 4.0f);
                 beakerParentTransform.localRotation = Quaternion.Lerp(beakerParentTransform.localRotation, originalBeakerLocalRot, dt * 4.0f);
             }
 
-            // Standard manual player shaking tracking
+            Vector3 currentPosition = transform.position;
+            Vector3 displacement = currentPosition - lastPosition;
+            float frameVelocity = (displacement / dt).magnitude;
+
             if (frameVelocity > 0.01f)
             {
                 Vector3 moveDir = displacement.normalized;
                 targetDirX = moveDir.x * -1f;
                 targetDirZ = moveDir.z * -1f;
                 
+                // Keep the manual shakes responsive but smooth
                 spikeDirX = Mathf.Lerp(spikeDirX, targetDirX, dt * directionalSmoothSpeed);
                 spikeDirZ = Mathf.Lerp(spikeDirZ, targetDirZ, dt * directionalSmoothSpeed);
                 
                 currentEnergy += frameVelocity * shakeSensitivity;
             }
+            lastPosition = currentPosition;
         }
 
-        // --- PART 3: ENERGY DECAY LOOP ---
-        if (currentEnergy > 1.0f)
-        {
-            currentEnergy -= decayRate * dt;
-        }
+        // --- PART 2: ENERGY DECAY LOOP ---
+        if (currentEnergy > 1.0f) currentEnergy -= decayRate * dt;
         else
         {
             currentEnergy = 1.0f;
-            if (!isSwerving)
-            {
-                spikeDirX = Mathf.Lerp(spikeDirX, 1.0f, dt * 0.5f);
-                spikeDirZ = Mathf.Lerp(spikeDirZ, Mathf.Cos(timer), dt * 0.5f);
-            }
+            spikeDirX = Mathf.Lerp(spikeDirX, 1.0f, dt * 0.5f);
+            spikeDirZ = Mathf.Lerp(spikeDirZ, Mathf.Cos(timer), dt * 0.5f);
         }
         currentEnergy = Mathf.Min(currentEnergy, maxShakeEnergy);
 
-        // --- PART 4: INJECT SHADER MANIPULATIONS ---
+        // --- PART 3: INJECT SHADER MANIPULATIONS ---
         float baseOscillation = Mathf.Sin(timer) * targetAmplitude;
         float finalWobbleX = baseOscillation * currentEnergy * spikeDirX;
         float finalWobbleZ = baseOscillation * currentEnergy * (currentEnergy > 1.05f ? spikeDirZ : Mathf.Cos(timer));
@@ -161,33 +141,29 @@ public class FluidInteractionController : MonoBehaviour
         }
     }
 
-    private void RunAutomatedSwerveCycle(float dt)
-    {
-        swerveDurationTimer += dt;
-        
-        // STRCIT TIMELINE ENFORCEMENT
-        if (swerveDurationTimer >= swerveTotalTime)
-        {
-            isSwerving = false;
-            swerveDurationTimer = 0f;
-            Debug.Log($"[TIMING COMPLETE] Swerve sequence naturally exited at exactly: {swerveTotalTime}s");
-            return;
-        }
-
-        // Keep feeding the procedural directional wave changes
-        targetDirX = Mathf.Sin(timer * 2.5f);
-        targetDirZ = Mathf.Cos(timer * 1.8f);
-        
-        // Force the physical energy to stick to maximum boundaries for the duration of the push sequence
-        currentEnergy = maxShakeEnergy;
-    }
-
     public void StartSwerveSequence(float totalDuration)
     {
         isSwerving = true;
         swerveDurationTimer = 0f;
         swerveTotalTime = totalDuration;
         currentEnergy = maxShakeEnergy;
+    }
+
+    private void RunAutomatedSwerveCycle(float dt)
+    {
+        swerveDurationTimer += dt;
+        if (swerveDurationTimer >= swerveTotalTime)
+        {
+            isSwerving = false;
+            return;
+        }
+
+        // Instead of processing hard step blocks, we use the raw wave spectrum curves
+        // to define target destinations, allowing the Lerp engine to calculate intermediate states!
+        targetDirX = Mathf.Sin(timer * 2.5f);
+        targetDirZ = Mathf.Cos(timer * 1.8f);
+        
+        currentEnergy = Mathf.Max(currentEnergy, maxShakeEnergy - 1.0f);
     }
 
     public void SetSwerveDurationFromSlider(float value) { uiSwerveDuration = value; }
@@ -202,21 +178,7 @@ public class FluidInteractionController : MonoBehaviour
         targetDirZ = Mathf.Sin(randomAngle);
     }
 
-    private void ApplyStaticOptics() {
-        if (fluidMaterial != null) { 
-            fluidMaterial.SetFloat("_Glossiness", glossiness);
-            fluidMaterial.SetFloat("_SpecularIntensity", specularIntensity);
-            fluidMaterial.SetFloat("_RefractionIndex", refractionIndex);
-            fluidMaterial.SetFloat("_FresnelPower", fresnelPower);
-            fluidMaterial.SetColor("_BaseColor", liquidColor);
-        } 
-    }
-    private void FetchMaterial() { 
-        Renderer r = GetComponent<Renderer>();
-        if (r != null) fluidMaterial = Application.isPlaying ? r.material : r.sharedMaterial; 
-    }
-    private void OnValidate() { 
-        FetchMaterial(); 
-        ApplyStaticOptics(); 
-    }
+    private void ApplyStaticOptics() { if (fluidMaterial != null) { fluidMaterial.SetFloat("_Glossiness", glossiness); fluidMaterial.SetFloat("_SpecularIntensity", specularIntensity); fluidMaterial.SetFloat("_RefractionIndex", refractionIndex); fluidMaterial.SetFloat("_FresnelPower", fresnelPower); fluidMaterial.SetColor("_BaseColor", liquidColor); } }
+    private void FetchMaterial() { Renderer r = GetComponent<Renderer>(); if (r != null) fluidMaterial = Application.isPlaying ? r.material : r.sharedMaterial; }
+    private void OnValidate() { FetchMaterial(); ApplyStaticOptics(); }
 }
