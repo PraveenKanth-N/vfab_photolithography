@@ -29,6 +29,10 @@ public class HotplateController : MonoBehaviour
     [Header("Material References")]
     public Material bakedAmberMaterial;   
 
+    [Header("GLB Target Transform References")]
+    [Tooltip("Assign the 'Top' child GameObject from your GLB hierarchy container here.")]
+    public Transform topHeatingSurfaceElement; 
+
     void Start()
     {
         // Bind the button to our activation function via code
@@ -40,6 +44,20 @@ public class HotplateController : MonoBehaviour
 
         InitializeSliders();
         UpdateHotplateUI("Stable at baseline room temperature.");
+
+        // Automatically locate the "Top" mesh if not manually assigned in the inspector
+        if (topHeatingSurfaceElement == null)
+        {
+            Transform foundTop = transform.Find("Top") ?? transform.Find("gltf_embedded_0/Top");
+            if (foundTop != null)
+            {
+                topHeatingSurfaceElement = foundTop;
+            }
+            else
+            {
+                Debug.LogWarning("[Hotplate] 'Top' surface element child reference not found! Defaulting to parent position offsets.");
+            }
+        }
     }
 
     void Update()
@@ -87,6 +105,23 @@ public class HotplateController : MonoBehaviour
     public void RegisterWaferPlacement(GameObject wafer)
     {
         currentState = HotplateState.WaferLoaded;
+        
+        // --- POSITION SYNCHRONIZATION ---
+        // Snap wafer perfectly flush onto the top face of the 'Top' GLB sub-mesh element
+        if (topHeatingSurfaceElement != null)
+        {
+            topHeatingSurfaceElement = transform.Find("Top") ?? 
+                               transform.Find("gltf_embedded_0/Top") ?? 
+                               transform.GetComponentInChildren<MeshRenderer>().transform; 
+            wafer.transform.position = topHeatingSurfaceElement.position + new Vector3(0f, 0.41f, 0f);
+            wafer.transform.rotation = topHeatingSurfaceElement.rotation;
+            wafer.transform.SetParent(topHeatingSurfaceElement); // Parent it so it stays locked with the hotplate
+        }
+        else
+        {
+            wafer.transform.position = transform.position + new Vector3(0f, 0.5f, 0f);
+        }
+
         UpdateHotplateUI("Substrate registered on heating element. Configure recipe parameters and press Start.");
     }
 
@@ -109,14 +144,8 @@ public class HotplateController : MonoBehaviour
             AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
             if (chamber != null)
             {
-                // Dynamic Variant Mapping:
-                // If under-heated (<90C) or under-baked, matrix contraction stops short (leaves residual solvents).
-                // If ideal thermal profile is applied, it successfully compresses down to 55% volume matrix (0.55f).
                 float targetThicknessRatio = (targetTemperature < 90f || targetBakeTime < 45f) ? 0.75f : 0.55f;
-                
-                // Matches the fast-forwarded simulation hardware clock duration scale
                 float animationDuration = targetBakeTime * 0.1f;
-
                 StartCoroutine(chamber.AnimateSoftBake(targetThicknessRatio, animationDuration));
             }
         }
@@ -127,16 +156,16 @@ public class HotplateController : MonoBehaviour
         currentState = HotplateState.Complete;
         UpdateHotplateUI("Process complete! Thermal profile sequence executed successfully.");
 
-        // Physical Overlap Scan to handle material transformations
-        Collider[] hits = Physics.OverlapSphere(transform.position + new Vector3(0f, 0.5f, 0f), 0.6f);
+        // Physical Overlap Scan centered directly around the heating plate element bounds
+        Vector3 scanCenter = topHeatingSurfaceElement != null ? topHeatingSurfaceElement.position : transform.position;
+        Collider[] hits = Physics.OverlapSphere(scanCenter + new Vector3(0f, 0.1f, 0f), 0.4f);
+        
         foreach (Collider hit in hits)
         {
             if (hit.gameObject.name.ToLower().Contains("wafer"))
             {
-                // Grab the spin coater state dynamically right at the millisecond of completion
                 SpinCoaterController coater = Object.FindAnyObjectByType<SpinCoaterController>();
                 
-                // ONLY morph the material to dry matte if it was actually spun-coated first
                 if (coater != null && coater.currentCoaterState == SpinCoaterController.CoaterState.Complete)
                 {
                     Renderer waferRen = hit.gameObject.GetComponent<Renderer>();
@@ -153,7 +182,6 @@ public class HotplateController : MonoBehaviour
     void UpdateHotplateUI(string message) {
         if (hotplateStatusText != null) hotplateStatusText.text = "POLOS Hotplate: " + message;
         
-        // Unlocked whenever a wafer is present, locked down ONLY while a bake is currently running
         bool canOperate = (currentState == HotplateState.WaferLoaded);
         
         if (startPrebakeButton != null) startPrebakeButton.interactable = canOperate;

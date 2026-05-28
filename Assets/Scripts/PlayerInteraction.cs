@@ -237,7 +237,6 @@ public class PlayerInteraction : MonoBehaviour
             heldObject.transform.localScale = new Vector3(0.65f, 0.013f, 0.65f);
         }
     }
-
     void TryPlaceObject()
     {
         if (heldObject == null) return;
@@ -249,14 +248,41 @@ public class PlayerInteraction : MonoBehaviour
         {
             GameObject target = hit.collider.gameObject;
             string targetName = target.name.ToLower();
+            HotplateController hotplate = target.GetComponentInParent<HotplateController>();
 
+            // 2. Fallback check: If the hierarchy is split, find the script globally or via string match
+            if (hotplate == null && targetName.Contains("top"))
+            {
+                hotplate = Object.FindAnyObjectByType<HotplateController>();
+            }
+
+            // If we successfully found the controller via either routing method
+            if (hotplate != null)
+            {
+                if (heldObject.name.ToLower().Contains("mask")) return;
+
+                if (hotplate.currentState == HotplateController.HotplateState.Baking)
+                {
+                    Debug.LogWarning("Placement Denied: Thermal zone active.");
+                    return;
+                }
+
+                RestoreHeldObjectLayer();
+                DetachHeldObject();
+                
+                // Hand over control to the hotplate script to handle alignment positioning
+                hotplate.RegisterWaferPlacement(heldObject);
+
+                heldObject = null;
+                return;
+            }
+
+            // --- SPIN COATER INTERACTION CHECK ---
             if (targetName.Contains("spin") || targetName.Contains("coater") || targetName.Contains("chuck") || targetName.Contains("base"))
             {
                 if (heldObject.name.ToLower().Contains("mask")) return;
 
-                SpinCoaterController coater = target.GetComponent<SpinCoaterController>();
-                if (coater == null) coater = target.GetComponentInParent<SpinCoaterController>();
-                if (coater == null) coater = target.GetComponentInChildren<SpinCoaterController>();
+                SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
 
                 if (coater != null)
                 {
@@ -273,34 +299,21 @@ public class PlayerInteraction : MonoBehaviour
                     }
                     else
                     {
+                        // Safely snap back to hand socket if coater rejects it (e.g., already loaded)
                         PickUpHeldObject(objectToPlace);
                     }
                     return;
                 }
             }
-            
-            if (targetName.Contains("hotplate"))
-            {
-                RestoreHeldObjectLayer();
-                DetachHeldObject();
-                heldObject.transform.position = target.transform.position + new Vector3(0f, 0.25f, 0f);
-                heldObject.transform.rotation = Quaternion.identity;
-                
-                HotplateController hotplate = target.GetComponent<HotplateController>();
-                if (hotplate != null) hotplate.RegisterWaferPlacement(heldObject);
 
-                heldObject = null;
-                return;
-            }
-
+            // --- EXPOSURE ALIGNER INTERACTION CHECK ---
             if (targetName.Contains("exposure") || targetName.Contains("aligner") || targetName.Contains("machine"))
             {
-                if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
-                {
-                    ExposureStationController aligner = target.GetComponent<ExposureStationController>();
-                    if (aligner == null) aligner = target.GetComponentInParent<ExposureStationController>();
+                ExposureStationController aligner = target.GetComponentInParent<ExposureStationController>();
 
-                    if (aligner != null)
+                if (aligner != null)
+                {
+                    if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
                     {
                         RestoreHeldObjectLayer();
                         DetachHeldObject();
@@ -312,14 +325,8 @@ public class PlayerInteraction : MonoBehaviour
                         heldObject = null;
                         return;
                     }
-                }
-                
-                if (heldObject.name.ToLower().Contains("wafer"))
-                {
-                    ExposureStationController aligner = target.GetComponent<ExposureStationController>();
-                    if (aligner == null) aligner = target.GetComponentInParent<ExposureStationController>();
-
-                    if (aligner != null)
+                    
+                    if (heldObject.name.ToLower().Contains("wafer"))
                     {
                         RestoreHeldObjectLayer();
                         DetachHeldObject();
@@ -339,13 +346,12 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
+            // --- BEAKER / FLUID ZONE INTERACTION CHECK ---
             if (targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
             {
                 if (heldObject.name.ToLower().Contains("wafer"))
                 {
-                    FluidInteractionController liquid = target.GetComponentInChildren<FluidInteractionController>();
-                    if (liquid == null) liquid = target.GetComponent<FluidInteractionController>();
-                    if (liquid == null) liquid = target.GetComponentInParent<FluidInteractionController>();
+                    FluidInteractionController liquid = target.GetComponentInParent<FluidInteractionController>();
 
                     if (liquid != null)
                     {
