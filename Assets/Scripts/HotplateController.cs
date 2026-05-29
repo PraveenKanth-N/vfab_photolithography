@@ -106,20 +106,29 @@ public class HotplateController : MonoBehaviour
     {
         currentState = HotplateState.WaferLoaded;
         
-        // --- POSITION SYNCHRONIZATION ---
-        // Snap wafer perfectly flush onto the top face of the 'Top' GLB sub-mesh element
+        // --- BULLETPROOF POSITION SYNCHRONIZATION ---
         if (topHeatingSurfaceElement != null)
         {
-            topHeatingSurfaceElement = transform.Find("Top") ?? 
-                               transform.Find("gltf_embedded_0/Top") ?? 
-                               transform.GetComponentInChildren<MeshRenderer>().transform; 
-            wafer.transform.position = topHeatingSurfaceElement.position + new Vector3(0f, 0.41f, 0f);
-            wafer.transform.rotation = topHeatingSurfaceElement.rotation;
-            wafer.transform.SetParent(topHeatingSurfaceElement); // Parent it so it stays locked with the hotplate
+            // 1. Parent the wafer to the Top mesh so it physically groups together cleanly
+            wafer.transform.SetParent(topHeatingSurfaceElement); 
+
+            // 2. USE ABSOLUTE WORLD SPACE FOR AXIS LOCKING
+            // Align X and Z perfectly with the center of the heating plate,
+            // but use the absolute world height of the plate surface plus a tiny 0.015 unit padding buffer!
+            wafer.transform.position = new Vector3(
+                topHeatingSurfaceElement.position.x, 
+                topHeatingSurfaceElement.position.y + 0.4f, 
+                topHeatingSurfaceElement.position.z
+            );
+            
+            // 3. Match the physical rotation of the machine chassis exactly
+            wafer.transform.rotation = topHeatingSurfaceElement.rotation; 
         }
         else
         {
+            // Direct fallback coordinate tree if target missing
             wafer.transform.position = transform.position + new Vector3(0f, 0.5f, 0f);
+            Debug.LogError($"[Hotplate] Cannot place wafer accurately! topHeatingSurfaceElement is missing or unassigned.");
         }
 
         UpdateHotplateUI("Substrate registered on heating element. Configure recipe parameters and press Start.");
