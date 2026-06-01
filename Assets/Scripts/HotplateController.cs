@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using TMPro;
+using Unity.InferenceEngine; // Using your modernized Inference Engine API
 
 public class HotplateController : MonoBehaviour
 {
@@ -12,30 +13,53 @@ public class HotplateController : MonoBehaviour
     private float bakeTimer = 0f;
 
     [Header("ML Feature Parameters (Inputs)")]
-    public float targetTemperature = 90f; // Configured via Slider
-    public float targetBakeTime = 30f;     // Configured via Slider
+    public float targetTemperature = 90f; 
+    public float targetBakeTime = 30f;     
 
     [Header("UI Control Inputs")]
-    public Slider tempSlider;              // Your temperature adjustment slider
-    public Slider bakeTimeSlider;          // Your bake duration adjustment slider
-    public Button startPrebakeButton;      // The button to turn on the heat
+    public Slider tempSlider;              
+    public Slider bakeTimeSlider;          
+    public Button startPrebakeButton;      
 
     [Header("UI Display Outputs (TMPro)")]
     public TMP_Text hotplateStatusText;   
-    public TMP_Text temperatureDisplay;   // Digital numeric read-out
-    public TMP_Text tempSliderReadout;     // Text above Temp Slider
-    public TMP_Text timeSliderReadout;     // Text above Time Slider
+    public TMP_Text temperatureDisplay;   
+    public TMP_Text tempSliderReadout;     
+    public TMP_Text timeSliderReadout;     
 
     [Header("Material References")]
     public Material bakedAmberMaterial;   
 
     [Header("GLB Target Transform References")]
-    [Tooltip("Assign the 'Top' child GameObject from your GLB hierarchy container here.")]
     public Transform topHeatingSurfaceElement; 
+
+    [Header("Inference Engine Outlets")]
+    public ModelAsset onnxModelAsset; // Assign your mate's newly updated .onnx file here!
+    public EllipsometryMonitor metrologyMonitorScreen; 
+
+    [Header("Debug Adjustments")]
+    [Tooltip("Check this box to bypass the bake timer constraints instantly for swift testing passes.")]
+    public bool debugSpeedUp = false;
+
+    private Worker worker; 
+    private const int Resolution = 512;
+
+    // Local variable cache holding the physical baseline passed directly from the spin coater
+    private float cachedSpinCenterThickness = 0f;
+    private float currentWaferRPM = 3000f; 
 
     void Start()
     {
-        // Bind the button to our activation function via code
+        if (onnxModelAsset != null)
+        {
+            Model runtimeModel = ModelLoader.Load(onnxModelAsset);
+            worker = new Worker(runtimeModel, BackendType.GPUCompute);
+        }
+        else
+        {
+            Debug.LogError("[Hotplate] Inference Engine Error: Missing Model Asset assignment container reference.");
+        }
+
         if (startPrebakeButton != null)
         {
             startPrebakeButton.onClick.RemoveAllListeners();
@@ -45,24 +69,15 @@ public class HotplateController : MonoBehaviour
         InitializeSliders();
         UpdateHotplateUI("Stable at baseline room temperature.");
 
-        // Automatically locate the "Top" mesh if not manually assigned in the inspector
         if (topHeatingSurfaceElement == null)
         {
             Transform foundTop = transform.Find("Top") ?? transform.Find("gltf_embedded_0/Top");
-            if (foundTop != null)
-            {
-                topHeatingSurfaceElement = foundTop;
-            }
-            else
-            {
-                Debug.LogWarning("[Hotplate] 'Top' surface element child reference not found! Defaulting to parent position offsets.");
-            }
+            if (foundTop != null) topHeatingSurfaceElement = foundTop;
         }
     }
 
     void Update()
     {
-        // Track panel modifications while idle or when a wafer is just sitting there
         if (currentState == HotplateState.Idle || currentState == HotplateState.WaferLoaded)
         {
             CapturePanelInputs();
@@ -70,17 +85,18 @@ public class HotplateController : MonoBehaviour
 
         if (currentState == HotplateState.Baking)
         {
-            bakeTimer += Time.deltaTime;
+            // Debug speed up multiplier handles real-time vs instant testing skip
+            bakeTimer += Time.deltaTime * (debugSpeedUp ? 25f : 1f);
             
-            // Display simulated high-temperature fluctuations right around target setpoint
             if (temperatureDisplay != null)
             {
-                float currentTemp = targetTemperature + Random.Range(-0.3f, 0.3f);
+                float currentTemp = targetTemperature + UnityEngine.Random.Range(-0.3f, 0.3f);
                 temperatureDisplay.text = $"{currentTemp:F1}°C";
             }
 
-            if (bakeTimer >= targetBakeTime * 0.1f) // Scaled down time purely for simulation pacing
+            if (bakeTimer >= targetBakeTime) 
             {
+                currentState = HotplateState.Complete; // Lock out loop immediately
                 CompleteSoftBake();
             }
         }
@@ -88,7 +104,7 @@ public class HotplateController : MonoBehaviour
 
     void InitializeSliders()
     {
-        if (tempSlider != null) { tempSlider.minValue = 80f; tempSlider.maxValue = 120f; tempSlider.value = 90f; }
+        if (tempSlider != null) { tempSlider.minValue = 40f; tempSlider.maxValue = 120f; tempSlider.value = 90f; }
         if (bakeTimeSlider != null) { bakeTimeSlider.minValue = 30f; bakeTimeSlider.maxValue = 90f; bakeTimeSlider.value = 45f; }
     }
 
@@ -101,45 +117,39 @@ public class HotplateController : MonoBehaviour
         if (timeSliderReadout != null) timeSliderReadout.text = $"Set Time: {targetBakeTime:F0} Seconds";
     }
 
-    // Automatically triggered by PlayerInteraction.cs when dropped on the hotplate element surface
+    public void ReceiveWaferStateFromSpinCoater(float trackingHCenter, float appliedRPM)
+    {
+        cachedSpinCenterThickness = trackingHCenter;
+        currentWaferRPM = appliedRPM;
+        Debug.Log($"[Hotplate Cache Sync] Received genuine coater metrics: {cachedSpinCenterThickness:F1} nm at {currentWaferRPM} RPM.");
+    }
+
     public void RegisterWaferPlacement(GameObject wafer)
     {
         currentState = HotplateState.WaferLoaded;
         
-        // --- BULLETPROOF POSITION SYNCHRONIZATION ---
         if (topHeatingSurfaceElement != null)
         {
-            // 1. Parent the wafer to the Top mesh so it physically groups together cleanly
             wafer.transform.SetParent(topHeatingSurfaceElement); 
-
-            // 2. USE ABSOLUTE WORLD SPACE FOR AXIS LOCKING
-            // Align X and Z perfectly with the center of the heating plate,
-            // but use the absolute world height of the plate surface plus a tiny 0.015 unit padding buffer!
-            wafer.transform.position = new Vector3(
-                topHeatingSurfaceElement.position.x, 
-                topHeatingSurfaceElement.position.y + 0.4f, 
-                topHeatingSurfaceElement.position.z
-            );
-            
-            // 3. Match the physical rotation of the machine chassis exactly
+            wafer.transform.position = topHeatingSurfaceElement.position + new Vector3(0f, 0.4f, 0f);
             wafer.transform.rotation = topHeatingSurfaceElement.rotation; 
         }
         else
         {
-            // Direct fallback coordinate tree if target missing
             wafer.transform.position = transform.position + new Vector3(0f, 0.5f, 0f);
-            Debug.LogError($"[Hotplate] Cannot place wafer accurately! topHeatingSurfaceElement is missing or unassigned.");
         }
 
-        UpdateHotplateUI("Substrate registered on heating element. Configure recipe parameters and press Start.");
+        UpdateHotplateUI("Substrate registered on heating element. Press Start.");
     }
 
-    // Triggered when clicking the 'Start Prebake' Button
     public void BeginThermalBakeCycle()
     {
-        if (currentState != HotplateState.WaferLoaded)
+        if (currentState != HotplateState.WaferLoaded) return;
+
+        // SEQUENCE COMPLIANCE LOCKOUT: Substrate must be coated first
+        if (cachedSpinCenterThickness <= 0.01f)
         {
-            UpdateHotplateUI("Operation Denied: No target substrate detected in heating zone.");
+            UpdateHotplateUI("ERROR: Substrate must undergo Spin Coating before thermal baking.");
             return;
         }
 
@@ -147,52 +157,98 @@ public class HotplateController : MonoBehaviour
         bakeTimer = 0f;
         UpdateHotplateUI("Bake cycle running. Thermally processing substrate matrix...");
 
-        // --- INTEGRATION TRIGGER: STEP 2 (Thermal Matrix Compaction) ---
         if (MicroscopeInterfaceManager.Instance != null)
         {
             AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
             if (chamber != null)
             {
                 float targetThicknessRatio = (targetTemperature < 90f || targetBakeTime < 45f) ? 0.75f : 0.55f;
-                float animationDuration = targetBakeTime * 0.1f;
-                StartCoroutine(chamber.AnimateSoftBake(targetThicknessRatio, animationDuration));
+                StartCoroutine(chamber.AnimateSoftBake(targetThicknessRatio, targetBakeTime * 0.1f));
             }
         }
     }
 
     void CompleteSoftBake()
     {
-        currentState = HotplateState.Complete;
         UpdateHotplateUI("Process complete! Thermal profile sequence executed successfully.");
 
-        // Physical Overlap Scan centered directly around the heating plate element bounds
+        // Physical look and color swap logic for wafer surface transformation
         Vector3 scanCenter = topHeatingSurfaceElement != null ? topHeatingSurfaceElement.position : transform.position;
         Collider[] hits = Physics.OverlapSphere(scanCenter + new Vector3(0f, 0.1f, 0f), 0.4f);
-        
         foreach (Collider hit in hits)
         {
             if (hit.gameObject.name.ToLower().Contains("wafer"))
             {
-                SpinCoaterController coater = Object.FindAnyObjectByType<SpinCoaterController>();
-                
-                if (coater != null && coater.currentCoaterState == SpinCoaterController.CoaterState.Complete)
-                {
-                    Renderer waferRen = hit.gameObject.GetComponent<Renderer>();
-                    if (waferRen != null && bakedAmberMaterial != null)
-                    {
-                        waferRen.material = bakedAmberMaterial;
-                    }
-                }
+                Renderer waferRen = hit.gameObject.GetComponent<Renderer>();
+                if (waferRen != null && bakedAmberMaterial != null) waferRen.material = bakedAmberMaterial;
             }
         }
-        Debug.Log($"ML DATA POINT LOGGED (HOTPLATE): Temp={targetTemperature}°C, Time={targetBakeTime}s");
+
+        // --- INFERENCE EXTRACTION USING EXPLICIT NAMED OUTPUT PORTS ---
+        if (worker != null)
+        {
+            int totalPixels = Resolution * Resolution;
+            float[] inputs = new float[totalPixels * 3];
+
+            float[] means = { 472.3705139160156f, 100.18104553222656f, 65.00565338134766f };
+            float[] stds  = { 129.4272003173828f, 11.57119369506836f, 31.54351806640625f };
+
+            int arrayIdx = 0;
+            for (int y = 0; y < Resolution; y++)
+            {
+                for (int x = 0; x < Resolution; x++)
+                {
+                    float nx = (x / (float)Resolution) * 2.0f - 1.0f;
+                    float ny = (y / (float)Resolution) * 2.0f - 1.0f;
+                    float r = Mathf.Sqrt(nx * nx + ny * ny);
+
+                    float edgeBuildup = (0.02f + Mathf.Pow(1500.0f / currentWaferRPM, 2.0f))* 0.05f;
+                    float hSpinPixel = cachedSpinCenterThickness * (1.0f + edgeBuildup * (r * r));
+                    float tempPixel = targetTemperature - (1.5f * (r * r));
+
+                    inputs[arrayIdx]     = (hSpinPixel - means[0]) / stds[0];
+                    inputs[arrayIdx + 1] = (tempPixel - means[1]) / stds[1];
+                    inputs[arrayIdx + 2] = (targetBakeTime - means[2]) / stds[2];
+                    arrayIdx += 3;
+                }
+            }
+
+            TensorShape shape = new TensorShape(totalPixels, 3);
+            using Tensor<float> inputTensor = new Tensor<float>(shape, inputs);
+            
+            worker.Schedule(inputTensor);
+
+            // Fetch the independent layer outputs cleanly by their explicit string descriptors
+            Tensor<float> thickTensor = worker.PeekOutput("predicted_thickness") as Tensor<float>;
+            Tensor<float> solventTensor = worker.PeekOutput("predicted_solvent") as Tensor<float>;
+
+            if (thickTensor != null && solventTensor != null)
+            {
+                thickTensor.CompleteAllPendingOperations();
+                solventTensor.CompleteAllPendingOperations();
+
+                using Tensor<float> cpuThick = thickTensor.ReadbackAndClone() as Tensor<float>;
+                using Tensor<float> cpuSolvent = solventTensor.ReadbackAndClone() as Tensor<float>;
+
+                float[] rawThicknessArray = cpuThick.DownloadToArray();
+                float[] rawSolventArray = cpuSolvent.DownloadToArray();
+
+                if (metrologyMonitorScreen != null)
+                {
+                    metrologyMonitorScreen.ProcessAndDisplayWafers(rawThicknessArray, rawSolventArray);
+                }
+            }
+            else
+            {
+                Debug.LogError("[Hotplate Engine] Error finding distinct output nodes named 'predicted_thickness' and 'predicted_solvent'!");
+            }
+        }
     }
 
-    void UpdateHotplateUI(string message) {
+    void UpdateHotplateUI(string message) 
+    {
         if (hotplateStatusText != null) hotplateStatusText.text = "POLOS Hotplate: " + message;
-        
         bool canOperate = (currentState == HotplateState.WaferLoaded);
-        
         if (startPrebakeButton != null) startPrebakeButton.interactable = canOperate;
         if (tempSlider != null) tempSlider.interactable = (currentState != HotplateState.Baking);
         if (bakeTimeSlider != null) bakeTimeSlider.interactable = (currentState != HotplateState.Baking);
@@ -201,5 +257,10 @@ public class HotplateController : MonoBehaviour
         {
             temperatureDisplay.text = currentState == HotplateState.Idle ? "23.5°C" : $"{targetTemperature:F1}°C";
         }
+    }
+
+    void OnDestroy()
+    {
+        worker?.Dispose();
     }
 }

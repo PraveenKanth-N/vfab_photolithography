@@ -44,7 +44,13 @@ public class SpinCoaterController : MonoBehaviour
     private Worker engine;                      // FIXED: Replaced IWorker with concrete Worker class
     private Texture2D mlDataLookupTexture;
     private const int RADIAL_SAMPLES = 256;
+    public HotplateController hotplateEquipmentInstance;
 
+    [Header("Debug Adjustments")]
+    [Tooltip("Check this box to fast-forward the spin recipe timers to a split second for rapid debugging.")]
+    public bool debugSpeedUp = true;
+
+    private float centerThicknessSample = 0f;
     private ClamshellLidController lidController;
     private GameObject hostedWaferObjectRef = null;
 
@@ -240,9 +246,10 @@ public class SpinCoaterController : MonoBehaviour
         
         while (recipeTimer < spreadDuration)
         {
-            recipeTimer += Time.deltaTime;
-            
-            UpdateCoaterUI($"[{currentPhaseName}] Speed: {spreadRPM:F0} RPM | Time Left: {(spreadDuration - recipeTimer):F1}s");
+            // If debug speed up is checked, advance time 20x faster
+            recipeTimer += Time.deltaTime * (debugSpeedUp ? 20f : 1f);
+
+            UpdateCoaterUI($"[{currentPhaseName}] Speed: {spreadRPM:F0} RPM | Time Left: {Mathf.Max(0f, spreadDuration - recipeTimer):F1}s");
             yield return null;
         }
 
@@ -263,7 +270,7 @@ public class SpinCoaterController : MonoBehaviour
 
         while (recipeTimer < targetSpinTime)
         {
-            recipeTimer += Time.deltaTime;
+            recipeTimer += Time.deltaTime * (debugSpeedUp ? 20f : 1f);
             ExecuteMLInferenceLoop(targetSpinSpeed, recipeTimer);
 
             UpdateCoaterUI($"[{currentPhaseName}] Speed: {targetSpinSpeed:F0} RPM | Time Left: {(targetSpinTime - recipeTimer):F1}s");
@@ -304,7 +311,7 @@ public class SpinCoaterController : MonoBehaviour
             // 5. MODERN API CONVERSION: Safely dump structural data to standard array
             float[] mlPredictions = cpuCopyTensor.DownloadToArray();
 
-            float centerThicknessSample = mlPredictions[0];
+            centerThicknessSample = mlPredictions[0];
 
             // 6. Parse network predictions straight into your custom dynamic shader texture
             for (int i = 0; i < RADIAL_SAMPLES; i++)
@@ -334,10 +341,35 @@ public class SpinCoaterController : MonoBehaviour
         }
     }
 
+    // Inside SpinCoaterController.cs -> Modify your completion method
     void CompleteSpinCycle()
     {
         currentCoaterState = CoaterState.Complete;
         if (waferObject != null) waferObject.localRotation = Quaternion.identity;
+        
+        float appliedRPM = speedSlider != null ? speedSlider.value : 3000f;
+        
+        // Grab the final calculation from the global variable updated by your inference loop
+        float finalHCenter = centerThicknessSample; 
+        
+        // SAFETY FALLBACK: If the inference loop didn't fill it, give it a valid number
+        if (finalHCenter <= 0.1f) 
+        {
+            finalHCenter = 400.4f; 
+            Debug.LogWarning("[Spin Coater] centerThicknessSample was empty on completion. Using 400.4nm fallback.");
+        }
+
+        // FIRE THE DATA BRIDGE OVER TO THE HOTPLATE
+        if (hotplateEquipmentInstance != null)
+        {
+            hotplateEquipmentInstance.ReceiveWaferStateFromSpinCoater(finalHCenter, appliedRPM);
+            Debug.Log($"[Data Bridge Success] Transferred {finalHCenter:F1}nm to Hotplate Controller reference.");
+        }
+        else
+        {
+            Debug.LogError("[Data Bridge Error] Hotplate Controller reference is MISSING on the Spin Coater script component!");
+        }
+
         UpdateCoaterUI("Spin cycle complete. Uniform film thickness achieved via neural inference model.");
     }
 
