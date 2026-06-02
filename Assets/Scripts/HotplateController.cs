@@ -131,7 +131,7 @@ public class HotplateController : MonoBehaviour
         if (topHeatingSurfaceElement != null)
         {
             wafer.transform.SetParent(topHeatingSurfaceElement); 
-            wafer.transform.position = topHeatingSurfaceElement.position + new Vector3(0f, 0.4f, 0f);
+            wafer.transform.position = topHeatingSurfaceElement.position + new Vector3(0f, 0.25f, -0.1f);
             wafer.transform.rotation = topHeatingSurfaceElement.rotation; 
         }
         else
