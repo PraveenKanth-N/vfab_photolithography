@@ -73,4 +73,9 @@ public class CleanroomUIManager : MonoBehaviour
         if (dispenserUIPanel != null) dispenserUIPanel.SetActive(false);
         if (exposureUIPanel != null) exposureUIPanel.SetActive(false);
     }
+    
+    public bool IsAnyPanelOpen()
+    {
+        return activePanel != null;
+    }
 }

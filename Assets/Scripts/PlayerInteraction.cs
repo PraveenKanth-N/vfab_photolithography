@@ -32,8 +32,15 @@ public class PlayerInteraction : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
+            if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.IsAnyPanelOpen())
+            {
+                return;
+            }
+
+            // Standard world-space UI checking (for non-cockpit world elements)
             if (TryClickWorldUI()) return;
 
+            // Process standard cleanroom physical item pickup/placement
             if (heldObject == null)
             {
                 TryPickUpObject();
@@ -124,6 +131,42 @@ public class PlayerInteraction : MonoBehaviour
         {
             GameObject target = hit.collider.gameObject;
             string nameLower = target.name.ToLower();
+
+            if (nameLower.Contains("beaker") || nameLower.Contains("fluid") || nameLower.Contains("chemical") || nameLower.Contains("mesh"))
+            {
+                Transform foundWafer = null;
+
+                // Loop through all direct children of the clicked mesh (FluidMesh)
+                for (int i = 0; i < target.transform.childCount; i++)
+                {
+                    Transform child = target.transform.GetChild(i);
+                    if (child.name.ToLower().Contains("wafer"))
+                    {
+                        foundWafer = child;
+                        break;
+                    }
+                }
+
+                // Fallback: If it's not a child of FluidMesh, check its parent (DeveloperBeaker) or siblings
+                if (foundWafer == null && target.transform.parent != null)
+                {
+                    foreach (Transform siblingOrChild in target.transform.parent.GetComponentsInChildren<Transform>())
+                    {
+                        if (siblingOrChild.name.ToLower().Contains("wafer"))
+                        {
+                            foundWafer = siblingOrChild;
+                            break;
+                        }
+                    }
+                }
+
+                // If a submerged wafer is detected anywhere in the developer nest, hijack the interaction target!
+                if (foundWafer != null)
+                {
+                    target = foundWafer.gameObject;
+                    nameLower = target.name.ToLower();
+                }
+            }
 
             if (nameLower.Contains("wafer")) 
             {
@@ -358,7 +401,7 @@ public class PlayerInteraction : MonoBehaviour
                         RestoreHeldObjectLayer();
                         DetachHeldObject();
 
-                        heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.2f, 0f);
+                        heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.1f, 0f);
                         heldObject.transform.rotation = Quaternion.identity;
                         heldObject.transform.SetParent(liquid.transform);
                         liquid.TriggerWaferInteractionSpike();
