@@ -64,8 +64,19 @@ public class MouseLook : MonoBehaviour
         // Quick re-lock shortcut: If you click back into the game screen while unlocked, lock it again
         if (!isCursorLocked && Input.GetMouseButtonDown(0))
         {
-            // Make sure we didn't just click a wall button before locking
-            LockCursor();
+            // If the UI Manager exists and a machine panel is currently visible, DO NOT re-lock the cursor!
+            if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.hotplateUIPanel.activeSelf == false 
+                && CleanroomUIManager.Instance.spinCoaterUIPanel.activeSelf == false
+                && CleanroomUIManager.Instance.dispenserUIPanel.activeSelf == false
+                && CleanroomUIManager.Instance.exposureUIPanel.activeSelf == false)
+            {
+                LockCursor();
+            }
+            else if (CleanroomUIManager.Instance == null)
+            {
+                // Fallback safety baseline if the UI script is missing in a test scene
+                LockCursor();
+            }
         }
     }
 
@@ -81,5 +92,20 @@ public class MouseLook : MonoBehaviour
         isCursorLocked = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+    }
+
+
+    public void ForceUnlockForUI()
+    {
+        isCursorLocked = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    public void ForceLockFromUI()
+    {
+        isCursorLocked = true;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 }
