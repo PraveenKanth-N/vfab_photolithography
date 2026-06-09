@@ -1,10 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 
 public class ExposureStationController : MonoBehaviour
 {
+    [Header("Sentis AI Link")]
+    public LithoInferenceEngine lithoAIModelEngine;
+
     [Header("Process Tracking")]
     public bool isExposingNow = false;
 
@@ -127,6 +131,22 @@ public class ExposureStationController : MonoBehaviour
 
         if (uvChamberLightSource != null) uvChamberLightSource.SetActive(true);
 
+        // =====================================================================
+        // AI LINK: ACTIVATE THE FNO CALCULATIONS AT IGNITION
+        // =====================================================================
+        if (lithoAIModelEngine != null)
+        {
+            if (!isMaskTrayInserted)
+            {
+                Debug.LogWarning("Exposure Warning: Photomask tray is un-registered!");
+            }
+            
+            // Wake up the engine and run the initialization calculation
+            lithoAIModelEngine.isSystemExposing = true;
+            lithoAIModelEngine.OnProcessParameterChanged();
+        }
+        // =====================================================================
+
         while (exposureTimer < exposureTimeSetting)
         {
             exposureTimer += Time.deltaTime;
@@ -146,17 +166,26 @@ public class ExposureStationController : MonoBehaviour
         loggedTimeValue = exposureTimeSetting;
         loggedIntensityValue = uvIntensitySetting;
 
-        // --- INTEGRATION TRIGGER: STEP 3 (Photolytic Energy Conversion) ---
+        if (lithoAIModelEngine != null)
+        {
+            lithoAIModelEngine.isSystemExposing = false;
+            
+            float[] finalProfileArray = lithoAIModelEngine.GetExposureOutputData();
+            if (finalProfileArray != null)
+            {
+                Debug.Log($"[Litho AI] Successfully harvested modern FNO profile matrix data! Array Length: {finalProfileArray.Length}");
+                // The float array data is now fully available to pass down to your developer beaker steps!
+            }
+        }
+        // =====================================================================
+
+        // --- Your existing MicroscopeInterfaceManager & photolytic energy molecular flips ---
         if (MicroscopeInterfaceManager.Instance != null)
         {
             AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
             if (chamber != null)
             {
-                // Math: Energy Dose = Intensity * Duration
                 float totalEnergyDose = loggedIntensityValue * loggedTimeValue;
-
-                // Physics Mapping: If dosage is optimized, trigger a high-percentage molecular flip.
-                // If user leaves sliders at absolute lowest values, conversion efficiency stalls at 25%.
                 float targetConversionEfficiency = (totalEnergyDose > 120f) ? 0.85f : 0.25f;
                 chamber.AnimateExposure(targetConversionEfficiency, acidIonMaterial);
             }
