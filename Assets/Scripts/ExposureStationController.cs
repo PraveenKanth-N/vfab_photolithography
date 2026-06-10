@@ -171,15 +171,20 @@ public class ExposureStationController : MonoBehaviour
             lithoAIModelEngine.isSystemExposing = false;
             
             float[] finalProfileArray = lithoAIModelEngine.GetExposureOutputData();
-            if (finalProfileArray != null)
+            if (finalProfileArray != null && finalProfileArray.Length > 0)
             {
-                Debug.Log($"[Litho AI] Successfully harvested modern FNO profile matrix data! Array Length: {finalProfileArray.Length}");
-                // The float array data is now fully available to pass down to your developer beaker steps!
+                // Pull the absolute center pixel of your 512x512 matrix grid
+                int centerIndex = (256 * 512) + 256;
+                float centerIntensity = finalProfileArray[centerIndex];
+
+                Debug.Log($"[Litho AI] UNet Profile Harvested! Center Intensity: {centerIntensity:F4}");
+                
+                // Optional: You can append this value straight into your UI readout message!
+                UpdateExposureStationUI($"Exposure complete! Latent center concentration: {centerIntensity:F2}");
+                return; // Skip the default message below since we updated it with data
             }
         }
-        // =====================================================================
 
-        // --- Your existing MicroscopeInterfaceManager & photolytic energy molecular flips ---
         if (MicroscopeInterfaceManager.Instance != null)
         {
             AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();

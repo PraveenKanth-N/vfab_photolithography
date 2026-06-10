@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
-using Unity.InferenceEngine; // Unified project wrapper mapping alignment
+using Unity.InferenceEngine; 
 using TMPro;
 
 public class LithoInferenceEngine : MonoBehaviour
@@ -9,7 +9,7 @@ public class LithoInferenceEngine : MonoBehaviour
     [Header("Model Assets")]
     public ModelAsset onnxModelAsset;
     private Model runtimeModel;
-    private Worker inferenceWorker; // Utilizing the modern concrete Worker class
+    private Worker inferenceWorker; // Fixed to use concrete Worker class matching SpinCoater
 
     [Header("UI Input Elements")]
     public TMP_Dropdown maskDropdown;         
@@ -18,34 +18,31 @@ public class LithoInferenceEngine : MonoBehaviour
     public Slider defocusSlider;
     public Slider naSlider;
 
-    [HideInInspector] public bool isSystemExposing = false; 
+    [HideInInspector] public bool isSystemExposing = false;
 
-    // Persistent baseline array memory buffer and runtime texture configuration
     private float[] inputRawArray;
+    
+    // Persistent wrapper data blocks matching custom project API
     private Texture2D maskTexture2D;
 
     private int resolution = 512;
-    private int channels = 6;
-    private float currentThicknessNorm = 1.0f; 
-    
-    private const float STANDARD_DILL_B_NORM = 0.525f / 0.65f; 
+    private int channels = 4; // Updated: 4 Channels (Mask, Dose, Defocus, NA)
 
-    // Continuous calculation output cache array
+    // Cached outputs for consumption by ExposureStationController
     private float[] outputResultsData;
 
     void Start()
     {
         if (onnxModelAsset == null)
         {
-            Debug.LogError("[Inference Engine] ModelAsset missing from slot registry!");
+            Debug.LogError("[Inference Engine] Missing UNet ONNX assignment reference!");
             return;
         }
 
-        // 1. Unified Model Loader Pipeline
+        // Initialize matching your exact working SpinCoater structural format
         runtimeModel = ModelLoader.Load(onnxModelAsset);
         inferenceWorker = new Worker(runtimeModel, BackendType.GPUCompute);
 
-        // 2. Allocate memory blocks matching our 512x512 matrix resolution
         inputRawArray = new float[1 * resolution * resolution * channels];
         maskTexture2D = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false);
         maskPreviewDisplay.texture = maskTexture2D;
@@ -66,20 +63,19 @@ public class LithoInferenceEngine : MonoBehaviour
         List<string> options = new List<string>
         {
             "Dense Vertical Grating",
-            "Isolated Vertical Line",
-            "Semi-Dense Vertical Grating",
+            "Dense Horizontal Grating", 
             "Symmetric 2D Contacts Array",
+            "Isolated Vertical Line",
             "Isolated Contact Square"
         };
         maskDropdown.AddOptions(options);
+        maskDropdown.RefreshShownValue();
     }
 
     public void OnMaskSelectionChanged()
     {
         int selectedIndex = maskDropdown.value;
         for (int i = 0; i < resolution * resolution; i++) inputRawArray[i * channels + 0] = 0.0f;
-
-        Color32[] textureColorBuffer = new Color32[resolution * resolution];
 
         if (selectedIndex == 0) 
         {
@@ -89,16 +85,11 @@ public class LithoInferenceEngine : MonoBehaviour
         }
         else if (selectedIndex == 1) 
         {
-            int cd = 32;
-            BlitVerticalStripe((resolution - cd) / 2, cd);
+            int cd = 24, pitch = 32;
+            int startOffset = (resolution - (7 * cd + 6 * pitch)) / 2;
+            for (int row = 0; row < 7; row++) BlitHorizontalStripe(startOffset + row * (cd + pitch), cd);
         }
         else if (selectedIndex == 2) 
-        {
-            int cd = 24, pitch = 80;
-            int startOffset = (resolution - (4 * cd + 3 * pitch)) / 2;
-            for (int col = 0; col < 4; col++) BlitVerticalStripe(startOffset + col * (cd + pitch), cd);
-        }
-        else if (selectedIndex == 3) 
         {
             int cd = 24, pitch = 32;
             int startOffset = (resolution - (8 * cd + 7 * pitch)) / 2;
@@ -106,12 +97,18 @@ public class LithoInferenceEngine : MonoBehaviour
                 for (int c = 0; c < 8; c++) BlitSquareBlock(startOffset + c * (cd + pitch), startOffset + r * (cd + pitch), cd);
             }
         }
+        else if (selectedIndex == 3) 
+        {
+            int cd = 32;
+            BlitVerticalStripe((resolution - cd) / 2, cd);
+        }
         else if (selectedIndex == 4) 
         {
             int cd = 40;
             BlitSquareBlock((resolution - cd) / 2, (resolution - cd) / 2, cd);
         }
 
+        Color32[] textureColorBuffer = new Color32[resolution * resolution];
         for (int y = 0; y < resolution; y++)
         {
             for (int x = 0; x < resolution; x++)
@@ -136,6 +133,15 @@ public class LithoInferenceEngine : MonoBehaviour
         }
     }
 
+    private void BlitHorizontalStripe(int yStart, int height)
+    {
+        for (int y = yStart; y < yStart + height; y++) {
+            for (int x = 0; x < resolution; x++) {
+                if (y >= 0 && y < resolution) inputRawArray[(y * resolution + x) * channels + 0] = 1.0f;
+            }
+        }
+    }
+
     private void BlitSquareBlock(int xStart, int yStart, int size)
     {
         for (int y = yStart; y < yStart + size; y++) {
@@ -147,44 +153,54 @@ public class LithoInferenceEngine : MonoBehaviour
 
     public void OnProcessParameterChanged()
     {
-        if (!isSystemExposing) return;
-
         float normDose = doseSlider.value / 38.0f;
         float normDefocus = defocusSlider.value / 45.0f;
         float normNA = naSlider.value / 1.35f;
+
+        // 1. ALLOCATE NEW TEMP BUFFER FOR NCHW LAYOUT: [1, 4, 512, 512]
+        // Instead of grouping pixels side-by-side, we stack entire 512x512 grids back-to-back.
+        float[] nchwInputArray = new float[1 * channels * resolution * resolution];
+        int planeSize = resolution * resolution;
 
         for (int y = 0; y < resolution; y++)
         {
             for (int x = 0; x < resolution; x++)
             {
-                int flatIdx = (y * resolution + x) * channels;
-                inputRawArray[flatIdx + 1] = normDose;
-                inputRawArray[flatIdx + 2] = normDefocus;
-                inputRawArray[flatIdx + 3] = currentThicknessNorm; 
-                inputRawArray[flatIdx + 4] = normNA;
-                inputRawArray[flatIdx + 5] = STANDARD_DILL_B_NORM;
+                int pixelIdx = y * resolution + x;
+
+                // Grab the mask structural binary bit we blitted earlier in channel 0
+                float maskVal = inputRawArray[pixelIdx * channels + 0];
+
+                // Map across distinct spatial planes:
+                nchwInputArray[0 * planeSize + pixelIdx] = maskVal;     // Channel 0: Mask
+                nchwInputArray[1 * planeSize + pixelIdx] = normDose;    // Channel 1: Dose
+                nchwInputArray[2 * planeSize + pixelIdx] = normDefocus; // Channel 2: Defocus
+                nchwInputArray[3 * planeSize + pixelIdx] = normNA;      // Channel 3: NA
             }
         }
 
-        // =====================================================================
-        // UNIFIED ASYNCHRONOUS INFERENCE PASS EXECUTION
-        // =====================================================================
-        TensorShape shape = new TensorShape(1, resolution, resolution, channels);
-        using Tensor<float> inputTensor = new Tensor<float>(shape, inputRawArray);
+        // 2. CONSTRUCT TENSOR MATCHING MODEL EXPECTED EXPECTED SHAPE: (1, 4, 512, 512)
+        TensorShape engineInputShape = new TensorShape(1, channels, resolution, resolution);
+        using Tensor<float> engineInputTensor = new Tensor<float>(engineInputShape, nchwInputArray);
         
-        // Asynchronously schedule execution on the GPU compute pipeline
-        inferenceWorker.Schedule(inputTensor);
+        // 3. Schedule the fresh layout onto the GPU pipeline
+        inferenceWorker.Schedule(engineInputTensor);
         
         Tensor<float> gpuOutputTensor = inferenceWorker.PeekOutput() as Tensor<float>;
         if (gpuOutputTensor != null)
         {
-            // Extract and download local memory references cleanly using your asset framework patterns
             using Tensor<float> cpuCopyTensor = gpuOutputTensor.ReadbackAndClone() as Tensor<float>;
             outputResultsData = cpuCopyTensor.DownloadToArray();
+
+            // Fire your new physics continuous sine-wave visualizer
+            if (TryGetComponent<LithoVisualizer>(out var visualizer))
+            {
+                visualizer.UpdateAerialPlotDisplay();
+            }
         }
-        // =====================================================================
     }
 
+    // Clean data hook for external controllers
     public float[] GetExposureOutputData()
     {
         return outputResultsData;
