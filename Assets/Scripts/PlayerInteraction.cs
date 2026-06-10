@@ -350,12 +350,18 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // --- EXPOSURE ALIGNER INTERACTION CHECK ---
-            if (targetName.Contains("exposure") || targetName.Contains("aligner") || targetName.Contains("machine"))
+            if (targetName.Contains("exposure") || targetName.Contains("aligner") || 
+                targetName.Contains("machine")  || targetName.Contains("dock")    || 
+                targetName.Contains("chuck"))
             {
                 ExposureStationController aligner = target.GetComponentInParent<ExposureStationController>();
 
+                // Fallback: search globally if the clicked sub-mesh doesn't have it in parent nodes
+                if (aligner == null) aligner = Object.FindAnyObjectByType<ExposureStationController>();
+
                 if (aligner != null)
                 {
+                    // Case A: Placing the Mask / Tray
                     if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
                     {
                         RestoreHeldObjectLayer();
@@ -369,20 +375,25 @@ public class PlayerInteraction : MonoBehaviour
                         return;
                     }
                     
+                    // Case B: Placing the Wafer 
                     if (heldObject.name.ToLower().Contains("wafer"))
                     {
                         RestoreHeldObjectLayer();
                         DetachHeldObject();
+
                         if (aligner.waferDockPosition != null)
                         {
-                            heldObject.transform.position = aligner.waferDockPosition.position;
-                            heldObject.transform.rotation = aligner.waferDockPosition.rotation;
+                            heldObject.transform.SetParent(aligner.waferDockPosition, false);
+                            heldObject.transform.localPosition = Vector3.zero; 
+                            heldObject.transform.localRotation = Quaternion.identity;
                         }
-                        else
-                        {
-                            heldObject.transform.position = target.transform.position + new Vector3(0f, 0.15f, 0f);
-                            heldObject.transform.rotation = Quaternion.identity;
-                        }
+                        
+                        // Apply your exact standardized scale
+                        heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
+
+                        Rigidbody waferRb = heldObject.GetComponent<Rigidbody>();
+                        if (waferRb != null) waferRb.isKinematic = true;
+
                         heldObject = null;
                         return;
                     }

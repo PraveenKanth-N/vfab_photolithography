@@ -33,6 +33,7 @@ public class SpinCoaterController : MonoBehaviour
     public Renderer waferRenderer;              // Wafer mesh rendering target
     private Vector3 originalWaferScale;  
     private Material wetCoatingMaterialInstance;
+    public Transform coaterWaferAnchor;
 
     [Header("Dynamic Fluid Animations")]
     public float fluidSpreadSpeed = 2.5f;
@@ -374,8 +375,10 @@ public class SpinCoaterController : MonoBehaviour
     }
 
     // --- RESTORED ORIGINAL PLACEMENT METHOD ---
+    // --- UPDATED PLACEMENT TRACKING METHOD ---
     public bool RegisterWaferPlacement(GameObject wafer)
     {
+        // 1. Double check our state machine blocks cleanly
         if (currentCoaterState != CoaterState.Empty)
         {
             Debug.LogWarning($"[{gameObject.name}] Placement Rejected: Spin coater state is {currentCoaterState}, not Empty.");
@@ -388,43 +391,37 @@ public class SpinCoaterController : MonoBehaviour
             return false;
         }
 
+        // Keep a direct reference to the actual tracking transform
         waferObject = wafer.transform;
 
-        // PARENT COUPLING WITH MATRIX MAINTENANCE
-        if (rotorSpindleChuck != null)
+        // 2. Parent to our unscaled tracking anchor empty node
+        if (coaterWaferAnchor != null)
         {
-            wafer.transform.SetParent(rotorSpindleChuck, true);
-            
-            // Apply your custom alignment tweaks cleanly
-            wafer.transform.localPosition = new Vector3(0.006f, 0.02f, 0.015f); 
+            wafer.transform.SetParent(coaterWaferAnchor, false);
+            wafer.transform.localPosition = new Vector3(0.006f, 0.02f, 0.015f); // Keeps your custom offset positioning
             wafer.transform.localRotation = Quaternion.identity;
         }
         else
         {
-            wafer.transform.SetParent(transform);
-            wafer.transform.position = transform.position + new Vector3(0f, 0.2f, 0f);
-            wafer.transform.rotation = Quaternion.identity;
+            wafer.transform.SetParent(transform, false);
+            wafer.transform.localPosition = new Vector3(0f, 0.2f, 0f);
+            wafer.transform.localRotation = Quaternion.identity;
         }
 
-        wafer.transform.localScale = Vector3.one; // Reset local multipliers to baseline unity unity units
-        
-        // Force the absolute physical proportions across the rendering matrix pipeline
-        Vector3 currentWorldScale = wafer.transform.lossyScale;
-        wafer.transform.localScale = new Vector3(
-            0.65f / (currentWorldScale.x != 0 ? currentWorldScale.x : 1f),
-            0.013f / (currentWorldScale.y != 0 ? currentWorldScale.y : 1f),
-            0.65f / (currentWorldScale.z != 0 ? currentWorldScale.z : 1f)
-        );
+        // 3. Enforce the perfect global uniform dimension space
+        wafer.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
 
         Rigidbody rb = wafer.GetComponent<Rigidbody>();
         if (rb != null) rb.isKinematic = true;
 
+        // 4. Update state machine states and refresh buttons
         currentCoaterState = CoaterState.WaferLoaded;
         UpdateCoaterUI("Substrate loaded. Ready for chemical dispensing.");
         
         return true;
     }
 
+    // --- UPDATED EXTRACTION HANDOFF METHOD ---
     public GameObject RemoveWafer()
     {
         if (currentCoaterState == CoaterState.Spinning || currentCoaterState == CoaterState.PRDispensing)
@@ -434,9 +431,13 @@ public class SpinCoaterController : MonoBehaviour
         }
 
         GameObject waferToReturn = null;
-        if (rotorSpindleChuck != null && rotorSpindleChuck.childCount > 0)
+
+        // CRITICAL FIX: Look inside your unscaled anchor node instead of the raw spinning chuck!
+        Transform searchRoot = coaterWaferAnchor != null ? coaterWaferAnchor : rotorSpindleChuck;
+
+        if (searchRoot != null && searchRoot.childCount > 0)
         {
-            foreach (Transform child in rotorSpindleChuck)
+            foreach (Transform child in searchRoot)
             {
                 if (child.name.ToLower().Contains("wafer"))
                 {
@@ -448,10 +449,11 @@ public class SpinCoaterController : MonoBehaviour
 
         if (waferToReturn != null)
         {
-            // Reset proportions back to standard world space scale values right before unbinding
-            waferToReturn.transform.localScale = new Vector3(0.65f, 0.013f, 0.65f);
+            // Reset proportions back to standard values right before unbinding to hand
+            waferToReturn.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
         }
 
+        // 5. CLEAR ALL VARIABLES ENTIRELY to allow the station to be completely reused!
         waferObject = null;
         currentCoaterState = CoaterState.Empty;
         UpdateCoaterUI("Awaiting substrate insertion...");

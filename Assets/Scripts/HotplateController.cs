@@ -11,6 +11,7 @@ public class HotplateController : MonoBehaviour
     [Header("Process Tracking")]
     public HotplateState currentState = HotplateState.Idle;
     private float bakeTimer = 0f;
+    public Transform hotplateWaferAnchor;
 
     [Header("ML Feature Parameters (Inputs)")]
     public float targetTemperature = 90f; 
@@ -125,22 +126,20 @@ public class HotplateController : MonoBehaviour
     }
 
     public void RegisterWaferPlacement(GameObject wafer)
-    {
-        currentState = HotplateState.WaferLoaded;
-        
-        if (topHeatingSurfaceElement != null)
-        {
-            wafer.transform.SetParent(topHeatingSurfaceElement); 
-            wafer.transform.position = topHeatingSurfaceElement.position + new Vector3(0f, 0.25f, -0.1f);
-            wafer.transform.rotation = topHeatingSurfaceElement.rotation; 
-        }
-        else
-        {
-            wafer.transform.position = transform.position + new Vector3(0f, 0.5f, 0f);
-        }
+    {
+        currentState = HotplateState.WaferLoaded;
+        
+        if (hotplateWaferAnchor != null)
+        {
+            wafer.transform.SetParent(hotplateWaferAnchor, false); 
+            wafer.transform.localPosition = Vector3.zero;
+            wafer.transform.localRotation = Quaternion.identity; 
+        }
 
-        UpdateHotplateUI("Substrate registered on heating element. Press Start.");
-    }
+        // Apply your exact standardized scale
+        wafer.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
+        UpdateHotplateUI("Substrate registered on heating element. Press Start.");
+    }
 
     public void BeginThermalBakeCycle()
     {
