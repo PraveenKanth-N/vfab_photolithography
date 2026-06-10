@@ -18,9 +18,15 @@ public class LithoInferenceEngine : MonoBehaviour
     public Slider defocusSlider;
     public Slider naSlider;
 
+    [Header("UI Text Displays")]
+    public TMPro.TextMeshProUGUI doseText;
+    public TMPro.TextMeshProUGUI defocusText;
+    public TMPro.TextMeshProUGUI naText;
+
     [HideInInspector] public bool isSystemExposing = false;
 
     private float[] inputRawArray;
+    private float[] nchwInputArray;
     
     // Persistent wrapper data blocks matching custom project API
     private Texture2D maskTexture2D;
@@ -153,13 +159,18 @@ public class LithoInferenceEngine : MonoBehaviour
 
     public void OnProcessParameterChanged()
     {
+        
+        if (doseText != null) doseText.text = $"Dose: {doseSlider.value:F2} mJ";
+        if (defocusText != null) defocusText.text = $"Defocus: {defocusSlider.value:F2} um";
+        if (naText != null) naText.text = $"Numerical Apertuure: {naSlider.value:F2}";
+        
         float normDose = doseSlider.value / 38.0f;
         float normDefocus = defocusSlider.value / 45.0f;
         float normNA = naSlider.value / 1.35f;
 
         // 1. ALLOCATE NEW TEMP BUFFER FOR NCHW LAYOUT: [1, 4, 512, 512]
         // Instead of grouping pixels side-by-side, we stack entire 512x512 grids back-to-back.
-        float[] nchwInputArray = new float[1 * channels * resolution * resolution];
+        nchwInputArray = new float[1 * channels * resolution * resolution];
         int planeSize = resolution * resolution;
 
         for (int y = 0; y < resolution; y++)
@@ -210,5 +221,30 @@ public class LithoInferenceEngine : MonoBehaviour
     {
         inferenceWorker?.Dispose();
         Destroy(maskTexture2D);
+    }
+
+    // Add this public method to LithoInferenceEngine.cs so other scripts can call it!
+    public void ExecuteModelExposurePipeline()
+    {
+        if (inferenceWorker == null) return;
+
+        // Construct the execution block array using the stored layout array data 
+        TensorShape engineInputShape = new TensorShape(1, channels, resolution, resolution);
+        using Tensor<float> engineInputTensor = new Tensor<float>(engineInputShape, nchwInputArray);
+        
+        inferenceWorker.Schedule(engineInputTensor);
+        
+        Tensor<float> gpuOutputTensor = inferenceWorker.PeekOutput() as Tensor<float>;
+        if (gpuOutputTensor != null)
+        {
+            using Tensor<float> cpuCopyTensor = gpuOutputTensor.ReadbackAndClone() as Tensor<float>;
+            outputResultsData = cpuCopyTensor.DownloadToArray();
+
+            // Force visualizer to paint our continuous sine gradients
+            if (TryGetComponent<LithoVisualizer>(out var visualizer))
+            {
+                visualizer.UpdateAerialPlotDisplay();
+            }
+        }
     }
 }
