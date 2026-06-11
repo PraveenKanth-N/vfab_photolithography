@@ -366,6 +366,36 @@ public class LithoInferenceEngine : MonoBehaviour
         return previewTex;
     }
 
+    // --- NEW METHOD: PAINTS THE GRAPHIC MATRIX DIRECTLY ONTO THE PHYSICAL MESH ---
+    public void PaintBakedPatternOntoObject(GameObject physicalMaskObject)
+    {
+        if (maskTexture2D == null)
+        {
+            Debug.LogError("[Litho Engine] Cannot paint photomask: maskTexture2D pixel data buffer is empty!");
+            return;
+        }
+
+        MeshRenderer meshRenderer = physicalMaskObject.GetComponent<MeshRenderer>();
+        if (meshRenderer == null) meshRenderer = physicalMaskObject.GetComponentInChildren<MeshRenderer>();
+
+        if (meshRenderer != null)
+        {
+            // Forces an isolated runtime instance copy of your new standard material
+            Material targetMaterial = meshRenderer.material;
+
+            if (targetMaterial.HasProperty("_MainTex"))
+            {
+                targetMaterial.SetTexture("_MainTex", maskTexture2D);
+            }
+            if (targetMaterial.HasProperty("_BaseMap"))
+            {
+                targetMaterial.SetTexture("_BaseMap", maskTexture2D);
+            }
+
+            Debug.Log($"[Litho Engine] Photomask asset texture channel mapped successfully onto standard material!");
+        }
+    }
+
     public float[] GetExposureOutputData()
     {
         return outputResultsData;

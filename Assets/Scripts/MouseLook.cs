@@ -64,7 +64,13 @@ public class MouseLook : MonoBehaviour
         // Quick re-lock shortcut: If you click back into the game screen while unlocked, lock it again
         if (!isCursorLocked && Input.GetMouseButtonDown(0))
         {
-            // If the UI Manager exists and a machine panel is currently visible, DO NOT re-lock the cursor!
+            // NEW UI PROTECTION SENSORS: If our custom photomask collage gallery layout is open, DO NOT lock the cursor!
+            if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen)
+            {
+                return; 
+            }
+
+            // Your existing UI panel protection checks remain safe below
             if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.hotplateUIPanel.activeSelf == false 
                 && CleanroomUIManager.Instance.spinCoaterUIPanel.activeSelf == false
                 && CleanroomUIManager.Instance.dispenserUIPanel.activeSelf == false
@@ -74,7 +80,6 @@ public class MouseLook : MonoBehaviour
             }
             else if (CleanroomUIManager.Instance == null)
             {
-                // Fallback safety baseline if the UI script is missing in a test scene
                 LockCursor();
             }
         }

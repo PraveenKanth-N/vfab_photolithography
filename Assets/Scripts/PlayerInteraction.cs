@@ -30,13 +30,14 @@ public class PlayerInteraction : MonoBehaviour
     {
         Debug.DrawRay(playerCamera.transform.position, playerCamera.transform.forward * interactionDistance, Color.red);
 
+        // FREEZE FIREWALL GATE: If a standard system panel is visible OR our custom collage gallery is open,
+        // completely shut down world crosshair click processing loops instantly!
+        if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.IsAnyPanelOpen()) return;
+        if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen) return;
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
+
         if (Input.GetMouseButtonDown(0))
         {
-            if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.IsAnyPanelOpen())
-            {
-                return;
-            }
-
             if (TryClickWorldUI()) return;
 
             if (heldObject == null)
@@ -130,138 +131,75 @@ public class PlayerInteraction : MonoBehaviour
             GameObject target = hit.collider.gameObject;
             string nameLower = target.name.ToLower();
 
-            if (nameLower.Contains("beaker") || nameLower.Contains("fluid") || nameLower.Contains("chemical") || nameLower.Contains("mesh"))
-            {
-                Transform foundWafer = null;
-                for (int i = 0; i < target.transform.childCount; i++)
-                {
-                    Transform child = target.transform.GetChild(i);
-                    if (child.name.ToLower().Contains("wafer"))
-                    {
-                        foundWafer = child;
-                        break;
-                    }
-                }
+            ExposureStationController aligner = target.GetComponentInParent<ExposureStationController>();
+            if (aligner == null) aligner = Object.FindAnyObjectByType<ExposureStationController>();
 
-                if (foundWafer == null && target.transform.parent != null)
+            // --- DEEP CASE SCAN: CLICKED MASK ALIGNER FRAME DIRECTLY WHILE EMPTY HANDED ---
+            if (aligner != null && (nameLower.Contains("aligner") || nameLower.Contains("machine") || nameLower.Contains("chuck") || nameLower.Contains("dock") || nameLower.Contains("hinge")))
+            {
+                Transform anchorNode = aligner.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
+                if (anchorNode == null) anchorNode = aligner.waferDockPosition;
+
+                if (anchorNode != null && anchorNode.childCount > 0)
                 {
-                    foreach (Transform siblingOrChild in target.transform.parent.GetComponentsInChildren<Transform>())
+                    // Scan the anchor for nested targets to pull out cleanly
+                    Transform nestedItem = null;
+                    for (int i = 0; i < anchorNode.childCount; i++)
                     {
-                        if (siblingOrChild.name.ToLower().Contains("wafer"))
+                        Transform child = anchorNode.GetChild(i);
+                        if (child.name.ToLower().Contains("mask") || child.name.ToLower().Contains("wafer") || child.name.ToLower().Contains("tray"))
                         {
-                            foundWafer = siblingOrChild;
+                            nestedItem = child;
                             break;
                         }
                     }
-                }
 
-                if (foundWafer != null)
-                {
-                    target = foundWafer.gameObject;
-                    nameLower = target.name.ToLower();
-                }
-            }
-
-            // --- WAFER PICKUP CHECK ---
-            if (nameLower.Contains("wafer")) 
-            {
-                ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
-                if (aligner != null && aligner.waferDockPosition != null && Vector3.Distance(target.transform.position, aligner.waferDockPosition.position) < 0.5f)
-                {
-                    if (aligner.isVacuumSealed)
+                    if (nestedItem != null)
                     {
-                        Debug.LogWarning("Pickup Denied: Vacuum chuck active.");
-                        return; 
-                    }
-                }
-
-                HotplateController hotplate = Object.FindAnyObjectByType<HotplateController>();
-                if (hotplate != null && hotplate.currentState != HotplateController.HotplateState.Baking)
-                {
-                    Collider[] hotplateHits = Physics.OverlapSphere(hotplate.transform.position + new Vector3(0f, 0.5f, 0f), 0.6f);
-                    foreach (Collider col in hotplateHits)
-                    {
-                        if (col.gameObject == hit.collider.gameObject)
+                        if (aligner.isVacuumSealed)
                         {
-                            hotplate.currentState = HotplateController.HotplateState.Idle;
-                            break;
+                            Debug.LogWarning("Pickup Denied: Vacuum seals are active inside Aligner housing.");
+                            return;
                         }
-                    }
-                }
-                
-                FluidInteractionController liquid = target.GetComponentInParent<FluidInteractionController>();
-                if (liquid == null) liquid = Object.FindAnyObjectByType<FluidInteractionController>(); 
-                if (liquid != null && Vector3.Distance(target.transform.position, liquid.transform.position) < 0.8f)
-                {
-                    liquid.TriggerWaferInteractionSpike();
-                }
 
-                SpinCoaterController coaterCheck = target.GetComponentInParent<SpinCoaterController>();
-                if (coaterCheck != null)
-                {
-                    coaterCheck.RemoveWafer();
-                }
-
-                PickUpHeldObject(target);
-                return;
-            }
-            
-            // --- SPIN COATER STATION GRAB ---
-            if (nameLower.Contains("spin") || nameLower.Contains("coater") || nameLower.Contains("chuck") || nameLower.Contains("base"))
-            {
-                SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
-                if (coater == null) coater = target.GetComponent<SpinCoaterController>();
-                if (coater == null) coater = target.GetComponentInChildren<SpinCoaterController>();
-
-                if (coater != null)
-                {
-                    GameObject extractedWafer = coater.RemoveWafer();
-                    if (extractedWafer != null)
-                    {
-                        PickUpHeldObject(extractedWafer);
-                        return; 
-                    }
-                }
-
-                Collider[] collidersCloseBy = Physics.OverlapSphere(hit.point, 0.5f);
-                foreach (Collider nearbyCollider in collidersCloseBy)
-                {
-                    if (nearbyCollider.gameObject.name.ToLower().Contains("wafer"))
-                    {
-                        PickUpHeldObject(nearbyCollider.gameObject);
-                        if (coater != null) coater.RemoveWafer(); 
+                        aligner.isMaskTrayInserted = false;
+                        PickUpHeldObject(nestedItem.gameObject);
                         return;
                     }
                 }
             }
 
-            // --- PHOTOMASK INTERACTION & PICKUP ---
+            // Standard direct object click processing fallbacks
+            if (nameLower.Contains("wafer")) 
+            {
+                PickUpHeldObject(target);
+                return;
+            }
+            
             if (nameLower.Contains("mask") || nameLower.Contains("tray"))
             {
-                ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
-                if (aligner != null && aligner.isVacuumSealed)
-                {
-                    Debug.LogWarning("Pickup Denied: Mask is currently vacuum-sealed inside the exposure housing assembly.");
-                    return; 
-                }
-                
-                // FIXED CHECK: Look for either 'storage' or your new empty 'dock' anchor container parent!
                 bool isSittingOnStorageCube = target.transform.parent != null && 
                                              (target.transform.parent.name.ToLower().Contains("storage") || 
                                               target.transform.parent.name.ToLower().Contains("dock"));
 
                 if (isSittingOnStorageCube)
                 {
-                    // Photomask on storage anchor -> Click it -> Pop open selection layout panel menu
-                    Debug.Log("[Sequence Log] Interacting with mask on Photomask_Dock. Triggering design collage gallery UI...");
                     PhotomaskGalleryUI.Instance.OpenGallery(target);
                 }
                 else
                 {
-                    // From Aligner or anywhere else: Pull back cleanly into hand socket
                     if (aligner != null) aligner.isMaskTrayInserted = false; 
                     PickUpHeldObject(target);
                 }
+                return;
+            }
+
+            // Spin coater direct fetch
+            SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
+            if (coater != null)
+            {
+                GameObject extractedWafer = coater.RemoveWafer();
+                if (extractedWafer != null) PickUpHeldObject(extractedWafer);
                 return;
             }
         }
@@ -284,11 +222,7 @@ public class PlayerInteraction : MonoBehaviour
         heldObject.transform.SetParent(waferHolderSocket);
         heldObject.transform.localPosition = Vector3.zero;
         heldObject.transform.localRotation = Quaternion.identity;
-
-        if (heldObject.name.ToLower().Contains("wafer") || heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
-        {
-            heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
-        }
+        heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
     }
 
     void TryPlaceObject()
@@ -303,95 +237,86 @@ public class PlayerInteraction : MonoBehaviour
             GameObject target = hit.collider.gameObject;
             string targetName = target.name.ToLower();
 
-            // =====================================================================
-            // 1. GLOBAL MASK ALIGNER HOUSING INTERACTION PASSTHROUGH
-            // =====================================================================
-            if (targetName.Contains("chuck") || targetName.Contains("dock") || 
-                targetName.Contains("aligner") || targetName.Contains("machine") || 
-                targetName.Contains("anchor") || targetName.Contains("hinge") || targetName.Contains("rotator"))
+            SpinCoaterController targetCoater = target.GetComponentInParent<SpinCoaterController>();
+            ExposureStationController targetAligner = target.GetComponentInParent<ExposureStationController>();
+
+            // --- DETECT INTERFERENCE: STOP ALIGNER FROM STEALING SPIN COATER CLICK TARGETS ---
+            if (targetName.Contains("spin") || targetName.Contains("coater")) targetAligner = null;
+
+            // --- TRACK A: EXPLICIT SPIN COATER PROCESSING ---
+            if (targetCoater != null)
             {
-                ExposureStationController aligner = target.GetComponentInParent<ExposureStationController>();
-                if (aligner == null) aligner = Object.FindAnyObjectByType<ExposureStationController>();
+                if (heldObject.name.ToLower().Contains("mask")) return;
 
-                if (aligner != null)
+                RestoreHeldObjectLayer();
+                GameObject objectToPlace = heldObject;
+                DetachHeldObject(); 
+
+                if (targetCoater.RegisterWaferPlacement(objectToPlace))
                 {
-                    // Find the single absolute destination target node: Aligner_Wafer_Anchor
-                    Transform sharedWaferAnchorNode = aligner.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
-                    
-                    // Fallback directly to the controller's exposed script slot if layout tracing breaks
-                    if (sharedWaferAnchorNode == null) sharedWaferAnchorNode = aligner.waferDockPosition;
+                    heldObject = null;
+                }
+                else
+                {
+                    PickUpHeldObject(objectToPlace);
+                }
+                return;
+            }
 
-                    if (sharedWaferAnchorNode != null)
+            // --- TRACK B: EXPLICIT MASK ALIGNER PROCESSING ---
+            if (targetAligner != null)
+            {
+                Transform sharedWaferAnchorNode = targetAligner.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
+                if (sharedWaferAnchorNode == null) sharedWaferAnchorNode = targetAligner.waferDockPosition;
+
+                if (sharedWaferAnchorNode != null)
+                {
+                    if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
                     {
-                        // ---- SUB-ROUTE A: PLACING THE PHOTOMASK RIGHT ON THE WAFER ANCHOR DOCK ----
-                        if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
-                        {
-                            if (aligner.isVacuumSealed)
-                            {
-                                Debug.LogWarning("Placement Denied: Vacuum chuck is pressurized!");
-                                return;
-                            }
+                        if (targetAligner.isVacuumSealed) return;
 
-                            RestoreHeldObjectLayer();
-                            DetachHeldObject();
+                        RestoreHeldObjectLayer();
+                        DetachHeldObject();
 
-                            heldObject.transform.SetParent(sharedWaferAnchorNode, false);
-                            
-                            // Stack it slightly above the wafer coordinate space plane on the local Y axis
-                            heldObject.transform.localPosition = new Vector3(0f, 0.015f, 0f); 
-                            heldObject.transform.localRotation = Quaternion.identity;
-                            heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
+                        heldObject.transform.SetParent(sharedWaferAnchorNode, false);
+                        heldObject.transform.localPosition = new Vector3(0f, 0.015f, 0f); 
+                        heldObject.transform.localRotation = Quaternion.identity;
+                        heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
 
-                            aligner.isMaskTrayInserted = true;
+                        targetAligner.isMaskTrayInserted = true;
+                        heldObject = null;
+                        return;
+                    }
 
-                            Rigidbody maskRb = heldObject.GetComponent<Rigidbody>();
-                            if (maskRb != null) maskRb.isKinematic = true;
+                    if (heldObject.name.ToLower().Contains("wafer"))
+                    {
+                        RestoreHeldObjectLayer();
+                        DetachHeldObject();
 
-                            Debug.Log($"[Sequence Log] Photomask successfully stacked onto Aligner_Wafer_Anchor via element: {target.name}");
-                            heldObject = null;
-                            return;
-                        }
-
-                        // ---- SUB-ROUTE B: PLACING THE WAFER RIGHT ON THE WAFER ANCHOR DOCK ----
-                        if (heldObject.name.ToLower().Contains("wafer"))
-                        {
-                            RestoreHeldObjectLayer();
-                            DetachHeldObject();
-
-                            heldObject.transform.SetParent(sharedWaferAnchorNode, false);
-                            
-                            // Sit it completely flush on the local base center of the anchor node
-                            heldObject.transform.localPosition = Vector3.zero;
-                            heldObject.transform.localRotation = Quaternion.identity;
-                            heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
-
-                            Rigidbody waferRb = heldObject.GetComponent<Rigidbody>();
-                            if (waferRb != null) waferRb.isKinematic = true;
-
-                            Debug.Log($"[Sequence Log] Wafer successfully snapped flat onto Aligner_Wafer_Anchor via element: {target.name}");
-                            heldObject = null;
-                            return;
-                        }
+                        heldObject.transform.SetParent(sharedWaferAnchorNode, false);
+                        heldObject.transform.localPosition = Vector3.zero; 
+                        heldObject.transform.localRotation = Quaternion.identity;
+                        heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
+                        heldObject = null;
+                        return;
                     }
                 }
             }
 
-            // =====================================================================
-            // 2. STORAGE CUBE PHOTOMASK SELECTION ROUTING
-            // =====================================================================
+            // --- TRACK C: EXPLICIT PHOTOMASK STORAGE DOCKING ---
             if (targetName.Contains("storage") || targetName.Contains("dock"))
+            {
+                if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
                 {
                     RestoreHeldObjectLayer();
                     DetachHeldObject();
                     
-                    // Look for your new explicit empty anchor node inside or next to the storage object
                     Transform storageDockNode = target.transform.Find("Photomask_Dock");
                     if (storageDockNode == null && target.transform.parent != null)
                     {
                         storageDockNode = target.transform.parent.Find("Photomask_Dock");
                     }
 
-                    // Parent to the unscaled dock anchor if found, fallback to target mesh if not
                     if (storageDockNode != null)
                     {
                         heldObject.transform.SetParent(storageDockNode, false);
@@ -405,85 +330,45 @@ public class PlayerInteraction : MonoBehaviour
 
                     heldObject.transform.localRotation = Quaternion.identity;
                     heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
-
-                    Rigidbody maskRb = heldObject.GetComponent<Rigidbody>();
-                    if (maskRb != null) maskRb.isKinematic = true;
-
-                    Debug.Log($"[Sequence Log] Photomask safely docked at storage anchor: {heldObject.transform.parent.name}");
                     heldObject = null;
                     return;
                 }
+            }
 
-            // =====================================================================
-            // 3. HOTPLATE & SPIN COATER WAFER INTERACTION CHECKS
-            // =====================================================================
-            if (heldObject.name.ToLower().Contains("wafer"))
+            // --- TRACK D: HOTPLATE STATION PROCESSING ---
+            HotplateController hotplate = target.GetComponentInParent<HotplateController>();
+            if (hotplate == null && targetName.Contains("top")) hotplate = Object.FindAnyObjectByType<HotplateController>();
+
+            if (hotplate != null && heldObject.name.ToLower().Contains("wafer"))
             {
-                // --- HOTPLATE ROUTING ---
-                HotplateController hotplate = target.GetComponentInParent<HotplateController>();
-                if (hotplate == null && targetName.Contains("top"))
-                {
-                    hotplate = Object.FindAnyObjectByType<HotplateController>();
-                }
+                if (hotplate.currentState == HotplateController.HotplateState.Baking) return;
 
-                if (hotplate != null)
-                {
-                    if (hotplate.currentState == HotplateController.HotplateState.Baking)
-                    {
-                        Debug.LogWarning("Placement Denied: Thermal zone active.");
-                        return;
-                    }
+                RestoreHeldObjectLayer();
+                DetachHeldObject();
+                hotplate.RegisterWaferPlacement(heldObject);
+                heldObject = null;
+                return;
+            }
 
-                    RestoreHeldObjectLayer();
-                    DetachHeldObject();
-                    hotplate.RegisterWaferPlacement(heldObject);
-                    heldObject = null;
-                    return;
-                }
-
-                // --- SPIN COATER ROUTING ---
-                if (targetName.Contains("spin") || targetName.Contains("coater") || targetName.Contains("chuck") || targetName.Contains("base"))
-                {
-                    SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
-                    if (coater != null)
-                    {
-                        RestoreHeldObjectLayer();
-                        GameObject objectToPlace = heldObject;
-                        DetachHeldObject(); 
-
-                        if (coater.RegisterWaferPlacement(objectToPlace))
-                        {
-                            heldObject = null;
-                        }
-                        else
-                        {
-                            PickUpHeldObject(objectToPlace);
-                        }
-                        return;
-                    }
-                }
-
-                // --- BEAKER / FLUID DEVELOPMENT ROUTING ---
-                if (targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
+            // --- TRACK E: BEAKER CHEMICAL STATIONS ---
+            if (targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
+            {
+                if (heldObject.name.ToLower().Contains("wafer"))
                 {
                     FluidInteractionController liquid = target.GetComponentInParent<FluidInteractionController>();
                     if (liquid != null)
                     {
                         RestoreHeldObjectLayer();
                         DetachHeldObject();
-
                         heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.1f, 0f);
                         heldObject.transform.rotation = Quaternion.identity;
                         heldObject.transform.SetParent(liquid.transform);
                         liquid.TriggerWaferInteractionSpike();
-
                         heldObject = null;
                         return;
                     }
                 }
             }
-
-            Debug.LogWarning($"Placement rejected: Targeting non-registered object '{target.name}'");
         }
     }
 

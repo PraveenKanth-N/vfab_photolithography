@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 using TMPro;
 
 public class PhotomaskGalleryUI : MonoBehaviour
@@ -9,33 +10,28 @@ public class PhotomaskGalleryUI : MonoBehaviour
     [Header("Engine Link")]
     public LithoInferenceEngine lithoEngine;
 
-    [Header("Gallery Buttons (Assign all 5 in order)")]
+    [Header("Gallery Buttons")]
     public Button[] maskSelectionButtons;
 
     private GameObject interactingMaskObject;
+    private MouseLook cameraLookScript;
+    public bool isGalleryOpen = false; // Live state tracking property for PlayerInteraction to read
 
     void Awake()
     {
         Instance = this;
         gameObject.SetActive(false); 
+        cameraLookScript = Object.FindAnyObjectByType<MouseLook>();
 
-        // Loop through and automatically assign the graphic previews and click listeners
         for (int i = 0; i < maskSelectionButtons.Length; i++)
         {
             int index = i; 
             maskSelectionButtons[i].onClick.AddListener(() => SelectMaskPattern(index));
 
-            // Find the RawImage component inside the button to hold the visual stencil preview
             RawImage buttonImage = maskSelectionButtons[i].GetComponentInChildren<RawImage>();
-
             if (buttonImage != null && lithoEngine != null)
             {
-                // Generate a dedicated, isolated high-contrast texture preview for this slot
                 buttonImage.texture = lithoEngine.GenerateStaticPreviewTexture(index);
-            }
-            else if (buttonImage == null)
-            {
-                Debug.LogWarning($"[Gallery UI] Could not find RawImage component inside Button index {index}! Add a RawImage child to the button.");
             }
         }
     }
@@ -43,35 +39,52 @@ public class PhotomaskGalleryUI : MonoBehaviour
     public void OpenGallery(GameObject physicalMaskPlate)
     {
         interactingMaskObject = physicalMaskPlate;
+        
+        // 1. Flip tracking property flags FIRST before passing commands to look calculations
+        isGalleryOpen = true;
         gameObject.SetActive(true);
         
+        // 2. Break camera look tracking states cleanly
+        if (cameraLookScript != null)
+        {
+            cameraLookScript.ForceUnlockForUI();
+        }
+        
+        // 3. Absolute direct hardware override enforcement
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
     public void SelectMaskPattern(int maskIndex)
     {
-        // 1. Fire up the Inference Engine matrix generator arrays
         if (lithoEngine != null)
         {
             lithoEngine.maskDropdownIndexOverride = maskIndex; 
             lithoEngine.BakeSelectedMaskMatrix();
+            lithoEngine.PaintBakedPatternOntoObject(interactingMaskObject);
         }
 
-        // Rename the object so you can tell it has a data tracking profile embedded
         interactingMaskObject.name = $"PR_Photomask_Index_{maskIndex}";
-
-        // 2. Shut down selection panel UI overlays cleanly
+        
+        // 1. Drop active tracking state parameters
         gameObject.SetActive(false);
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        isGalleryOpen = false;
 
-        // 3. COMPLETE THE CYCLE: Put the newly baked mask straight into your hand socket!
+        // 2. Restore standard look inputs
+        if (cameraLookScript != null)
+        {
+            cameraLookScript.ForceLockFromUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+
         PlayerInteraction player = Object.FindAnyObjectByType<PlayerInteraction>();
         if (player != null)
         {
             player.ForcePickUpBakedMask(interactingMaskObject);
-            Debug.Log($"[Sequence Log] Design [{maskIndex}] baked successfully. Mask equipped in player hand.");
         }
     }
 }
