@@ -36,7 +36,6 @@ public class FluidInteractionController : MonoBehaviour
     private float timer;
     private float currentEnergy = 1.0f;
     
-    // Internal vector targets for directional interpolation
     private float spikeDirX = 1.0f;
     private float spikeDirZ = 0.0f;
     private float targetDirX = 1.0f;
@@ -71,13 +70,10 @@ public class FluidInteractionController : MonoBehaviour
         float dt = Mathf.Max(Time.deltaTime, 0.001f);
         timer += dt * waveSpeed;
 
-        // --- PART 1: PHYSICAL SHAKING & AUTOMATED SWERVING ---
         if (isSwerving)
         {
             RunAutomatedSwerveCycle(dt);
             
-            // Apply continuous frame-rate independent tracking to our direction vectors
-            // This completely eradicates the "teleportation" bug!
             spikeDirX = Mathf.Lerp(spikeDirX, targetDirX, dt * directionalSmoothSpeed);
             spikeDirZ = Mathf.Lerp(spikeDirZ, targetDirZ, dt * directionalSmoothSpeed);
             
@@ -110,7 +106,6 @@ public class FluidInteractionController : MonoBehaviour
                 targetDirX = moveDir.x * -1f;
                 targetDirZ = moveDir.z * -1f;
                 
-                // Keep the manual shakes responsive but smooth
                 spikeDirX = Mathf.Lerp(spikeDirX, targetDirX, dt * directionalSmoothSpeed);
                 spikeDirZ = Mathf.Lerp(spikeDirZ, targetDirZ, dt * directionalSmoothSpeed);
                 
@@ -119,7 +114,6 @@ public class FluidInteractionController : MonoBehaviour
             lastPosition = currentPosition;
         }
 
-        // --- PART 2: ENERGY DECAY LOOP ---
         if (currentEnergy > 1.0f) currentEnergy -= decayRate * dt;
         else
         {
@@ -129,7 +123,6 @@ public class FluidInteractionController : MonoBehaviour
         }
         currentEnergy = Mathf.Min(currentEnergy, maxShakeEnergy);
 
-        // --- PART 3: INJECT SHADER MANIPULATIONS ---
         float baseOscillation = Mathf.Sin(timer) * targetAmplitude;
         float finalWobbleX = baseOscillation * currentEnergy * spikeDirX;
         float finalWobbleZ = baseOscillation * currentEnergy * (currentEnergy > 1.05f ? spikeDirZ : Mathf.Cos(timer));
@@ -158,11 +151,8 @@ public class FluidInteractionController : MonoBehaviour
             return;
         }
 
-        // Instead of processing hard step blocks, we use the raw wave spectrum curves
-        // to define target destinations, allowing the Lerp engine to calculate intermediate states!
         targetDirX = Mathf.Sin(timer * 2.5f);
         targetDirZ = Mathf.Cos(timer * 1.8f);
-        
         currentEnergy = Mathf.Max(currentEnergy, maxShakeEnergy - 1.0f);
     }
 
@@ -178,7 +168,87 @@ public class FluidInteractionController : MonoBehaviour
         targetDirZ = Mathf.Sin(randomAngle);
     }
 
-    private void ApplyStaticOptics() { if (fluidMaterial != null) { fluidMaterial.SetFloat("_Glossiness", glossiness); fluidMaterial.SetFloat("_SpecularIntensity", specularIntensity); fluidMaterial.SetFloat("_RefractionIndex", refractionIndex); fluidMaterial.SetFloat("_FresnelPower", fresnelPower); fluidMaterial.SetColor("_BaseColor", liquidColor); } }
-    private void FetchMaterial() { Renderer r = GetComponent<Renderer>(); if (r != null) fluidMaterial = Application.isPlaying ? r.material : r.sharedMaterial; }
+    private void ApplyStaticOptics() 
+    { 
+        if (fluidMaterial != null) 
+        { 
+            fluidMaterial.SetFloat("_Glossiness", glossiness); 
+            fluidMaterial.SetFloat("_SpecularIntensity", specularIntensity); 
+            fluidMaterial.SetFloat("_RefractionIndex", refractionIndex); 
+            fluidMaterial.SetFloat("_FresnelPower", fresnelPower); 
+            fluidMaterial.SetColor("_BaseColor", liquidColor); 
+        } 
+    }
+    
+    private void FetchMaterial() 
+    { 
+        Renderer r = GetComponent<Renderer>(); 
+        if (r != null) fluidMaterial = Application.isPlaying ? r.material : r.sharedMaterial; 
+    }
+    
     private void OnValidate() { FetchMaterial(); ApplyStaticOptics(); }
+
+    public void ExecuteChemicalPour(GameObject chemicalBottle)
+    {
+        if (isSwerving) return;
+
+        bool isDIWater = chemicalBottle.name.ToLower().Contains("di");
+        Color pourColor = isDIWater ? new Color(0.1f, 0.4f, 0.9f, 0.25f) : new Color(0.75f, 0.65f, 0.1f, 0.4f);
+
+        StartCoroutine(AnimatePourSequence(chemicalBottle, pourColor));
+    }
+
+    private System.Collections.IEnumerator AnimatePourSequence(GameObject bottle, Color chemicalColor)
+    {
+        isSwerving = true;
+        currentEnergy = maxShakeEnergy;
+
+        Renderer fluidMeshRenderer = GetComponent<Renderer>();
+        if (fluidMeshRenderer != null)
+        {
+            fluidMeshRenderer.enabled = true;
+            if (fluidMaterial == null) FetchMaterial();
+            if (fluidMaterial != null) fluidMaterial.SetColor("_BaseColor", chemicalColor);
+        }
+
+        Quaternion originalBottleRot = bottle.transform.localRotation;
+        
+        // FIXED SURGICALLY: Rotates perfectly on positive Y axis instead of Z axis loop
+        Quaternion targetPourRot = originalBottleRot * Quaternion.Euler(65f, 0f, 0f);
+
+        float elapsed = 0f;
+        float animationSpeed = 2.5f;
+
+        // 1. TILT FORWARD
+        while (elapsed < 1.0f)
+        {
+            elapsed += Time.deltaTime * animationSpeed;
+            bottle.transform.localRotation = Quaternion.Slerp(originalBottleRot, targetPourRot, elapsed);
+            yield return null;
+        }
+
+        // 2. SUSTAIN LIQUID RINSE STEP (2.5 Seconds)
+        float holdTimer = 0f;
+        while (holdTimer < 2.5f)
+        {
+            holdTimer += Time.deltaTime;
+            targetDirX = Mathf.Sin(timer * 2.5f);
+            targetDirZ = Mathf.Cos(timer * 1.8f);
+            spikeDirX = Mathf.Lerp(spikeDirX, targetDirX, Time.deltaTime * directionalSmoothSpeed);
+            spikeDirZ = Mathf.Lerp(spikeDirZ, targetDirZ, Time.deltaTime * directionalSmoothSpeed);
+            yield return null;
+        }
+
+        // 3. RETURN UPRIGHT
+        elapsed = 0f;
+        while (elapsed < 1.0f)
+        {
+            elapsed += Time.deltaTime * animationSpeed;
+            bottle.transform.localRotation = Quaternion.Slerp(targetPourRot, originalBottleRot, elapsed);
+            yield return null;
+        }
+
+        isSwerving = false;
+        Debug.Log($"[Cleanroom Sequence] Pour animation complete. Bottle retained in player custody.");
+    }
 }

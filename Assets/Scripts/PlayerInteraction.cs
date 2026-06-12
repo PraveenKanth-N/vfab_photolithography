@@ -19,6 +19,10 @@ public class PlayerInteraction : MonoBehaviour
     private int originalLayer; 
     private int ignoreRaycastLayer;
 
+    // --- HARD RE-ZERO TRACKING PARAMETERS ---
+    private Transform originalBottleParent = null;
+    private Vector3 originalBottleLocalScale;
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
@@ -30,8 +34,6 @@ public class PlayerInteraction : MonoBehaviour
     {
         Debug.DrawRay(playerCamera.transform.position, playerCamera.transform.forward * interactionDistance, Color.red);
 
-        // FREEZE FIREWALL GATE: If a standard system panel is visible OR our custom collage gallery is open,
-        // completely shut down world crosshair click processing loops instantly!
         if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.IsAnyPanelOpen()) return;
         if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen) return;
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
@@ -41,13 +43,9 @@ public class PlayerInteraction : MonoBehaviour
             if (TryClickWorldUI()) return;
 
             if (heldObject == null)
-            {
                 TryPickUpObject();
-            }
             else
-            {
                 TryPlaceObject();
-            }
         }
     }
 
@@ -69,11 +67,7 @@ public class PlayerInteraction : MonoBehaviour
             {
                 for (int i = 1; i < results.Count; i++)
                 {
-                    if (!results[i].gameObject.name.Contains("Blocker"))
-                    {
-                        UI_Target = results[i].gameObject;
-                        break;
-                    }
+                    if (!results[i].gameObject.name.Contains("Blocker")) { UI_Target = results[i].gameObject; break; }
                 }
             }
             
@@ -131,51 +125,32 @@ public class PlayerInteraction : MonoBehaviour
             GameObject target = hit.collider.gameObject;
             string nameLower = target.name.ToLower();
 
-            ExposureStationController aligner = target.GetComponentInParent<ExposureStationController>();
-            if (aligner == null) aligner = Object.FindAnyObjectByType<ExposureStationController>();
-
-            // --- DEEP CASE SCAN: CLICKED MASK ALIGNER FRAME DIRECTLY WHILE EMPTY HANDED ---
-            if (aligner != null && (nameLower.Contains("aligner") || nameLower.Contains("machine") || nameLower.Contains("chuck") || nameLower.Contains("dock") || nameLower.Contains("hinge")))
+            if (nameLower.Contains("beaker") || nameLower.Contains("fluid") || nameLower.Contains("chemical") || nameLower.Contains("mesh"))
             {
-                Transform anchorNode = aligner.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
-                if (anchorNode == null) anchorNode = aligner.waferDockPosition;
-
-                if (anchorNode != null && anchorNode.childCount > 0)
+                Transform foundWafer = null;
+                for (int i = 0; i < target.transform.childCount; i++)
                 {
-                    // Scan the anchor for nested targets to pull out cleanly
-                    Transform nestedItem = null;
-                    for (int i = 0; i < anchorNode.childCount; i++)
+                    Transform child = target.transform.GetChild(i);
+                    if (child.name.ToLower().Contains("wafer")) { foundWafer = child; break; }
+                }
+                if (foundWafer == null && target.transform.parent != null)
+                {
+                    foreach (Transform siblingOrChild in target.transform.parent.GetComponentsInChildren<Transform>())
                     {
-                        Transform child = anchorNode.GetChild(i);
-                        if (child.name.ToLower().Contains("mask") || child.name.ToLower().Contains("wafer") || child.name.ToLower().Contains("tray"))
-                        {
-                            nestedItem = child;
-                            break;
-                        }
-                    }
-
-                    if (nestedItem != null)
-                    {
-                        if (aligner.isVacuumSealed)
-                        {
-                            Debug.LogWarning("Pickup Denied: Vacuum seals are active inside Aligner housing.");
-                            return;
-                        }
-
-                        aligner.isMaskTrayInserted = false;
-                        PickUpHeldObject(nestedItem.gameObject);
-                        return;
+                        if (siblingOrChild.name.ToLower().Contains("wafer")) { foundWafer = siblingOrChild; break; }
                     }
                 }
+                if (foundWafer != null) { target = foundWafer.gameObject; nameLower = target.name.ToLower(); }
             }
 
-            // Standard direct object click processing fallbacks
+            // --- 1. WAFER PICKUP ---
             if (nameLower.Contains("wafer")) 
             {
                 PickUpHeldObject(target);
                 return;
             }
             
+            // --- 2. PHOTOMASK PICKUP ---
             if (nameLower.Contains("mask") || nameLower.Contains("tray"))
             {
                 bool isSittingOnStorageCube = target.transform.parent != null && 
@@ -188,13 +163,22 @@ public class PlayerInteraction : MonoBehaviour
                 }
                 else
                 {
+                    ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
                     if (aligner != null) aligner.isMaskTrayInserted = false; 
                     PickUpHeldObject(target);
                 }
                 return;
             }
 
-            // Spin coater direct fetch
+            // --- 3. RINSE BOTTLE PICKUP ---
+            if (nameLower.Contains("bottle"))
+            {
+                GameObject parentWrapper = target.transform.parent != null ? target.transform.parent.gameObject : target;
+                PickUpHeldObject(parentWrapper);
+                return;
+            }
+
+            // --- 4. SPIN COATER CONTEXT PICKUP ---
             SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
             if (coater != null)
             {
@@ -209,20 +193,48 @@ public class PlayerInteraction : MonoBehaviour
     {
         heldObject = targetAsset;
         heldRigidbody = heldObject.GetComponent<Rigidbody>();
+        if (heldRigidbody == null) heldRigidbody = heldObject.GetComponentInParent<Rigidbody>();
 
-        if (heldRigidbody != null) heldRigidbody.isKinematic = true; 
-
-        originalLayer = heldObject.layer;
-        heldObject.layer = ignoreRaycastLayer;
-
-        foreach (Transform child in heldObject.transform) {
-            child.gameObject.layer = ignoreRaycastLayer;
+        if (heldRigidbody != null) 
+        {
+            heldRigidbody.isKinematic = true; 
+            heldRigidbody.detectCollisions = false; 
         }
 
-        heldObject.transform.SetParent(waferHolderSocket);
-        heldObject.transform.localPosition = Vector3.zero;
-        heldObject.transform.localRotation = Quaternion.identity;
-        heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
+        Collider objCollider = heldObject.GetComponent<Collider>();
+        if (objCollider == null) objCollider = heldObject.GetComponentInChildren<Collider>();
+        if (objCollider != null) objCollider.enabled = false;
+
+        foreach (Transform child in heldObject.transform) {
+            Collider childCol = child.GetComponent<Collider>();
+            if (childCol != null) childCol.enabled = false;
+        }
+
+        originalBottleParent = heldObject.transform.parent;
+        originalBottleLocalScale = heldObject.transform.localScale;
+
+        Vector3 tableWorldScale = heldObject.transform.lossyScale;
+        Quaternion tableWorldRotation = heldObject.transform.rotation;
+
+        heldObject.transform.SetParent(waferHolderSocket, false);
+
+        if (heldObject.name.ToLower().Contains("substrate"))
+        {
+            heldObject.transform.localPosition = new Vector3(0.2f, -0.25f, 0.45f); 
+            heldObject.transform.rotation = tableWorldRotation;
+            
+            heldObject.transform.localScale = new Vector3(
+                tableWorldScale.x / waferHolderSocket.lossyScale.x,
+                tableWorldScale.y / waferHolderSocket.lossyScale.y,
+                tableWorldScale.z / waferHolderSocket.lossyScale.z
+            );
+        }
+        else
+        {
+            heldObject.transform.localPosition = Vector3.zero;
+            heldObject.transform.localRotation = Quaternion.identity;
+            heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
+        }
     }
 
     void TryPlaceObject()
@@ -237,33 +249,72 @@ public class PlayerInteraction : MonoBehaviour
             GameObject target = hit.collider.gameObject;
             string targetName = target.name.ToLower();
 
+            // =====================================================================
+            // 1. BOTTLE PROCESSING (TRACK F) - MANUAL AUTONOMY RETAINED
+            // =====================================================================
+            if (heldObject.name.ToLower().Contains("substrate"))
+            {
+                bool isDI = heldObject.name.ToLower().Contains("di");
+
+                // CASE A: Clicked on the Developer Beaker / FluidMesh -> Trigger Pour in Hand!
+                if (targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
+                {
+                    FluidInteractionController pourEngine = target.GetComponent<FluidInteractionController>();
+                    if (pourEngine == null) pourEngine = target.GetComponentInParent<FluidInteractionController>();
+                    if (pourEngine == null) pourEngine = Object.FindAnyObjectByType<FluidInteractionController>();
+
+                    if (pourEngine != null)
+                    {
+                        pourEngine.ExecuteChemicalPour(heldObject);
+                    }
+                    return;
+                }
+
+                // CASE B: Clicked on the Bench/Table -> Player decides to place it back manually
+                if (targetName.Contains("developer") || targetName.Contains("station") || targetName.Contains("table") || targetName.Contains("desk") || targetName.Contains("bench"))
+                {
+                    RestoreHeldObjectLayer();
+                    DetachHeldObject(); 
+
+                    GameObject mainStationObj = GameObject.Find("Station_developer");
+                    if (mainStationObj == null) mainStationObj = GameObject.Find("Station_Developer");
+
+                    if (mainStationObj != null)
+                    {
+                        heldObject.transform.SetParent(mainStationObj.transform, false);
+                        heldObject.transform.localRotation = Quaternion.identity;
+                        heldObject.transform.localScale = originalBottleLocalScale;
+
+                        if (isDI)
+                        {
+                            heldObject.transform.localPosition = new Vector3(778f, -280f, 290f);
+                        }
+                        else
+                        {
+                            heldObject.transform.localPosition = new Vector3(797f, -278.8f, 291f);
+                        }
+                        Debug.Log($"[Direct Return Success] Manually placed {heldObject.name} back on workbench.");
+                    }
+                    else
+                    {
+                        heldObject.transform.SetParent(originalBottleParent, false);
+                        heldObject.transform.localScale = originalBottleLocalScale;
+                    }
+
+                    heldObject = null; 
+                    return;
+                }
+                return; 
+            }
+
+            // =====================================================================
+            // 2. ORIGINAL WORKSTATION LOGIC (WAFER / MASKS)
+            // =====================================================================
             SpinCoaterController targetCoater = target.GetComponentInParent<SpinCoaterController>();
             ExposureStationController targetAligner = target.GetComponentInParent<ExposureStationController>();
 
-            // --- DETECT INTERFERENCE: STOP ALIGNER FROM STEALING SPIN COATER CLICK TARGETS ---
             if (targetName.Contains("spin") || targetName.Contains("coater")) targetAligner = null;
 
-            // --- TRACK A: EXPLICIT SPIN COATER PROCESSING ---
-            if (targetCoater != null)
-            {
-                if (heldObject.name.ToLower().Contains("mask")) return;
-
-                RestoreHeldObjectLayer();
-                GameObject objectToPlace = heldObject;
-                DetachHeldObject(); 
-
-                if (targetCoater.RegisterWaferPlacement(objectToPlace))
-                {
-                    heldObject = null;
-                }
-                else
-                {
-                    PickUpHeldObject(objectToPlace);
-                }
-                return;
-            }
-
-            // --- TRACK B: EXPLICIT MASK ALIGNER PROCESSING ---
             if (targetAligner != null)
             {
                 Transform sharedWaferAnchorNode = targetAligner.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
@@ -274,15 +325,10 @@ public class PlayerInteraction : MonoBehaviour
                     if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
                     {
                         if (targetAligner.isVacuumSealed) return;
-
-                        RestoreHeldObjectLayer();
-                        DetachHeldObject();
-
                         heldObject.transform.SetParent(sharedWaferAnchorNode, false);
                         heldObject.transform.localPosition = new Vector3(0f, 0.015f, 0f); 
                         heldObject.transform.localRotation = Quaternion.identity;
                         heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
-
                         targetAligner.isMaskTrayInserted = true;
                         heldObject = null;
                         return;
@@ -290,9 +336,6 @@ public class PlayerInteraction : MonoBehaviour
 
                     if (heldObject.name.ToLower().Contains("wafer"))
                     {
-                        RestoreHeldObjectLayer();
-                        DetachHeldObject();
-
                         heldObject.transform.SetParent(sharedWaferAnchorNode, false);
                         heldObject.transform.localPosition = Vector3.zero; 
                         heldObject.transform.localRotation = Quaternion.identity;
@@ -303,70 +346,50 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
-            // --- TRACK C: EXPLICIT PHOTOMASK STORAGE DOCKING ---
-            if (targetName.Contains("storage") || targetName.Contains("dock"))
+            if ((targetName.Contains("storage") || targetName.Contains("dock")) && (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray")))
             {
-                if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
-                {
-                    RestoreHeldObjectLayer();
-                    DetachHeldObject();
-                    
-                    Transform storageDockNode = target.transform.Find("Photomask_Dock");
-                    if (storageDockNode == null && target.transform.parent != null)
-                    {
-                        storageDockNode = target.transform.parent.Find("Photomask_Dock");
-                    }
+                Transform storageDockNode = target.transform.Find("Photomask_Dock");
+                if (storageDockNode == null && target.transform.parent != null) storageDockNode = target.transform.parent.Find("Photomask_Dock");
 
-                    if (storageDockNode != null)
-                    {
-                        heldObject.transform.SetParent(storageDockNode, false);
-                        heldObject.transform.localPosition = Vector3.zero;
-                    }
-                    else
-                    {
-                        heldObject.transform.SetParent(target.transform, false);
-                        heldObject.transform.localPosition = new Vector3(0f, 0.6f, 0f); 
-                    }
+                if (storageDockNode != null) { heldObject.transform.SetParent(storageDockNode, false); heldObject.transform.localPosition = Vector3.zero; }
+                else { heldObject.transform.SetParent(target.transform, false); heldObject.transform.localPosition = new Vector3(0f, 0.6f, 0f); }
 
-                    heldObject.transform.localRotation = Quaternion.identity;
-                    heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
-                    heldObject = null;
-                    return;
-                }
+                heldObject.transform.localRotation = Quaternion.identity;
+                heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
+                heldObject = null;
+                return;
             }
 
-            // --- TRACK D: HOTPLATE STATION PROCESSING ---
+            if (targetCoater != null && heldObject.name.ToLower().Contains("wafer"))
+            {
+                GameObject objectToPlace = heldObject;
+                if (targetCoater.RegisterWaferPlacement(objectToPlace)) heldObject = null;
+                else PickUpHeldObject(objectToPlace);
+                return;
+            }
+
             HotplateController hotplate = target.GetComponentInParent<HotplateController>();
             if (hotplate == null && targetName.Contains("top")) hotplate = Object.FindAnyObjectByType<HotplateController>();
 
             if (hotplate != null && heldObject.name.ToLower().Contains("wafer"))
             {
                 if (hotplate.currentState == HotplateController.HotplateState.Baking) return;
-
-                RestoreHeldObjectLayer();
-                DetachHeldObject();
                 hotplate.RegisterWaferPlacement(heldObject);
                 heldObject = null;
                 return;
             }
 
-            // --- TRACK E: BEAKER CHEMICAL STATIONS ---
-            if (targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
+            if ((targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical")) && heldObject.name.ToLower().Contains("wafer"))
             {
-                if (heldObject.name.ToLower().Contains("wafer"))
+                FluidInteractionController liquid = target.GetComponentInParent<FluidInteractionController>();
+                if (liquid != null)
                 {
-                    FluidInteractionController liquid = target.GetComponentInParent<FluidInteractionController>();
-                    if (liquid != null)
-                    {
-                        RestoreHeldObjectLayer();
-                        DetachHeldObject();
-                        heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.1f, 0f);
-                        heldObject.transform.rotation = Quaternion.identity;
-                        heldObject.transform.SetParent(liquid.transform);
-                        liquid.TriggerWaferInteractionSpike();
-                        heldObject = null;
-                        return;
-                    }
+                    heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.1f, 0f);
+                    heldObject.transform.rotation = Quaternion.identity;
+                    heldObject.transform.SetParent(liquid.transform);
+                    liquid.TriggerWaferInteractionSpike();
+                    heldObject = null;
+                    return;
                 }
             }
         }
@@ -376,20 +399,32 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (heldObject == null) return;
         heldObject.layer = originalLayer;
-        foreach (Transform child in heldObject.transform) {
-            child.gameObject.layer = originalLayer;
-        }
+        foreach (Transform child in heldObject.transform) { child.gameObject.layer = originalLayer; }
     }
 
     void DetachHeldObject()
     {
         if (heldObject == null) return;
+        
+        Collider objCollider = heldObject.GetComponent<Collider>();
+        if (objCollider == null) objCollider = heldObject.GetComponentInChildren<Collider>();
+        if (objCollider != null) objCollider.enabled = true;
+
+        foreach (Transform child in heldObject.transform) {
+            Collider childCol = child.GetComponent<Collider>();
+            if (childCol != null) childCol.enabled = true;
+        }
+
         heldObject.transform.SetParent(null);
-        if (heldRigidbody != null) heldRigidbody.isKinematic = false;
+        if (heldRigidbody != null) 
+        {
+            heldRigidbody.isKinematic = false;
+            heldRigidbody.detectCollisions = true; 
+        }
     }
 
-    public void ForcePickUpBakedMask(GameObject bakedMask)
-    {
-        PickUpHeldObject(bakedMask);
-    }
+    public Transform GetOriginalParent() { return originalBottleParent; }
+    public Vector3 GetOriginalScale() { return originalBottleLocalScale; }
+
+    public void ForcePickUpBakedMask(GameObject bakedMask) { PickUpHeldObject(bakedMask); }
 }
