@@ -19,7 +19,7 @@ public class PlayerInteraction : MonoBehaviour
     private int originalLayer; 
     private int ignoreRaycastLayer;
 
-    // --- HARD RE-ZERO TRACKING PARAMETERS ---
+    // --- HARD COORDINATE RESISTANCE TRACKING MATRIX ---
     private Transform originalBottleParent = null;
     private Vector3 originalBottleLocalScale;
 
@@ -43,9 +43,13 @@ public class PlayerInteraction : MonoBehaviour
             if (TryClickWorldUI()) return;
 
             if (heldObject == null)
+            {
                 TryPickUpObject();
+            }
             else
+            {
                 TryPlaceObject();
+            }
         }
     }
 
@@ -125,6 +129,7 @@ public class PlayerInteraction : MonoBehaviour
             GameObject target = hit.collider.gameObject;
             string nameLower = target.name.ToLower();
 
+            // Beaker sub-wafer intercept safety layer
             if (nameLower.Contains("beaker") || nameLower.Contains("fluid") || nameLower.Contains("chemical") || nameLower.Contains("mesh"))
             {
                 Transform foundWafer = null;
@@ -143,7 +148,7 @@ public class PlayerInteraction : MonoBehaviour
                 if (foundWafer != null) { target = foundWafer.gameObject; nameLower = target.name.ToLower(); }
             }
 
-            // --- 1. WAFER PICKUP ---
+            // --- 1. STANDALONE WAFER PICKUP ---
             if (nameLower.Contains("wafer")) 
             {
                 PickUpHeldObject(target);
@@ -170,7 +175,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- 3. RINSE BOTTLE PICKUP ---
+            // --- 3. RINSE BOTTLE PICKUP (HIERARCHY WRAPPER CONTEXT) ---
             if (nameLower.Contains("bottle"))
             {
                 GameObject parentWrapper = target.transform.parent != null ? target.transform.parent.gameObject : target;
@@ -178,13 +183,29 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- 4. SPIN COATER CONTEXT PICKUP ---
+            // --- 4. SPIN COATER GENUINE SUBSTRATE EXTRACTION ---
             SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
             if (coater != null)
             {
                 GameObject extractedWafer = coater.RemoveWafer();
                 if (extractedWafer != null) PickUpHeldObject(extractedWafer);
                 return;
+            }
+
+            // --- 5. MASK ALIGNER SUBSTRATE HOVER PICKUP EXTRACTION ---
+            ExposureStationController alignerController = target.GetComponentInParent<ExposureStationController>();
+            if (alignerController != null)
+            {
+                Transform sharedWaferAnchorNode = alignerController.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
+                if (sharedWaferAnchorNode == null) sharedWaferAnchorNode = alignerController.waferDockPosition;
+
+                if (sharedWaferAnchorNode != null && sharedWaferAnchorNode.childCount > 0)
+                {
+                    GameObject extractedObject = sharedWaferAnchorNode.GetChild(0).gameObject;
+                    if (extractedObject.name.ToLower().Contains("mask")) alignerController.isMaskTrayInserted = false;
+                    PickUpHeldObject(extractedObject);
+                    return;
+                }
             }
         }
     }
@@ -250,13 +271,13 @@ public class PlayerInteraction : MonoBehaviour
             string targetName = target.name.ToLower();
 
             // =====================================================================
-            // 1. BOTTLE PROCESSING (TRACK F) - MANUAL AUTONOMY RETAINED
+            // 1. RINSE BOTTLE SECTOR PROCESSING TRACK
             // =====================================================================
             if (heldObject.name.ToLower().Contains("substrate"))
             {
                 bool isDI = heldObject.name.ToLower().Contains("di");
 
-                // CASE A: Clicked on the Developer Beaker / FluidMesh -> Trigger Pour in Hand!
+                // CASE A: Pour mechanism injection target matches
                 if (targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
                 {
                     FluidInteractionController pourEngine = target.GetComponent<FluidInteractionController>();
@@ -270,7 +291,7 @@ public class PlayerInteraction : MonoBehaviour
                     return;
                 }
 
-                // CASE B: Clicked on the Bench/Table -> Player decides to place it back manually
+                // CASE B: Workbench landing target triggers
                 if (targetName.Contains("developer") || targetName.Contains("station") || targetName.Contains("table") || targetName.Contains("desk") || targetName.Contains("bench"))
                 {
                     RestoreHeldObjectLayer();
@@ -293,7 +314,7 @@ public class PlayerInteraction : MonoBehaviour
                         {
                             heldObject.transform.localPosition = new Vector3(797f, -278.8f, 291f);
                         }
-                        Debug.Log($"[Direct Return Success] Manually placed {heldObject.name} back on workbench.");
+                        Debug.Log($"[Direct Return Success] Restored {heldObject.name} back to exact hand-tested workbench transforms.");
                     }
                     else
                     {
@@ -308,13 +329,21 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // =====================================================================
-            // 2. ORIGINAL WORKSTATION LOGIC (WAFER / MASKS)
+            // 2. HARDWARE EQUIPMENT INTERLOCK ROUTES (WAFER / MASKS)
             // =====================================================================
             SpinCoaterController targetCoater = target.GetComponentInParent<SpinCoaterController>();
             ExposureStationController targetAligner = target.GetComponentInParent<ExposureStationController>();
+            HotplateController targetHotplate = target.GetComponentInParent<HotplateController>();
+
+            // Hotplate targeting fallback parser
+            if (targetHotplate == null && (targetName.Contains("hotplate") || targetName.Contains("top")))
+            {
+                targetHotplate = Object.FindAnyObjectByType<HotplateController>();
+            }
 
             if (targetName.Contains("spin") || targetName.Contains("coater")) targetAligner = null;
 
+            // --- ROUTE A: EXPOSURE ALIGNER STATION ---
             if (targetAligner != null)
             {
                 Transform sharedWaferAnchorNode = targetAligner.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
@@ -325,6 +354,7 @@ public class PlayerInteraction : MonoBehaviour
                     if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
                     {
                         if (targetAligner.isVacuumSealed) return;
+                        RestoreHeldObjectLayer(); DetachHeldObject();
                         heldObject.transform.SetParent(sharedWaferAnchorNode, false);
                         heldObject.transform.localPosition = new Vector3(0f, 0.015f, 0f); 
                         heldObject.transform.localRotation = Quaternion.identity;
@@ -336,6 +366,7 @@ public class PlayerInteraction : MonoBehaviour
 
                     if (heldObject.name.ToLower().Contains("wafer"))
                     {
+                        RestoreHeldObjectLayer(); DetachHeldObject();
                         heldObject.transform.SetParent(sharedWaferAnchorNode, false);
                         heldObject.transform.localPosition = Vector3.zero; 
                         heldObject.transform.localRotation = Quaternion.identity;
@@ -346,8 +377,10 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
+            // --- ROUTE B: PHOTOMASK HOUSING RACKS ---
             if ((targetName.Contains("storage") || targetName.Contains("dock")) && (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray")))
             {
+                RestoreHeldObjectLayer(); DetachHeldObject();
                 Transform storageDockNode = target.transform.Find("Photomask_Dock");
                 if (storageDockNode == null && target.transform.parent != null) storageDockNode = target.transform.parent.Find("Photomask_Dock");
 
@@ -360,30 +393,36 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
+            // --- ROUTE C: POLOS SPIN COATER ---
             if (targetCoater != null && heldObject.name.ToLower().Contains("wafer"))
             {
+                RestoreHeldObjectLayer();
                 GameObject objectToPlace = heldObject;
+                DetachHeldObject(); 
                 if (targetCoater.RegisterWaferPlacement(objectToPlace)) heldObject = null;
                 else PickUpHeldObject(objectToPlace);
                 return;
             }
 
-            HotplateController hotplate = target.GetComponentInParent<HotplateController>();
-            if (hotplate == null && targetName.Contains("top")) hotplate = Object.FindAnyObjectByType<HotplateController>();
-
-            if (hotplate != null && heldObject.name.ToLower().Contains("wafer"))
+            // --- ROUTE D: POLOS HOTPLATE UNIT ---
+            if (targetHotplate != null && heldObject.name.ToLower().Contains("wafer"))
             {
-                if (hotplate.currentState == HotplateController.HotplateState.Baking) return;
-                hotplate.RegisterWaferPlacement(heldObject);
+                if (targetHotplate.currentState == HotplateController.HotplateState.Baking) return;
+                RestoreHeldObjectLayer(); DetachHeldObject();
+                targetHotplate.RegisterWaferPlacement(heldObject);
                 heldObject = null;
                 return;
             }
 
+            // --- ROUTE E: CHEMICAL DEVELOPMENT BEAKER DISPLACEMENT ---
             if ((targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical")) && heldObject.name.ToLower().Contains("wafer"))
             {
                 FluidInteractionController liquid = target.GetComponentInParent<FluidInteractionController>();
+                if (liquid == null) liquid = Object.FindAnyObjectByType<FluidInteractionController>();
+                
                 if (liquid != null)
                 {
+                    RestoreHeldObjectLayer(); DetachHeldObject();
                     heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.1f, 0f);
                     heldObject.transform.rotation = Quaternion.identity;
                     heldObject.transform.SetParent(liquid.transform);
@@ -422,9 +461,6 @@ public class PlayerInteraction : MonoBehaviour
             heldRigidbody.detectCollisions = true; 
         }
     }
-
-    public Transform GetOriginalParent() { return originalBottleParent; }
-    public Vector3 GetOriginalScale() { return originalBottleLocalScale; }
 
     public void ForcePickUpBakedMask(GameObject bakedMask) { PickUpHeldObject(bakedMask); }
 }
