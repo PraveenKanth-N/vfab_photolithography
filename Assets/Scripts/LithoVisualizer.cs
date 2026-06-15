@@ -74,14 +74,6 @@ public class LithoVisualizer : MonoBehaviour
         aerialTexture2D.Apply();
     }
 
-    // Pure data-driven inferno colour ramp.
-    // Breakpoints tuned to your 0→0.81 optical intensity distribution:
-    //   0.00–0.15  →  black  (sub-threshold void / negative artefact region)
-    //   0.15–0.35  →  purple (dim optical fringe)
-    //   0.35–0.55  →  pink   (rising intensity shoulder)
-    //   0.55–0.78  →  orange (bright core body)
-    //   0.78–0.92  →  yellow (high-intensity peak approach)
-    //   0.92–1.00  →  white  (blinding centre maximum)
     private Color32 InfernoRamp(float t)
     {
         if (t < 0.15f)
