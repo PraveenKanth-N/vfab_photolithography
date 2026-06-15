@@ -5,21 +5,30 @@ public class CleanroomUIManager : MonoBehaviour
     public static CleanroomUIManager Instance { get; private set; }
 
     [Header("Camera Tracking Reference")]
-    public MouseLook cameraLookScript; // Drag your main camera holding MouseLook here!
+    public MouseLook cameraLookScript; 
 
-    [Header("Screen Space Machine Panels")]
+    [Header("Screen Space Canvas Panels")]
     public GameObject hotplateUIPanel;
     public GameObject spinCoaterUIPanel;
     public GameObject dispenserUIPanel;
-    public GameObject exposureUIPanel;
+    
+    [Header("UI Toolkit Integration")]
+    public MainWindowController exposureUIController; // 🚨 Drag the component here!
 
-    private GameObject activePanel = null;
+    private GameObject activeGameObjectPanel = null;
 
     void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+    }
 
+    void Start()
+    {
+        if (exposureUIController == null)
+        {
+            Debug.LogError("[CleanroomUIManager] Exposure UI Controller slot is missing! Please drag the GameObject containing MainWindowController into the 'Exposure UI Controller' slot in the CleanroomUIManager inspector.");
+        }
         DeactivateAllPanels();
     }
 
@@ -27,43 +36,44 @@ public class CleanroomUIManager : MonoBehaviour
     {
         DeactivateAllPanels();
 
-        // 1. FREEZE CAMERA & RELEASE MOUSE: Invoke the custom hook on your look script
-        if (cameraLookScript != null)
-        {
-            cameraLookScript.ForceUnlockForUI();
-        }
+        // Freeze world space looking axes
+        if (cameraLookScript != null) cameraLookScript.ForceUnlockForUI();
 
-        // Activate the corresponding overlay screen layout
         switch (machineName)
         {
             case "Hotplate":
-                if (hotplateUIPanel != null) { hotplateUIPanel.SetActive(true); activePanel = hotplateUIPanel; }
+                if (hotplateUIPanel != null) { hotplateUIPanel.SetActive(true); activeGameObjectPanel = hotplateUIPanel; }
                 break;
             case "SpinCoater":
-                if (spinCoaterUIPanel != null) { spinCoaterUIPanel.SetActive(true); activePanel = spinCoaterUIPanel; }
+                if (spinCoaterUIPanel != null) { spinCoaterUIPanel.SetActive(true); activeGameObjectPanel = spinCoaterUIPanel; }
                 break;
             case "Dispenser":
-                if (dispenserUIPanel != null) { dispenserUIPanel.SetActive(true); activePanel = dispenserUIPanel; }
+                if (dispenserUIPanel != null) { dispenserUIPanel.SetActive(true); activeGameObjectPanel = dispenserUIPanel; }
                 break;
             case "Exposure":
-                if (exposureUIPanel != null) { exposureUIPanel.SetActive(true); activePanel = exposureUIPanel; }
+                // 🚨 Direct Hand-off: Wake up screen 1 safely
+                if (exposureUIController != null) 
+                { 
+                    exposureUIController.OpenInterfaceToStep1();
+                }
                 break;
         }
     }
 
     public void CloseActivePanel()
     {
-        if (activePanel != null)
+        if (activeGameObjectPanel != null)
         {
-            activePanel.SetActive(false);
-            activePanel = null;
+            activeGameObjectPanel.SetActive(false);
+            activeGameObjectPanel = null;
         }
 
-        // 1. UNFREEZE CAMERA & HIDE MOUSE: Re-engage standard in-world navigation
-        if (cameraLookScript != null)
+        if (exposureUIController != null)
         {
-            cameraLookScript.ForceLockFromUI();
+            exposureUIController.CloseEntireInterface();
         }
+
+        if (cameraLookScript != null) cameraLookScript.ForceLockFromUI();
     }
 
     private void DeactivateAllPanels()
@@ -71,11 +81,16 @@ public class CleanroomUIManager : MonoBehaviour
         if (hotplateUIPanel != null) hotplateUIPanel.SetActive(false);
         if (spinCoaterUIPanel != null) spinCoaterUIPanel.SetActive(false);
         if (dispenserUIPanel != null) dispenserUIPanel.SetActive(false);
-        if (exposureUIPanel != null) exposureUIPanel.SetActive(false);
+        
+        if (exposureUIController != null)
+        {
+            exposureUIController.CloseEntireInterface();
+        }
     }
     
     public bool IsAnyPanelOpen()
     {
-        return activePanel != null;
+        bool isUxmlOpen = (exposureUIController != null) && exposureUIController.IsPanelCurrentlyOpen();
+        return activeGameObjectPanel != null || isUxmlOpen;
     }
 }

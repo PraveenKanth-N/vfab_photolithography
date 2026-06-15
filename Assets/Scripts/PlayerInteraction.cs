@@ -36,6 +36,10 @@ public class PlayerInteraction : MonoBehaviour
 
         if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.IsAnyPanelOpen()) return;
         if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen) return;
+        
+        var mainWindow = Object.FindAnyObjectByType<MainWindowController>();
+        if (mainWindow != null && mainWindow.IsPanelCurrentlyOpen()) return;
+
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
         if (Input.GetMouseButtonDown(0))

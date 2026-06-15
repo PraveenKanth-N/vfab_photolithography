@@ -4,6 +4,8 @@ public class MouseLook : MonoBehaviour
 {
     [Header("Look Settings")]
     public float mouseSensitivity = 2f;
+    public bool useSmoothing = true;
+    public float smoothTime = 0.05f;
     
     [Header("Orientation Fixes")]
     public bool invertXLook = false; 
@@ -15,53 +17,26 @@ public class MouseLook : MonoBehaviour
     private float verticalRotation = 0f;
     private bool isCursorLocked = true;
 
+    // Smoothing variables
+    private float currentMouseX;
+    private float currentMouseY;
+    private float mouseXVelocity;
+    private float mouseYVelocity;
+
     void Start()
     {
-        // Default to a hidden and locked cursor at startup
         LockCursor();
     }
 
     void Update()
     {
-        // ESCAPE TOGGLE: Tapping Escape now strictly toggles cursor visibility instead of quitting!
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             isCursorLocked = !isCursorLocked;
-            
-            if (isCursorLocked)
-            {
-                LockCursor();
-            }
-            else
-            {
-                UnlockCursor();
-            }
+            if (isCursorLocked) LockCursor();
+            else UnlockCursor();
         }
 
-        // Only process camera rotations if the cursor is locked (meaning you are actively playing)
-        if (isCursorLocked)
-        {
-            // 1. Get raw, unscaled mouse tracking inputs
-            float mouseX = Input.GetAxisRaw("Mouse X") * mouseSensitivity;
-            float mouseY = Input.GetAxisRaw("Mouse Y") * mouseSensitivity;
-
-            // 2. Handle Reversals / Inversions
-            if (invertXLook) mouseX *= -1f;
-            if (invertYLook) mouseY *= -1f;
-
-            // 3. VERTICAL LOOK (Up/Down) - Attached to the CAMERA ONLY
-            verticalRotation -= mouseY;
-            verticalRotation = Mathf.Clamp(verticalRotation, -90f, 90f); 
-            transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
-
-            // 4. HORIZONTAL LOOK (Left/Right) - Rotates the ENTIRE PLAYER BODY
-            if (playerBody != null)
-            {
-                playerBody.Rotate(Vector3.up * mouseX); 
-            }
-        }
-        
-        // Quick re-lock shortcut: If you click back into the game screen while unlocked, lock it again
         if (!isCursorLocked && Input.GetMouseButtonDown(0))
         {
             // NEW UI PROTECTION SENSORS: If our custom photomask collage gallery layout is open, DO NOT lock the cursor!
@@ -70,17 +45,45 @@ public class MouseLook : MonoBehaviour
                 return; 
             }
 
-            // Your existing UI panel protection checks remain safe below
-            if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.hotplateUIPanel.activeSelf == false 
-                && CleanroomUIManager.Instance.spinCoaterUIPanel.activeSelf == false
-                && CleanroomUIManager.Instance.dispenserUIPanel.activeSelf == false
-                && CleanroomUIManager.Instance.exposureUIPanel.activeSelf == false)
+            if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
             {
                 LockCursor();
             }
             else if (CleanroomUIManager.Instance == null)
             {
                 LockCursor();
+            }
+        }
+    }
+
+    void LateUpdate()
+    {
+        if (isCursorLocked)
+        {
+            float targetMouseX = Input.GetAxisRaw("Mouse X") * mouseSensitivity;
+            float targetMouseY = Input.GetAxisRaw("Mouse Y") * mouseSensitivity;
+
+            if (invertXLook) targetMouseX *= -1f;
+            if (invertYLook) targetMouseY *= -1f;
+
+            if (useSmoothing)
+            {
+                currentMouseX = Mathf.SmoothDamp(currentMouseX, targetMouseX, ref mouseXVelocity, smoothTime);
+                currentMouseY = Mathf.SmoothDamp(currentMouseY, targetMouseY, ref mouseYVelocity, smoothTime);
+            }
+            else
+            {
+                currentMouseX = targetMouseX;
+                currentMouseY = targetMouseY;
+            }
+
+            verticalRotation -= currentMouseY;
+            verticalRotation = Mathf.Clamp(verticalRotation, -90f, 90f); 
+            transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+
+            if (playerBody != null)
+            {
+                playerBody.Rotate(Vector3.up * currentMouseX); 
             }
         }
     }
@@ -98,7 +101,6 @@ public class MouseLook : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
-
 
     public void ForceUnlockForUI()
     {

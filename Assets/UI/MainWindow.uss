@@ -1,0 +1,477 @@
+.root {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.45);
+    justify-content: center;
+    align-items: center;
+}
+
+.window {
+    width: 1650px;
+    height: 1030px;
+    background-color: #e4ecef;
+    border-radius: 17px;
+    border-width: 3px;
+    border-color: #4a86e8;
+    overflow: hidden;
+}
+
+/* MAIN TITLE BAR */
+.titlebar {
+    height: 44px;
+    background-color: #4a86e8;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 21px;
+    padding-right: 17px;
+}
+
+.title-text {
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.window-controls {
+    flex-direction: row;
+    align-items: center;
+}
+
+.win-btn {
+    width: 31px;
+    height: 31px;
+    background-color: white;
+    color: #4a86e8;
+    border-width: 1px;
+    border-color: #4a86e8;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 3px;
+    justify-content: center;
+    align-items: center;
+    margin-left: 9px;
+    padding: 0;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.win-btn:hover { background-color: #e0e0e0; }
+.close-btn:hover { background-color: #d9534f; color: white; border-color: #d9534f; }
+
+/* MAIN TOOLBAR */
+.toolbar {
+    height: 66px;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 21px;
+    padding-right: 21px;
+    background-color: #e4ecef;
+}
+
+.toolbar Button {
+    height: 39px;
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-right: 14px;
+    background-color: white;
+    color: #444;
+    border-width: 0px;
+    border-radius: 3px;
+    font-size: 17px;
+    cursor: pointer;
+}
+
+.toolbar Button:hover { background-color: #e8e8e8; }
+
+/* WORKSPACE */
+.workspace {
+    flex-grow: 1;
+    padding: 33px;
+}
+
+.screen {
+    flex-grow: 1;
+}
+
+.hidden {
+    display: none;
+}
+
+/* INNER WINDOW */
+.inner-window {
+    flex-grow: 1;
+    background-color: #f6f6f6;
+    border-width: 1px;
+    border-color: #ccc;
+    display: flex;
+    flex-direction: column;
+}
+
+.inner-titlebar {
+    height: 35px;
+    background-color: #4a86e8;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    padding-right: 8px;
+}
+
+.inner-win-btn {
+    width: 24px;
+    height: 24px;
+    background-color: white;
+    color: #4a86e8;
+    border-width: 0;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 6px;
+    padding: 0;
+    cursor: pointer;
+}
+
+.inner-win-btn.close-btn {
+    color: #4a86e8;
+}
+
+.inner-content {
+    flex-grow: 1;
+    padding: 20px;
+}
+
+.center-content {
+    justify-content: center;
+    align-items: center;
+}
+
+.welcome-title {
+    font-size: 28px;
+    font-weight: bold;
+    color: #4a86e8;
+    margin-bottom: 14px;
+}
+
+.welcome-subtitle {
+    font-size: 18px;
+    color: #666;
+}
+
+/* RECIPE SCREEN (Screen 2) */
+.recipe-content {
+    flex-direction: row;
+    padding-bottom: 0px;
+}
+
+.col-1 { width: 35%; margin-right: 2%; }
+.col-2 { width: 31%; margin-right: 2%; }
+.col-3 { width: 30%; }
+
+/* GROUP BOXES */
+.group-box {
+    border-width: 1px;
+    border-color: #a0a0a0;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    padding: 15px 12px 10px 12px;
+    background-color: transparent;
+}
+
+.group-title {
+    position: absolute;
+    top: -10px;
+    left: 8px;
+    background-color: #f6f6f6;
+    padding: 0 4px;
+    color: #888;
+    font-size: 13px;
+}
+
+.active-group {
+    border-color: #888;
+}
+
+.active-title {
+    color: #444;
+}
+
+/* FORMS AND FIELDS */
+.form-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.field-label {
+    width: 140px;
+    font-size: 13px;
+}
+
+.disabled-text {
+    color: #aaa;
+}
+
+.disabled-field {
+    flex-grow: 1;
+    height: 22px;
+    background-color: transparent;
+    border-width: 1px;
+    border-color: #ccc;
+    color: #aaa;
+}
+
+.disabled-textfield {
+    flex-grow: 1;
+    height: 22px;
+    background-color: transparent;
+    border-width: 1px;
+    border-color: #ccc;
+    color: #aaa;
+    padding-left: 5px;
+}
+
+.gray-bg {
+    background-color: #eaeaea;
+}
+
+.short {
+    width: 60px;
+    flex-grow: 0;
+}
+
+  /* Unity elements overrides */
+DropdownField, TextField, Toggle {
+    margin-bottom: 14px;
+    font-size: 17px;
+}
+
+/* FIX: Ensure disabled DropdownField text is visible */
+.disabled-field .unity-text-element {
+    color: #666;
+}
+
+.disabled-field > .unity-popup-field__input {
+    color: #666;
+}
+
+/* FIX: Widen slider input fields so numbers aren't cut off */
+Slider .unity-float-field {
+    width: 70px;
+    min-width: 70px;
+}
+
+.unit {
+    width: 40px;
+    margin-left: 8px;
+    font-size: 13px;
+}
+
+.square-box {
+    width: 16px;
+    height: 16px;
+    border-width: 1px;
+    border-color: #ccc;
+    background-color: #eaeaea;
+    margin-left: auto;
+    margin-right: 20px;
+}
+
+.flex-btn {
+    flex-grow: 1;
+}
+
+.off-btn {
+    width: 40px;
+    margin-left: 5px;
+}
+
+.disabled-btn {
+    height: 24px;
+    background-color: transparent;
+    border-width: 1px;
+    border-color: #ccc;
+    color: #aaa;
+    font-size: 12px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.active-btn {
+    height: 24px;
+    background-color: transparent;
+    border-width: 1px;
+    border-color: #888;
+    color: #444;
+    font-size: 12px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    cursor: pointer;
+}
+
+.mask-btn {
+    margin-top: 10px;
+    margin-bottom: 15px;
+    width: 140px;
+}
+
+/* SLIDERS */
+.slider-container {
+    margin-bottom: 12px;
+}
+
+.slider-label {
+    font-size: 13px;
+    color: #444;
+    margin-bottom: 4px;
+}
+
+Slider {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* TABLE MOCKS */
+.table-mock {
+    flex-direction: row;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    border-width: 1px;
+    border-color: #ccc;
+    padding: 8px;
+    height: 120px;
+}
+
+.table-icon-holder {
+    width: 80px;
+    height: 80px;
+    background-color: #b0b0b0;
+    border-radius: 8px;
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.icon-circle {
+    width: 40px;
+    height: 40px;
+    background-color: white;
+    border-radius: 20px;
+}
+
+.icon-square {
+    width: 40px;
+    height: 40px;
+    background-color: #666;
+    border-radius: 8px;
+}
+
+.table-data {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.table-header, .table-row {
+    flex-direction: row;
+    border-bottom-width: 1px;
+    border-bottom-color: #ccc;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+
+.table-header Label {
+    color: #aaa;
+    font-size: 11px;
+}
+
+.table-row Label {
+    color: #888;
+    font-size: 11px;
+}
+
+.th-1, .td-1 { width: 40%; }
+.th-2, .td-2 { width: 40%; }
+.th-3, .td-3 { width: 20%; }
+
+.table-black-area {
+    flex-grow: 1;
+    background-color: #2a2a2a;
+    margin-top: 5px;
+}
+
+/* BOTTOM RUN BAR */
+.bottom-bar {
+    height: 80px;
+    padding: 10px 20px;
+}
+
+.run-container {
+    flex-direction: row;
+    height: 100%;
+    border-width: 1px;
+    border-color: #a0a0a0;
+    align-items: stretch;
+}
+
+.play-icon-box {
+    width: 60px;
+    justify-content: center;
+    align-items: center;
+    border-right-width: 1px;
+    border-right-color: #a0a0a0;
+}
+
+.play-triangle {
+    width: 0;
+    height: 0;
+    border-top-width: 12px;
+    border-bottom-width: 12px;
+    border-left-width: 20px;
+    border-color: transparent;
+    border-left-color: #66cc33;
+}
+
+.run-btn {
+    flex-grow: 1;
+    background-color: transparent;
+    border-width: 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    cursor: pointer;
+}
+
+.run-btn:hover {
+    background-color: #e8e8e8;
+}
+
+/* SCREEN 3 (MACHINE) */
+.camera {
+    flex-grow: 1;
+    background-color: #173a66;
+    border-radius: 9px;
+    border-width: 1px;
+    border-color: #0b1d33;
+}
+
+.bottom {
+    height: 97px;
+    padding-top: 17px;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.continue {
+    width: 165px;
+    height: 55px;
+    background-color: #4a86e8;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    border-width: 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.continue:hover {
+    background-color: #3b6bc6;
+}

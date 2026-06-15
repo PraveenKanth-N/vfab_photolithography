@@ -1,0 +1,197 @@
+<UXML xmlns="UnityEngine.UIElements" xmlns:ui="UnityEngine.UIElements">
+
+<Style src="MainWindow.uss"/>
+
+<VisualElement class="root">
+    <VisualElement class="window">
+
+        <!-- MAIN TITLE BAR -->
+        <VisualElement class="titlebar">
+            <Label text="" class="title-text"/>
+            <VisualElement class="window-controls">
+                <Button name="MinBtn" class="win-btn" text="-"/>
+                <Button name="MaxBtn" class="win-btn" text="☐"/>
+                <Button name="CloseBtn" class="win-btn close-btn" text="✕"/>
+            </VisualElement>
+        </VisualElement>
+
+        <!-- MAIN TOOLBAR -->
+        <VisualElement class="toolbar">
+            <Button name="newRecipe" text="New Recipe"/>
+            <Button text="Open Recipe"/>
+            <Button text="Save Recipe"/>
+            <Button text="Save All Recipe"/>
+            <Button text="Save Recipe As"/>
+            <Button text="Print"/>
+        </VisualElement>
+
+        <!-- WORKSPACE -->
+        <VisualElement class="workspace">
+
+            <!-- SCREEN 1 -->
+            <VisualElement name="screen1" class="screen">
+                <VisualElement class="inner-window">
+                    <VisualElement class="inner-titlebar">
+                        <VisualElement class="window-controls">
+                            <Button class="inner-win-btn" text="-"/>
+                            <Button class="inner-win-btn" text="☐"/>
+                            <Button class="inner-win-btn close-btn" text="✕"/>
+                        </VisualElement>
+                    </VisualElement>
+                    <VisualElement class="inner-content center-content">
+                        <Label text="Welcome to SUSS MicroTec Exposure Station" class="welcome-title"/>
+                        <Label text="Select 'New Recipe' from the toolbar to configure the process parameters." class="welcome-subtitle"/>
+                    </VisualElement>
+                </VisualElement>
+            </VisualElement>
+
+            <!-- SCREEN 2 (Recipe) -->
+            <VisualElement name="screen2" class="screen hidden">
+                <VisualElement class="inner-window">
+                    <VisualElement class="inner-titlebar">
+                        <VisualElement class="window-controls">
+                            <Button class="inner-win-btn" text="-"/>
+                            <Button class="inner-win-btn" text="☐"/>
+                            <Button class="inner-win-btn close-btn" text="✕"/>
+                        </VisualElement>
+                    </VisualElement>
+                    
+                    <VisualElement class="inner-content recipe-content">
+                        <!-- COL 1 -->
+                        <VisualElement class="col-1">
+                            <VisualElement class="group-box">
+                                <Label text="General" class="group-title"/>
+                                <VisualElement class="form-row"><Label text="Process" class="field-label disabled-text"/><DropdownField choices="Man Top Stop" value="Man Top Stop" class="disabled-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Process Mode" class="field-label disabled-text"/><DropdownField choices="Transparent" value="Transparent" class="disabled-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Exposure Mode" class="field-label disabled-text"/><DropdownField choices="Constant Dose" value="Constant Dose" class="disabled-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Contact Mode" class="field-label disabled-text"/><DropdownField choices="Hard Contact" value="Hard Contact" class="disabled-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Spacer Mode" class="field-label disabled-text"/><DropdownField value="-" class="disabled-field"/></VisualElement>
+                                <Button text="Mask ID Settings" class="disabled-btn mask-btn"/>
+                                
+                                <VisualElement class="table-mock">
+                                    <VisualElement class="table-icon-holder"><VisualElement class="icon-circle"/></VisualElement>
+                                    <VisualElement class="table-data">
+                                        <VisualElement class="table-header"><Label text="Parameters" class="th-1"/><Label text="Value" class="th-2"/><Label text="Unit" class="th-3"/></VisualElement>
+                                        <VisualElement class="table-row"><Label text="Tool name" class="td-1"/><Label text="5 inch Mask Holder" class="td-2"/><Label text="" class="td-3"/></VisualElement>
+                                        <VisualElement class="table-row"><Label text="Size" class="td-1"/><Label text="5" class="td-2"/><Label text="inch" class="td-3"/></VisualElement>
+                                        <VisualElement class="table-black-area"/>
+                                    </VisualElement>
+                                </VisualElement>
+
+                                <VisualElement class="table-mock">
+                                    <VisualElement class="table-icon-holder"><VisualElement class="icon-square"/></VisualElement>
+                                    <VisualElement class="table-data">
+                                        <VisualElement class="table-header"><Label text="Parameters" class="th-1"/><Label text="Value" class="th-2"/><Label text="Unit" class="th-3"/></VisualElement>
+                                        <VisualElement class="table-row"><Label text="Tool name" class="td-1"/><Label text="4 inch Chuck" class="td-2"/><Label text="" class="td-3"/></VisualElement>
+                                        <VisualElement class="table-row"><Label text="Size" class="td-1"/><Label text="4" class="td-2"/><Label text="inch" class="td-3"/></VisualElement>
+                                        <VisualElement class="table-black-area"/>
+                                    </VisualElement>
+                                </VisualElement>
+                            </VisualElement>
+                        </VisualElement>
+
+                        <!-- COL 2 -->
+                        <VisualElement class="col-2">
+                            <VisualElement class="group-box">
+                                <Label text="General" class="group-title"/>
+                                <VisualElement class="form-row"><Label text="Separation" class="field-label disabled-text"/><TextField value="50" class="disabled-textfield short"/><Label text="µm" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Proximity" class="field-label disabled-text"/><TextField value="0" class="disabled-textfield short gray-bg"/><Label text="µm" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Thickn Mask" class="field-label disabled-text"/><TextField value="2.5" class="disabled-textfield short"/><Label text="mm" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Thickn Substrate" class="field-label disabled-text"/><TextField value="0.5" class="disabled-textfield short"/><Label text="mm" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Thickn Resist" class="field-label disabled-text"/><TextField value="" class="disabled-textfield short"/><Label text="µm" class="unit disabled-text"/></VisualElement>
+                            </VisualElement>
+
+                            <VisualElement class="group-box">
+                                <Label text="Handling" class="group-title"/>
+                                <VisualElement class="form-row"><Label text="Robot Speed" class="field-label disabled-text"/><TextField value="20" class="disabled-textfield short gray-bg"/><Label text="%" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Prealign Angle Offset" class="field-label disabled-text"/><TextField value="0" class="disabled-textfield short gray-bg"/><Label text="deg" class="unit disabled-text"/></VisualElement>
+                                <Button text="Robot Settings" class="disabled-btn"/>
+                                <VisualElement class="form-row"><Button text="Maskcheck Interval" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
+                                <VisualElement class="form-row"><Button text="WEC Interval" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
+                            </VisualElement>
+
+                            <VisualElement class="group-box active-group">
+                                <Label text="Exposure" class="group-title active-title"/>
+                                <VisualElement class="slider-container">
+                                    <Label text="Dose (mJ/cm²)" class="slider-label"/>
+                                    <Slider name="doseSlider" low-value="22.0" high-value="38.0" value="30.0" show-input-field="true"/>
+                                </VisualElement>
+                                <VisualElement class="slider-container">
+                                    <Label text="Defocus (µm)" class="slider-label"/>
+                                    <Slider name="defocusSlider" low-value="-45.0" high-value="45.0" value="0.0" show-input-field="true"/>
+                                </VisualElement>
+                                <VisualElement class="slider-container">
+                                    <Label text="Numerical Aperture" class="slider-label"/>
+                                    <Slider name="naSlider" low-value="0.50" high-value="1.35" value="0.80" show-input-field="true"/>
+                                </VisualElement>
+                                <Button text="Sector Exposure Settings" class="disabled-btn"/>
+                                <Button text="Exposure Settings" class="active-btn border-btn"/>
+                            </VisualElement>
+                        </VisualElement>
+
+                        <!-- COL 3 -->
+                        <VisualElement class="col-3">
+                            <VisualElement class="group-box">
+                                <Label text="Misc" class="group-title"/>
+                                <VisualElement class="form-row"><Label text="Compound Offset" class="field-label disabled-text"/><TextField value="0" class="disabled-textfield short gray-bg"/><Label text="µm" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Edge Gap - Purge" class="field-label disabled-text"/><VisualElement class="square-box"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Stop After Contact" class="field-label disabled-text"/><VisualElement class="square-box"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Unload M and S Together" class="field-label disabled-text"/><VisualElement class="square-box"/></VisualElement>
+                                
+                                <VisualElement class="form-row"><Button text="Alignment Settings" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
+                                <VisualElement class="form-row"><Button text="IR - Illumination" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
+                                <VisualElement class="form-row"><Button text="Maskchange Interval" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
+                                <VisualElement class="form-row"><Button text="Contact Step Interval" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
+                                
+                                <Button text="Separation Settings" class="disabled-btn"/>
+                                <Button text="Nanoimprint Settings" class="disabled-btn"/>
+                            </VisualElement>
+
+                            <VisualElement class="group-box">
+                                <Label text="Contact Force" class="group-title"/>
+                                <VisualElement class="form-row"><Label text="Process" class="field-label disabled-text"/><TextField value="1200" class="disabled-textfield short"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Wec" class="field-label disabled-text"/><TextField value="800" class="disabled-textfield short"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Exposure" class="field-label disabled-text"/><TextField value="1200" class="disabled-textfield short"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><DropdownField choices="Vaccume Contact" value="Vaccume Contact" class="disabled-field gray-bg flex-btn"/><TextField value="700" class="disabled-textfield short gray-bg"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Chuck Pressure" class="field-label disabled-text"/><TextField value="0" class="disabled-textfield short gray-bg"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
+                            </VisualElement>
+                        </VisualElement>
+
+                    </VisualElement>
+
+                    <VisualElement class="bottom-bar">
+                        <VisualElement class="run-container">
+                            <VisualElement class="play-icon-box">
+                                <VisualElement class="play-triangle"/>
+                            </VisualElement>
+                            <Button name="runButton" text="RUN" class="run-btn"/>
+                        </VisualElement>
+                    </VisualElement>
+
+                </VisualElement>
+            </VisualElement>
+
+            <!-- SCREEN 3 (Machine) -->
+            <VisualElement name="screen3" class="screen hidden">
+                <VisualElement class="inner-window">
+                    <VisualElement class="inner-titlebar">
+                        <VisualElement class="window-controls">
+                            <Button class="inner-win-btn" text="-"/>
+                            <Button class="inner-win-btn" text="☐"/>
+                            <Button class="inner-win-btn close-btn" text="✕"/>
+                        </VisualElement>
+                    </VisualElement>
+                    <VisualElement class="inner-content" style="flex-direction: column;">
+                        <VisualElement class="camera"/>
+                        <VisualElement class="bottom">
+                            <Button name="continueButton" text="Continue" class="continue"/>
+                        </VisualElement>
+                    </VisualElement>
+                </VisualElement>
+            </VisualElement>
+
+        </VisualElement>
+    </VisualElement>
+</VisualElement>
+
+</UXML>
