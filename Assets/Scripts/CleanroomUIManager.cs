@@ -11,6 +11,7 @@ public class CleanroomUIManager : MonoBehaviour
     public GameObject hotplateUIPanel;
     public GameObject spinCoaterUIPanel;
     public GameObject dispenserUIPanel;
+    public GameObject oldExposureUIPanel; // 🚨 Drag your old Canvas Exposure_UI here!
     
     [Header("UI Toolkit Integration")]
     public MainWindowController exposureUIController; // 🚨 Drag the component here!
@@ -50,8 +51,11 @@ public class CleanroomUIManager : MonoBehaviour
             case "Dispenser":
                 if (dispenserUIPanel != null) { dispenserUIPanel.SetActive(true); activeGameObjectPanel = dispenserUIPanel; }
                 break;
-            case "Exposure":
-                // 🚨 Direct Hand-off: Wake up screen 1 safely
+            case "ExposureControls": // The old Canvas UI
+                if (oldExposureUIPanel != null) { oldExposureUIPanel.SetActive(true); activeGameObjectPanel = oldExposureUIPanel; }
+                break;
+            case "ExposureMachine": // The new UXML 8-Step UI
+            case "Exposure": // Fallback
                 if (exposureUIController != null) 
                 { 
                     exposureUIController.OpenInterfaceToStep1();
@@ -81,6 +85,7 @@ public class CleanroomUIManager : MonoBehaviour
         if (hotplateUIPanel != null) hotplateUIPanel.SetActive(false);
         if (spinCoaterUIPanel != null) spinCoaterUIPanel.SetActive(false);
         if (dispenserUIPanel != null) dispenserUIPanel.SetActive(false);
+        if (oldExposureUIPanel != null) oldExposureUIPanel.SetActive(false);
         
         if (exposureUIController != null)
         {

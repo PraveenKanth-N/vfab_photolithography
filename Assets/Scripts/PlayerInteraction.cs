@@ -211,6 +211,26 @@ public class PlayerInteraction : MonoBehaviour
                     return;
                 }
             }
+
+            // --- 6. TOPLID PICKUP ---
+            if (nameLower.Contains("toplid"))
+            {
+                // Only allow pickup if no photomask is currently sitting on top of it in the chuck
+                bool isBlockedByMask = false;
+                if (target.transform.parent != null)
+                {
+                    foreach (Transform sibling in target.transform.parent)
+                    {
+                        if (sibling.name.ToLower().Contains("mask")) isBlockedByMask = true;
+                    }
+                }
+                
+                if (!isBlockedByMask)
+                {
+                    PickUpHeldObject(target);
+                }
+                return;
+            }
         }
     }
 
@@ -370,11 +390,29 @@ public class PlayerInteraction : MonoBehaviour
 
                     if (heldObject.name.ToLower().Contains("wafer"))
                     {
+                        // Check if TopLid is still on the chuck!
+                        bool hasTopLid = false;
+                        foreach (Transform child in sharedWaferAnchorNode) { if (child.name.ToLower().Contains("toplid")) hasTopLid = true; }
+                        
+                        if (hasTopLid) return; // Cannot place wafer until TopLid is removed!
+
                         RestoreHeldObjectLayer(); DetachHeldObject();
                         heldObject.transform.SetParent(sharedWaferAnchorNode, false);
                         heldObject.transform.localPosition = Vector3.zero; 
                         heldObject.transform.localRotation = Quaternion.identity;
                         heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
+                        heldObject = null;
+                        return;
+                    }
+
+                    if (heldObject.name.ToLower().Contains("toplid"))
+                    {
+                        if (targetAligner.isVacuumSealed) return;
+                        RestoreHeldObjectLayer(); DetachHeldObject();
+                        heldObject.transform.SetParent(sharedWaferAnchorNode, false);
+                        heldObject.transform.localPosition = Vector3.zero;
+                        heldObject.transform.localRotation = Quaternion.identity;
+                        heldObject.transform.localScale = Vector3.one;
                         heldObject = null;
                         return;
                     }
@@ -434,6 +472,18 @@ public class PlayerInteraction : MonoBehaviour
                     heldObject = null;
                     return;
                 }
+            }
+
+            // --- ROUTE F: TOPLID STORAGE ---
+            if (targetName.Contains("toplidstorage") && heldObject.name.ToLower().Contains("toplid"))
+            {
+                RestoreHeldObjectLayer(); DetachHeldObject();
+                heldObject.transform.SetParent(target.transform, false);
+                heldObject.transform.localPosition = Vector3.zero;
+                heldObject.transform.localRotation = Quaternion.identity;
+                heldObject.transform.localScale = Vector3.one;
+                heldObject = null;
+                return;
             }
         }
     }

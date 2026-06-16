@@ -26,6 +26,7 @@ public class ExposureStationController : MonoBehaviour
     public GameObject uvChamberLightSource;    
     public Transform waferDockPosition;   
     public Transform maskTrayTransform;
+    public Transform topDeckAnchor;
 
     void Start()
     {
@@ -66,12 +67,52 @@ public class ExposureStationController : MonoBehaviour
         if (isMaskTrayInserted)
         {
             UpdateSystemWorkflowState("Loading Mask Tray & Aligning Optics...");
+            StartCoroutine(TransferMaskLogic(true, hardwareSequencer.trayRotateDuration));
         }
         else
         {
             // If they eject, break vacuum automatically as a safety measure
             isVacuumSealed = false;
             UpdateSystemWorkflowState("Ejecting Hardware Components...");
+            StartCoroutine(TransferMaskLogic(false, hardwareSequencer.trayRotateDuration));
+        }
+    }
+
+    private IEnumerator TransferMaskLogic(bool isInserting, float delay)
+    {
+        if (!isInserting) yield break; // Transfers only happen when the tray reaches the INSIDE of the machine!
+
+        yield return new WaitForSeconds(delay);
+
+        Transform chuck = transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
+        if (chuck == null) chuck = waferDockPosition;
+        if (chuck == null || topDeckAnchor == null) yield break;
+
+        Transform maskOnChuck = null;
+        bool hasTopLid = false;
+
+        foreach (Transform child in chuck)
+        {
+            if (child.name.ToLower().Contains("mask")) maskOnChuck = child;
+            if (child.name.ToLower().Contains("toplid")) hasTopLid = true;
+        }
+
+        Transform maskOnTopDeck = topDeckAnchor.childCount > 0 ? topDeckAnchor.GetChild(0) : null;
+
+        // SCENARIO 1: Inserting a Photomask. Vacuum it up to the TopDeck!
+        if (maskOnChuck != null && maskOnTopDeck == null)
+        {
+            maskOnChuck.SetParent(topDeckAnchor, false);
+            maskOnChuck.localPosition = Vector3.zero;
+            maskOnChuck.localRotation = Quaternion.identity;
+        }
+        // SCENARIO 2: Inserting empty TopLid to retrieve the Photomask. Drop mask back onto Chuck!
+        else if (maskOnTopDeck != null && hasTopLid)
+        {
+            maskOnTopDeck.SetParent(chuck, false);
+            maskOnTopDeck.localPosition = new Vector3(0f, 0.015f, 0f);
+            maskOnTopDeck.localRotation = Quaternion.identity;
+            maskOnTopDeck.localScale = new Vector3(0.5f, 0.01f, 0.5f);
         }
     }
 

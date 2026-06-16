@@ -86,6 +86,33 @@ public class MainWindowController : MonoBehaviour
             continueBtn.clicked += AdvanceMachineState;
         }
 
+        // =========================================================
+        // DEV CONTROLS WIRING
+        // =========================================================
+        var devToggleTrayBtn = mainRoot.Q<Button>("devToggleTrayBtn");
+        var devToggleVacuumBtn = mainRoot.Q<Button>("devToggleVacuumBtn");
+        var devExecuteExposureBtn = mainRoot.Q<Button>("devExecuteExposureBtn");
+        
+        var exposureController = Object.FindAnyObjectByType<ExposureStationController>();
+        if (exposureController != null)
+        {
+            if (devToggleTrayBtn != null) 
+            { 
+                devToggleTrayBtn.clicked -= exposureController.maskTrayToggleButton.onClick.Invoke; 
+                devToggleTrayBtn.clicked += exposureController.maskTrayToggleButton.onClick.Invoke; 
+            }
+            if (devToggleVacuumBtn != null) 
+            { 
+                devToggleVacuumBtn.clicked -= exposureController.vacuumButton.onClick.Invoke; 
+                devToggleVacuumBtn.clicked += exposureController.vacuumButton.onClick.Invoke; 
+            }
+            if (devExecuteExposureBtn != null) 
+            { 
+                devExecuteExposureBtn.clicked -= exposureController.executeExposureButton.onClick.Invoke; 
+                devExecuteExposureBtn.clicked += exposureController.executeExposureButton.onClick.Invoke; 
+            }
+        }
+
         // Hook up the new EXIT button on screen 3 bottom bar
         var exitBtn = mainRoot.Q<Button>("exitButton");
         if (exitBtn != null)

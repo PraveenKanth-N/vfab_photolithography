@@ -28,7 +28,7 @@
         <!-- WORKSPACE -->
         <VisualElement class="workspace">
 
-            <!-- SCREEN 1 -->
+            <!-- SCREEN 1 (Standby) -->
             <VisualElement name="screen1" class="screen">
                 <VisualElement class="inner-window">
                     <VisualElement class="inner-titlebar">
@@ -157,6 +157,12 @@
                             </VisualElement>
                         </VisualElement>
 
+                        <VisualElement class="buttons-grid">
+                            <Button name="newRecipe" text="New Recipe" class="grid-btn"/>
+                            <Button text="Load Recipe" class="grid-btn"/>
+                            <Button text="Save Recipe" class="grid-btn"/>
+                            <Button text="Save Recipe As" class="grid-btn"/>
+                        </VisualElement>
                     </VisualElement>
 
                     <VisualElement class="bottom-bar">
