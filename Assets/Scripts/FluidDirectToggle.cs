@@ -56,6 +56,9 @@ public class FluidInteractionController : MonoBehaviour
         ApplyStaticOptics();
         lastPosition = transform.position;
 
+        Renderer r = GetComponent<Renderer>();
+        if (r != null) r.enabled = false;
+
         if (beakerParentTransform != null)
         {
             originalBeakerLocalPos = beakerParentTransform.localPosition;
@@ -192,8 +195,7 @@ public class FluidInteractionController : MonoBehaviour
     {
         if (isSwerving) return;
 
-        bool isDIWater = chemicalBottle.name.ToLower().Contains("di");
-        Color pourColor = isDIWater ? new Color(0.1f, 0.4f, 0.9f, 0.25f) : new Color(0.75f, 0.65f, 0.1f, 0.4f);
+        Color pourColor = new Color(0.1f, 0.4f, 0.9f, 0.25f);
 
         StartCoroutine(AnimatePourSequence(chemicalBottle, pourColor));
     }
@@ -227,9 +229,9 @@ public class FluidInteractionController : MonoBehaviour
             yield return null;
         }
 
-        // 2. SUSTAIN LIQUID RINSE STEP (2.5 Seconds)
+        // 2. SUSTAIN LIQUID RINSE STEP (0.5 Seconds)
         float holdTimer = 0f;
-        while (holdTimer < 2.5f)
+        while (holdTimer < 0.5f)
         {
             holdTimer += Time.deltaTime;
             targetDirX = Mathf.Sin(timer * 2.5f);

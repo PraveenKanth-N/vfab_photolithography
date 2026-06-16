@@ -291,7 +291,9 @@
 
                             <VisualElement class="s3-side-group">
                                 <VisualElement class="s3-row"><Label text="Exposure Time" class="s3-label disabled-text"/><TextField value="0.0" class="s3-field"/><Label text="sec" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
-                                <VisualElement class="s3-row"><Label text="Dose" class="s3-label"/><TextField value="200" class="s3-field-white"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Dose" class="s3-label"/><Slider name="uiDoseSlider" low-value="0" high-value="38" value="20" class="s3-slider"/><Label name="uiDoseLabel" text="20" class="s3-unit" style="width: 40px;"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Defocus" class="s3-label"/><Slider name="uiDefocusSlider" low-value="-45" high-value="45" value="0" class="s3-slider"/><Label name="uiDefocusLabel" text="0" class="s3-unit" style="width: 40px;"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="NA" class="s3-label"/><Slider name="uiNASlider" low-value="0.1" high-value="1.35" value="0.8" class="s3-slider"/><Label name="uiNALabel" text="0.8" class="s3-unit" style="width: 40px;"/></VisualElement>
                             </VisualElement>
 
                             <VisualElement class="s3-side-group" style="margin-top:15px;">

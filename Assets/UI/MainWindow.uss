@@ -527,14 +527,19 @@ Slider .unity-float-field {
 }
 
 .s3-field-white {
-    flex-grow: 1;
-    height: 18px;
+    width: 60px;
     background-color: white;
     border-width: 1px;
-    border-color: #ccc;
-    font-size: 11px;
-    color: #333;
-    padding-left: 4px;
+    border-color: #888;
+    color: black;
+    -unity-text-align: middle-right;
+    padding-right: 5px;
+}
+
+.s3-slider {
+    flex-grow: 1;
+    margin-left: 5px;
+    margin-right: 5px;
 }
 
 .s3-unit {

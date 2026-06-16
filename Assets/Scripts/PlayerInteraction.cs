@@ -297,17 +297,25 @@ public class PlayerInteraction : MonoBehaviour
             // =====================================================================
             // 1. RINSE BOTTLE SECTOR PROCESSING TRACK
             // =====================================================================
-            if (heldObject.name.ToLower().Contains("substrate"))
+            bool isBottle = heldObject.name.ToLower().Contains("bottle");
+            bool isDI = heldObject.name.ToLower().Contains("di");
+            
+            foreach (Transform child in heldObject.GetComponentsInChildren<Transform>(true))
             {
-                bool isDI = heldObject.name.ToLower().Contains("di");
+                string cname = child.name.ToLower();
+                if (cname.Contains("bottle")) isBottle = true;
+                if (cname.Contains("di")) isDI = true;
+            }
+
+            if (isBottle)
+            {
+                FluidInteractionController pourEngine = target.GetComponent<FluidInteractionController>();
+                if (pourEngine == null) pourEngine = target.GetComponentInParent<FluidInteractionController>();
+                if (pourEngine == null) pourEngine = target.GetComponentInChildren<FluidInteractionController>(true);
 
                 // CASE A: Pour mechanism injection target matches
-                if (targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
+                if (pourEngine != null || targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
                 {
-                    FluidInteractionController pourEngine = target.GetComponent<FluidInteractionController>();
-                    if (pourEngine == null) pourEngine = target.GetComponentInParent<FluidInteractionController>();
-                    if (pourEngine == null) pourEngine = Object.FindAnyObjectByType<FluidInteractionController>();
-
                     if (pourEngine != null)
                     {
                         pourEngine.ExecuteChemicalPour(heldObject);
@@ -456,19 +464,25 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // --- ROUTE E: CHEMICAL DEVELOPMENT BEAKER DISPLACEMENT ---
-            if ((targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical")) && heldObject.name.ToLower().Contains("wafer"))
+            bool isWafer = heldObject.name.ToLower().Contains("wafer") || (heldObject.name.ToLower().Contains("substrate") && !isBottle);
+            
+            if (isWafer)
             {
-                FluidInteractionController liquid = target.GetComponentInParent<FluidInteractionController>();
-                if (liquid == null) liquid = Object.FindAnyObjectByType<FluidInteractionController>();
+                FluidInteractionController liquid = target.GetComponent<FluidInteractionController>();
+                if (liquid == null) liquid = target.GetComponentInParent<FluidInteractionController>();
+                if (liquid == null) liquid = target.GetComponentInChildren<FluidInteractionController>(true);
                 
-                if (liquid != null)
+                if (liquid != null || targetName.Contains("beaker") || targetName.Contains("fluid") || targetName.Contains("chemical"))
                 {
-                    RestoreHeldObjectLayer(); DetachHeldObject();
-                    heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.1f, 0f);
-                    heldObject.transform.rotation = Quaternion.identity;
-                    heldObject.transform.SetParent(liquid.transform);
-                    liquid.TriggerWaferInteractionSpike();
-                    heldObject = null;
+                    if (liquid != null)
+                    {
+                        RestoreHeldObjectLayer(); DetachHeldObject();
+                        heldObject.transform.position = liquid.transform.position + new Vector3(0f, -0.1f, 0f);
+                        heldObject.transform.rotation = Quaternion.identity;
+                        heldObject.transform.SetParent(liquid.transform);
+                        liquid.TriggerWaferInteractionSpike();
+                        heldObject = null;
+                    }
                     return;
                 }
             }

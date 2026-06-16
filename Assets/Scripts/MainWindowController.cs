@@ -32,6 +32,10 @@ public class MainWindowController : MonoBehaviour
 
     private MachineState currentMachineState = MachineState.Step3_InsertMask;
 
+    private float selectedDose = 20.0f;
+    private float selectedDefocus = 0.0f;
+    private float selectedNA = 0.8f;
+
     private void Start()
     {
         InitializeUI();
@@ -138,6 +142,39 @@ public class MainWindowController : MonoBehaviour
         {
             closeMaskPopupBtn.clicked -= HideMaskPopup;
             closeMaskPopupBtn.clicked += HideMaskPopup;
+        }
+
+        // --- NEW SLIDER HOOKUPS ---
+        var doseSlider = mainRoot.Q<Slider>("uiDoseSlider");
+        var defocusSlider = mainRoot.Q<Slider>("uiDefocusSlider");
+        var naSlider = mainRoot.Q<Slider>("uiNASlider");
+        var doseLabel = mainRoot.Q<Label>("uiDoseLabel");
+        var defocusLabel = mainRoot.Q<Label>("uiDefocusLabel");
+        var naLabel = mainRoot.Q<Label>("uiNALabel");
+
+        if (doseSlider != null && defocusSlider != null && naSlider != null)
+        {
+            doseSlider.RegisterValueChangedCallback(evt => {
+                doseLabel.text = evt.newValue.ToString("F1");
+                selectedDose = evt.newValue;
+            });
+            defocusSlider.RegisterValueChangedCallback(evt => {
+                defocusLabel.text = evt.newValue.ToString("F1");
+                selectedDefocus = evt.newValue;
+            });
+            naSlider.RegisterValueChangedCallback(evt => {
+                naLabel.text = evt.newValue.ToString("F2");
+                selectedNA = evt.newValue;
+            });
+            
+            // Sync initial state locally
+            selectedDose = doseSlider.value;
+            selectedDefocus = defocusSlider.value;
+            selectedNA = naSlider.value;
+
+            doseLabel.text = doseSlider.value.ToString("F1");
+            defocusLabel.text = defocusSlider.value.ToString("F1");
+            naLabel.text = naSlider.value.ToString("F2");
         }
     }
 
@@ -279,6 +316,14 @@ public class MainWindowController : MonoBehaviour
             {
                 exposureController.isVacuumSealed = true;
                 exposureController.isMaskTrayInserted = true;
+
+                // Push stored parameters right before execution
+                var lithoEngine = Object.FindAnyObjectByType<LithoInferenceEngine>();
+                if (lithoEngine != null)
+                {
+                    lithoEngine.SetProcessParameters(selectedDose, selectedDefocus, selectedNA);
+                }
+
                 exposureController.executeExposureButton.onClick.Invoke();
             }
             return;

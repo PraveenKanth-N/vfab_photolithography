@@ -26,6 +26,11 @@ public class LithoInferenceEngine : MonoBehaviour
     public TMPro.TextMeshProUGUI defocusText;
     public TMPro.TextMeshProUGUI naText;
 
+    [Header("Process Parameters")]
+    public float currentDose = 20.0f;
+    public float currentDefocus = 0.0f;
+    public float currentNA = 0.8f;
+
     [HideInInspector] public bool isSystemExposing = false;
     [HideInInspector] public int maskDropdownIndexOverride = 0;
 
@@ -60,9 +65,11 @@ public class LithoInferenceEngine : MonoBehaviour
         maskTexture2D = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false);
         maskPreviewDisplay.texture = maskTexture2D;
         
-        doseSlider.onValueChanged.AddListener(delegate { OnProcessParameterChanged(); });
-        defocusSlider.onValueChanged.AddListener(delegate { OnProcessParameterChanged(); });
-        naSlider.onValueChanged.AddListener(delegate { OnProcessParameterChanged(); });
+        if (doseSlider != null) doseSlider.onValueChanged.AddListener(delegate { SyncFromLegacySliders(); });
+        if (defocusSlider != null) defocusSlider.onValueChanged.AddListener(delegate { SyncFromLegacySliders(); });
+        if (naSlider != null) naSlider.onValueChanged.AddListener(delegate { SyncFromLegacySliders(); });
+
+        SyncFromLegacySliders();
 
         OnMaskSelectionChanged();
     }
@@ -176,15 +183,37 @@ public class LithoInferenceEngine : MonoBehaviour
         }
     }
 
+    public void SyncFromLegacySliders()
+    {
+        if (doseSlider != null) currentDose = doseSlider.value;
+        if (defocusSlider != null) currentDefocus = defocusSlider.value;
+        if (naSlider != null) currentNA = naSlider.value;
+        OnProcessParameterChanged();
+    }
+
+    public void SetProcessParameters(float dose, float defocus, float na)
+    {
+        currentDose = dose;
+        currentDefocus = defocus;
+        currentNA = na;
+        
+        // Sync backwards to legacy sliders if they exist so they don't jump out of sync
+        if (doseSlider != null) doseSlider.SetValueWithoutNotify(currentDose);
+        if (defocusSlider != null) defocusSlider.SetValueWithoutNotify(currentDefocus);
+        if (naSlider != null) naSlider.SetValueWithoutNotify(currentNA);
+
+        OnProcessParameterChanged();
+    }
+
     public void OnProcessParameterChanged()
     {
-        if (doseText != null) doseText.text = $"Dose: {doseSlider.value:F2} mJ";
-        if (defocusText != null) defocusText.text = $"Defocus: {defocusSlider.value:F2} um";
-        if (naText != null) naText.text = $"Numerical Aperture: {naSlider.value:F2}";
+        if (doseText != null) doseText.text = $"Dose: {currentDose:F2} mJ";
+        if (defocusText != null) defocusText.text = $"Defocus: {currentDefocus:F2} um";
+        if (naText != null) naText.text = $"Numerical Aperture: {currentNA:F2}";
         
-        float normDose = doseSlider.value / 38.0f;
-        float normDefocus = defocusSlider.value / 45.0f;
-        float normNA = naSlider.value / 1.35f;
+        float normDose = currentDose / 38.0f;
+        float normDefocus = currentDefocus / 45.0f;
+        float normNA = currentNA / 1.35f;
 
         nchwInputArray = new float[1 * channels * resolution * resolution];
         int planeSize = resolution * resolution;
@@ -223,7 +252,7 @@ public class LithoInferenceEngine : MonoBehaviour
             outputResultsData = cpuCopyTensor.DownloadToArray(); 
 
             // --- STAGE 2 PRE-COMPUTE: CONSTRUCT 2-CHANNEL PASSTHROUGH FOOTPRINT FOR CHEMICAL SURROGATE ---
-            float normDose = doseSlider.value / 38.0f;
+            float normDose = currentDose / 38.0f;
             int planeSize = resolution * resolution;
             float[] chemicalInputBuffer = new float[1 * 2 * resolution * resolution];
             
