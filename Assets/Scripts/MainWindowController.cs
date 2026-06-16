@@ -9,76 +9,65 @@ public class MainWindowController : MonoBehaviour
     private VisualElement screen1;
     private VisualElement screen2;
     private VisualElement screen3;
-    private VisualElement mainRoot;
 
-    private bool isUiActivelyVisible = false;
+    // We track whether the UI logic is supposed to be active or not
+    public bool isUiActivelyVisible = false;
 
-    void OnEnable()
+    public enum MachineState
     {
-        // Force UI re-query because the visual tree might have been regenerated 
-        // after being disabled and re-enabled!
-        mainRoot = null; 
+        Step3_InsertMask,
+        Step4_ConfigureOptics,
+        Step5_InsertUVFilter,
+        Step6_InsertMaskholder,
+        Step7_FixMaskholder,
+        Step8_InsertChuck,
+        Step9_InsertLoadframe,
+        Step10_FinalDualScreen
+    }
+
+    private MachineState currentMachineState = MachineState.Step3_InsertMask;
+
+    private void Start()
+    {
         InitializeUI();
-        
-        if (mainRoot != null)
+
+        // Start hidden
+        isUiActivelyVisible = false;
+        if (targetUIDocument != null)
         {
-            if (!isUiActivelyVisible)
-            {
-                HideUiCompletely();
-            }
-            else
-            {
-                mainRoot.style.display = DisplayStyle.Flex;
-            }
+            if (targetUIDocument.rootVisualElement != null)
+                targetUIDocument.rootVisualElement.style.display = DisplayStyle.None;
+            
+            targetUIDocument.gameObject.SetActive(false);
         }
     }
 
-    void Start()
+    public void InitializeUI()
     {
-        mainRoot = null;
-        InitializeUI();
-        if (!isUiActivelyVisible)
-        {
-            HideUiCompletely();
-        }
-    }
-
-    private void InitializeUI()
-    {
-        if (mainRoot != null) return;
-
         if (targetUIDocument == null)
         {
-            targetUIDocument = GetComponent<UIDocument>();
-            if (targetUIDocument == null && transform.parent != null)
-            {
-                targetUIDocument = transform.parent.GetComponentInChildren<UIDocument>(true);
-            }
-            if (targetUIDocument == null)
-            {
-                targetUIDocument = Object.FindAnyObjectByType<UIDocument>(FindObjectsInactive.Include);
-            }
+            targetUIDocument = Object.FindObjectOfType<UIDocument>(true);
         }
 
         if (targetUIDocument == null)
         {
-            Debug.LogError("[MainWindowController] No UIDocument found in the scene or on this object!");
+            Debug.LogError("No UIDocument assigned or found on MainWindowController!");
             return;
         }
 
-        if (targetUIDocument.panelSettings == null)
+        // We MUST wake it up to grab the root visual element properly!
+        if (!targetUIDocument.gameObject.activeSelf)
         {
-            Debug.LogWarning("[MainWindowController] No Panel Settings assigned to UIDocument! The UI will render with Constant Pixel Size and appear extremely large. Please assign a Panel Settings asset (like MainPanelSettings) to the UIDocument component.");
+            targetUIDocument.gameObject.SetActive(true);
         }
 
-        VisualElement rootElement = targetUIDocument.rootVisualElement;
-        if (rootElement == null) return;
+        var mainRoot = targetUIDocument.rootVisualElement;
+        if (mainRoot == null)
+        {
+            Debug.LogWarning("UIDocument rootVisualElement is null! Ensure the UI object has a source asset.");
+            return;
+        }
 
-        // Query the actual top-level container defined in UXML
-        mainRoot = rootElement.Q<VisualElement>(className: "root");
-        if (mainRoot == null) mainRoot = rootElement; // fallback
-
-        // Query the sub-panels from your UXML
         screen1 = mainRoot.Q<VisualElement>("screen1");
         screen2 = mainRoot.Q<VisualElement>("screen2");
         screen3 = mainRoot.Q<VisualElement>("screen3");
@@ -89,12 +78,20 @@ public class MainWindowController : MonoBehaviour
         var runBtn = mainRoot.Q<Button>("runButton");
         if (runBtn != null) runBtn.clicked += OpenMachine;
 
-        // Hook up the new Continue button on screen 3 to close the UI!
+        // Hook up the new Continue button on screen 3 to advance state!
         var continueBtn = mainRoot.Q<Button>("continueButton");
         if (continueBtn != null)
         {
-            continueBtn.clicked -= CloseEntireInterface;
-            continueBtn.clicked += CloseEntireInterface;
+            continueBtn.clicked -= AdvanceMachineState;
+            continueBtn.clicked += AdvanceMachineState;
+        }
+
+        // Hook up the new EXIT button on screen 3 bottom bar
+        var exitBtn = mainRoot.Q<Button>("exitButton");
+        if (exitBtn != null)
+        {
+            exitBtn.clicked -= CloseEntireInterface;
+            exitBtn.clicked += CloseEntireInterface;
         }
 
         // Hook up your UXML exit button cleanly
@@ -109,89 +106,159 @@ public class MainWindowController : MonoBehaviour
 
     public void OpenInterfaceToStep1()
     {
-        isUiActivelyVisible = true; // Set flag FIRST
-        
-        if (targetUIDocument == null) InitializeUI();
-        
+        Debug.Log("Opening UI to Image 1 (Screen 1)");
+        isUiActivelyVisible = true;
+        InitializeUI();
+
         if (targetUIDocument != null)
         {
-            targetUIDocument.gameObject.SetActive(true);
-            if (targetUIDocument.transform.parent != null && !targetUIDocument.transform.parent.gameObject.activeSelf)
+            if (!targetUIDocument.gameObject.activeSelf)
+                targetUIDocument.gameObject.SetActive(true);
+
+            if (targetUIDocument.rootVisualElement != null)
             {
-                targetUIDocument.transform.parent.gameObject.SetActive(true);
+                targetUIDocument.rootVisualElement.style.display = DisplayStyle.Flex;
             }
         }
-        else
+
+        // CleanroomUIManager already handles unlocking the camera when opening panels, 
+        // but as a fallback if you run this script isolated:
+        if (CleanroomUIManager.Instance == null)
         {
-            gameObject.SetActive(true); 
+            UnityEngine.Cursor.lockState = CursorLockMode.None;
+            UnityEngine.Cursor.visible = true;
         }
 
-        // Force a re-initialize in case rootElement changed
-        mainRoot = null;
-        InitializeUI();
-        
-        // 1. Force the master visual tree to display
-        if (mainRoot != null) mainRoot.style.display = DisplayStyle.Flex;
-
-        // 2. Unlock the mouse cursor so you can actually click things
-        var look = Object.FindAnyObjectByType<MouseLook>();
-        if (look != null) look.ForceUnlockForUI();
-
-        // 3. Show screen 1 layout page
         Show(screen1);
+    }
+
+    private void OpenRecipe()
+    {
+        Debug.Log("Opening Recipe UI (Screen 2)");
+        Show(screen2);
+    }
+
+    private void OpenMachine()
+    {
+        Debug.Log("Opening Machine UI (Screen 3)");
+        ResetMachineState();
+        Show(screen3);
+    }
+
+    private void AdvanceMachineState()
+    {
+        if (currentMachineState == MachineState.Step10_FinalDualScreen)
+        {
+            CloseEntireInterface();
+            return;
+        }
+
+        currentMachineState++;
+        UpdateScreen3Visuals();
+    }
+
+    public void ResetMachineState()
+    {
+        currentMachineState = MachineState.Step3_InsertMask;
+        UpdateScreen3Visuals();
+    }
+
+    private void UpdateScreen3Visuals()
+    {
+        if (targetUIDocument == null) return;
+        var mainRoot = targetUIDocument.rootVisualElement;
+        var statusText = mainRoot.Q<Label>("s3StatusText");
+        var dualLayer = mainRoot.Q<VisualElement>("s3-dual-layer");
+        var schematicLayer = mainRoot.Q<VisualElement>("s3-schematic-layer");
+
+        if (statusText == null || dualLayer == null || schematicLayer == null) return;
+
+        switch (currentMachineState)
+        {
+            case MachineState.Step3_InsertMask:
+                statusText.text = "Insert Mask And Press <Continue>";
+                dualLayer.style.display = DisplayStyle.Flex;
+                schematicLayer.style.display = DisplayStyle.None;
+                break;
+            case MachineState.Step4_ConfigureOptics:
+                statusText.text = "Configure Optics and press continue";
+                dualLayer.style.display = DisplayStyle.None;
+                schematicLayer.style.display = DisplayStyle.Flex;
+                break;
+            case MachineState.Step5_InsertUVFilter:
+                statusText.text = "Insert UV filter [Default] and press continue";
+                dualLayer.style.display = DisplayStyle.Flex;
+                schematicLayer.style.display = DisplayStyle.None;
+                break;
+            case MachineState.Step6_InsertMaskholder:
+                statusText.text = "Insert maskholder and press continue";
+                dualLayer.style.display = DisplayStyle.None;
+                schematicLayer.style.display = DisplayStyle.Flex;
+                break;
+            case MachineState.Step7_FixMaskholder:
+                statusText.text = "Fix Maskholder and press continue";
+                dualLayer.style.display = DisplayStyle.Flex;
+                schematicLayer.style.display = DisplayStyle.None;
+                break;
+            case MachineState.Step8_InsertChuck:
+                statusText.text = "Insert chuck, connect vacuum and press continue";
+                dualLayer.style.display = DisplayStyle.None;
+                schematicLayer.style.display = DisplayStyle.Flex;
+                break;
+            case MachineState.Step9_InsertLoadframe:
+                statusText.text = "Insert loadframe and press continue";
+                dualLayer.style.display = DisplayStyle.None;
+                schematicLayer.style.display = DisplayStyle.Flex;
+                break;
+            case MachineState.Step10_FinalDualScreen:
+                statusText.text = "Insert Mask And Press <Continue>";
+                dualLayer.style.display = DisplayStyle.Flex;
+                schematicLayer.style.display = DisplayStyle.None;
+                break;
+        }
     }
 
     public void CloseEntireInterface()
     {
-        InitializeUI();
-        HideUiCompletely();
+        if (!isUiActivelyVisible) return; // Prevent infinite loop when CleanroomUIManager calls this
 
-        // Lock the cursor back into gameplay mode smoothly
-        var look = Object.FindAnyObjectByType<MouseLook>();
-        if (look != null) look.ForceLockFromUI();
-    }
-
-    private void HideUiCompletely()
-    {
-        InitializeUI();
         isUiActivelyVisible = false;
-        if (mainRoot != null) mainRoot.style.display = DisplayStyle.None;
         
         if (targetUIDocument != null)
         {
-            targetUIDocument.gameObject.SetActive(false);
-            
-            // Also explicitly disable the parent UI object if it exists so the whole cluster is hidden!
-            if (targetUIDocument.transform.parent != null && targetUIDocument.transform.parent.name == "UI")
+            if (targetUIDocument.rootVisualElement != null)
             {
-                targetUIDocument.transform.parent.gameObject.SetActive(false);
+                targetUIDocument.rootVisualElement.style.display = DisplayStyle.None;
             }
+            targetUIDocument.gameObject.SetActive(false);
+        }
+
+        // Safely route the closure back to your main UI manager so it can release the camera!
+        if (CleanroomUIManager.Instance != null)
+        {
+            CleanroomUIManager.Instance.CloseActivePanel();
         }
         else
         {
-            gameObject.SetActive(false); // Disable GameObject when completely hidden
+            UnityEngine.Cursor.lockState = CursorLockMode.Locked;
+            UnityEngine.Cursor.visible = false;
         }
-    }
-
-    void Show(VisualElement active)
-    {
-        if (screen1 != null) screen1.style.display = (active == screen1) ? DisplayStyle.Flex : DisplayStyle.None;
-        if (screen2 != null) screen2.style.display = (active == screen2) ? DisplayStyle.Flex : DisplayStyle.None;
-        if (screen3 != null) screen3.style.display = (active == screen3) ? DisplayStyle.Flex : DisplayStyle.None;
-    }
-
-    void OpenRecipe()
-    {
-        Show(screen2);
-    }
-
-    void OpenMachine()
-    {
-        Show(screen3);
     }
 
     public bool IsPanelCurrentlyOpen()
     {
         return isUiActivelyVisible;
+    }
+
+    private void Show(VisualElement screenToShow)
+    {
+        if (screen1 != null) screen1.AddToClassList("hidden");
+        if (screen2 != null) screen2.AddToClassList("hidden");
+        if (screen3 != null) screen3.AddToClassList("hidden");
+
+        if (screenToShow != null)
+        {
+            screenToShow.RemoveFromClassList("hidden");
+        }
     }
 }

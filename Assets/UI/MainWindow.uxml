@@ -61,11 +61,11 @@
                         <VisualElement class="col-1">
                             <VisualElement class="group-box">
                                 <Label text="General" class="group-title"/>
-                                <VisualElement class="form-row"><Label text="Process" class="field-label disabled-text"/><DropdownField choices="Man Top Stop" value="Man Top Stop" class="disabled-field"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Process Mode" class="field-label disabled-text"/><DropdownField choices="Transparent" value="Transparent" class="disabled-field"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Exposure Mode" class="field-label disabled-text"/><DropdownField choices="Constant Dose" value="Constant Dose" class="disabled-field"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Contact Mode" class="field-label disabled-text"/><DropdownField choices="Hard Contact" value="Hard Contact" class="disabled-field"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Spacer Mode" class="field-label disabled-text"/><DropdownField value="-" class="disabled-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Process" class="field-label disabled-text"/><DropdownField choices="Man Top Stop,-" value="Man Top Stop" class="disabled-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Process Mode" class="field-label disabled-text"/><DropdownField choices="Transparent,-" value="Transparent" class="disabled-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Exposure Mode" class="field-label disabled-text"/><DropdownField choices="Constant Dose,-" value="Constant Dose" class="disabled-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Contact Mode" class="field-label disabled-text"/><DropdownField choices="Hard Contact,-" value="Hard Contact" class="disabled-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Spacer Mode" class="field-label disabled-text"/><TextField value="" class="disabled-textfield gray-bg"/></VisualElement>
                                 <Button text="Mask ID Settings" class="disabled-btn mask-btn"/>
                                 
                                 <VisualElement class="table-mock">
@@ -173,20 +173,118 @@
 
             <!-- SCREEN 3 (Machine) -->
             <VisualElement name="screen3" class="screen hidden">
-                <VisualElement class="inner-window">
-                    <VisualElement class="inner-titlebar">
-                        <VisualElement class="window-controls">
-                            <Button class="inner-win-btn" text="-"/>
-                            <Button class="inner-win-btn" text="☐"/>
-                            <Button class="inner-win-btn close-btn" text="✕"/>
+                <VisualElement class="s3-layout">
+                    
+                    <!-- LEFT MAIN AREA -->
+                    <VisualElement class="s3-main">
+                        <!-- CAMERA VIEWPORT -->
+                        <VisualElement class="s3-camera-viewport">
+                            <!-- DUAL CAMERA LAYER -->
+                            <VisualElement name="s3-dual-layer" style="flex-grow: 1; flex-direction: row; display: flex;">
+                                <VisualElement class="s3-cam-split"/>
+                                <VisualElement class="s3-cam-split"/>
+                            </VisualElement>
+                            <!-- SCHEMATIC LAYER -->
+                            <VisualElement name="s3-schematic-layer" class="s3-schematic-view" style="display: none;">
+                                <Label text="[Schematic Placeholder]" style="color: #666; font-size: 24px;"/>
+                            </VisualElement>
+                        </VisualElement>
+                        
+                        <!-- CAMERA TOOLBAR MOCK -->
+                        <VisualElement class="s3-cam-toolbar">
+                            <VisualElement class="s3-toolbar-btn"><VisualElement class="mock-icon"/></VisualElement>
+                            <VisualElement class="s3-toolbar-btn"><VisualElement class="mock-icon"/></VisualElement>
+                            <VisualElement class="s3-toolbar-btn"><VisualElement class="mock-icon"/></VisualElement>
+                            <VisualElement class="s3-toolbar-btn"><VisualElement class="mock-icon"/></VisualElement>
+                            <VisualElement class="s3-toolbar-btn" style="margin-left: 20px;"><VisualElement class="mock-icon"/></VisualElement>
+                            <VisualElement class="s3-toolbar-btn"><VisualElement class="mock-icon"/></VisualElement>
+                            <VisualElement class="s3-toolbar-btn"><VisualElement class="mock-icon"/></VisualElement>
+                        </VisualElement>
+
+                        <!-- STATUS BAR -->
+                        <VisualElement class="s3-status-bar">
+                            <Label text="Man Top Side" class="s3-status-sub"/>
+                            <Label name="s3StatusText" text="Insert Mask And Press &lt;Continue&gt;" class="s3-status-main"/>
+                        </VisualElement>
+
+                        <!-- BOTTOM CONTROLS -->
+                        <VisualElement class="s3-bottom-controls">
+                            <!-- PLAY BOX -->
+                            <VisualElement class="s3-play-box">
+                                <VisualElement class="s3-massive-play-icon"/>
+                            </VisualElement>
+
+                            <!-- SLIDER BOX -->
+                            <VisualElement class="s3-slider-box">
+                                <VisualElement class="s3-slider-row"><Label text="Shutter"/><VisualElement class="s3-mock-slider-track"><VisualElement class="s3-mock-slider-thumb"/></VisualElement></VisualElement>
+                                <VisualElement class="s3-slider-row"><Label text="Brightness"/><VisualElement class="s3-mock-slider-track"><VisualElement class="s3-mock-slider-thumb"/></VisualElement></VisualElement>
+                                <VisualElement class="s3-slider-row"><Label text="Contrast"/><VisualElement class="s3-mock-slider-track"><VisualElement class="s3-mock-slider-thumb"/></VisualElement></VisualElement>
+                            </VisualElement>
+
+                            <!-- DIAL BOX -->
+                            <VisualElement class="s3-dial-box">
+                                <VisualElement class="s3-dial-col" style="justify-content: center;">
+                                    <Label text="Vaccume Mask" class="s3-dial-title"/>
+                                    <Label text="-0.049" class="s3-dial-readout"/>
+                                    <Label text="Bar" class="s3-dial-unit"/>
+                                </VisualElement>
+                                <VisualElement class="s3-dial-col" style="justify-content: center;">
+                                    <Label text="Contact Force" class="s3-dial-title"/>
+                                    <Label text="0.058" class="s3-dial-readout"/>
+                                    <Label text="Bar" class="s3-dial-unit"/>
+                                </VisualElement>
+                            </VisualElement>
                         </VisualElement>
                     </VisualElement>
-                    <VisualElement class="inner-content" style="flex-direction: column;">
-                        <VisualElement class="camera"/>
-                        <VisualElement class="bottom">
-                            <Button name="continueButton" text="Continue" class="continue"/>
+
+                    <!-- RIGHT SIDEBAR -->
+                    <VisualElement class="s3-sidebar">
+                        <VisualElement class="s3-side-group">
+                            <VisualElement class="s3-row"><Label text="Substrate Size" class="s3-label"/><TextField value="4" class="s3-field"/><Label text="inch" class="s3-unit"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="Process Mode" class="s3-label"/><TextField value="Transparent" class="s3-field"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="Exposure Mode" class="s3-label"/><TextField value="Constant Dose" class="s3-field"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="Contact Mode" class="s3-label"/><DropdownField choices="Hard Contact,-" value="Hard Contact" class="disabled-field"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="Space Mode" class="s3-label"/><TextField value="---" class="s3-field"/></VisualElement>
+                            
+                            <VisualElement class="s3-row"><Label text="Stop After Contact" class="s3-label"/><Button text="ON" class="s3-btn"/><Button text="OFF" class="s3-btn-green"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="WEC Interval" class="s3-label disabled-text"/><Button text="OFF" class="s3-btn" style="flex-grow:1;"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="Mask ID" class="s3-label"/><TextField class="s3-field" style="flex-grow:1; width:auto;"/></VisualElement>
+                        </VisualElement>
+
+                        <Label text="Sector Exposure Settings" class="s3-header-label"/>
+
+                        <VisualElement class="s3-side-group">
+                            <VisualElement class="s3-row"><Label text="Exposure Time" class="s3-label disabled-text"/><TextField value="0.0" class="s3-field"/><Label text="sec" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="Dose" class="s3-label"/><TextField value="200" class="s3-field-white"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                        </VisualElement>
+
+                        <VisualElement class="s3-side-group" style="margin-top:15px;">
+                            <VisualElement class="s3-row"><Label text="Alignment Accuracy" class="s3-label disabled-text"/><TextField value="0.8" class="s3-field"/><Label text="µm" class="s3-unit disabled-text"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="Separation" class="s3-label"/><TextField value="50" class="s3-field-white"/><VisualElement class="s3-pm-group"><Button text="+" class="s3-pm-btn"/><Button text="-" class="s3-pm-btn"/></VisualElement><Button text="Set" class="s3-set-btn"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="Proximity" class="s3-label disabled-text"/><TextField value="0.0" class="s3-field"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                            <VisualElement class="s3-row"><Label text="Vaccume Contact" class="s3-label disabled-text"/><TextField value="700" class="s3-field"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                            <VisualElement class="s3-row"><DropdownField choices="Exposure,-" value="Exposure" class="disabled-field" style="width:100px; margin-right:5px;"/><TextField value="1200" class="s3-field-white"/><Label text="mbar" class="s3-unit disabled-text"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                        </VisualElement>
+
+                        <Label text="Comment" class="s3-header-label"/>
+                        <VisualElement class="s3-comment-box">
+                            <Label text="Undefined" class="disabled-text"/>
                         </VisualElement>
                     </VisualElement>
+
+                </VisualElement>
+
+                <!-- S3 BOTTOM BAR -->
+                <VisualElement class="s3-global-bottom">
+                    <Button name="continueButton" class="s3-action-btn"><VisualElement class="s3-small-play"/> <Label text="Continue"/></Button>
+                    <Button text="Undo" class="s3-action-btn s3-disabled-btn"/>
+                    <VisualElement style="flex-grow:1;"/>
+                    <Button text="[L]" class="s3-action-btn s3-disabled-btn"/>
+                    <Button text="[R]" class="s3-action-btn s3-disabled-btn"/>
+                    <VisualElement style="flex-grow:1;"/>
+                    <Button text="Sep/Cont" class="s3-action-btn s3-disabled-btn"/>
+                    <VisualElement style="flex-grow:1;"/>
+                    <Button name="exitButton" text="EXIT" class="s3-action-btn s3-exit-btn"/>
                 </VisualElement>
             </VisualElement>
 
