@@ -58,7 +58,7 @@ public class CleanroomUIManager : MonoBehaviour
             case "Exposure": // Fallback
                 if (exposureUIController != null) 
                 { 
-                    exposureUIController.OpenInterfaceToStep1();
+                    exposureUIController.OpenInterface();
                 }
                 break;
         }

@@ -383,7 +383,6 @@ public class PlayerInteraction : MonoBehaviour
                         heldObject.transform.localPosition = new Vector3(0f, 0.015f, 0f); 
                         heldObject.transform.localRotation = Quaternion.identity;
                         heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
-                        targetAligner.isMaskTrayInserted = true;
                         heldObject = null;
                         return;
                     }

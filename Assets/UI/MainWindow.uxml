@@ -39,7 +39,7 @@
                         </VisualElement>
                     </VisualElement>
                     <VisualElement class="inner-content center-content">
-                        <Label text="Welcome to SUSS MicroTec Exposure Station" class="welcome-title"/>
+                        <Label text="Welcome to EVG Exposure Station" class="welcome-title"/>
                         <Label text="Select 'New Recipe' from the toolbar to configure the process parameters." class="welcome-subtitle"/>
                     </VisualElement>
                 </VisualElement>
@@ -179,6 +179,15 @@
 
             <!-- SCREEN 3 (Machine) -->
             <VisualElement name="screen3" class="screen hidden">
+                
+                <!-- POPUP OVERLAY (Photomask Interlock) -->
+                <VisualElement name="maskPopupOverlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.7); z-index: 1000; display: none; align-items: center; justify-content: center;">
+                    <VisualElement style="background-color: white; padding: 20px; border-radius: 8px; width: 300px; align-items: center; border-width: 2px; border-color: red;">
+                        <Label name="maskPopupLabel" text="Load the Photomask in!" style="font-size: 18px; font-weight: bold; color: black; margin-bottom: 20px;"/>
+                        <Button name="closeMaskPopupBtn" text="OK" style="width: 100px; padding: 10px; background-color: #e0e0e0; color: black; font-weight: bold;"/>
+                    </VisualElement>
+                </VisualElement>
+
                 <VisualElement class="s3-layout">
                     
                     <!-- LEFT MAIN AREA -->
@@ -187,8 +196,26 @@
                         <VisualElement class="s3-camera-viewport">
                             <!-- DUAL CAMERA LAYER -->
                             <VisualElement name="s3-dual-layer" style="flex-grow: 1; flex-direction: row; display: flex;">
-                                <VisualElement class="s3-cam-split"/>
-                                <VisualElement class="s3-cam-split"/>
+                                <VisualElement class="s3-cam-split" style="position: relative; overflow: hidden; align-items: center; justify-content: center; background-color: #f0f0f0;">
+                                    <VisualElement name="huge-crosshair-left" class="huge-crosshair">
+                                        <VisualElement class="huge-crosshair-inner-v"/>
+                                        <VisualElement class="huge-crosshair-inner-h"/>
+                                    </VisualElement>
+                                    <VisualElement name="thick-crosshair-left" class="thick-crosshair" style="display: none;">
+                                        <VisualElement class="thick-crosshair-inner-v"/>
+                                        <VisualElement class="thick-crosshair-inner-h"/>
+                                    </VisualElement>
+                                </VisualElement>
+                                <VisualElement class="s3-cam-split" style="position: relative; overflow: hidden; align-items: center; justify-content: center; background-color: #f0f0f0;">
+                                    <VisualElement name="huge-crosshair-right" class="huge-crosshair">
+                                        <VisualElement class="huge-crosshair-inner-v"/>
+                                        <VisualElement class="huge-crosshair-inner-h"/>
+                                    </VisualElement>
+                                    <VisualElement name="thick-crosshair-right" class="thick-crosshair" style="display: none;">
+                                        <VisualElement class="thick-crosshair-inner-v"/>
+                                        <VisualElement class="thick-crosshair-inner-h"/>
+                                    </VisualElement>
+                                </VisualElement>
                             </VisualElement>
                             <!-- SCHEMATIC LAYER -->
                             <VisualElement name="s3-schematic-layer" class="s3-schematic-view" style="display: none;">
@@ -245,36 +272,138 @@
 
                     <!-- RIGHT SIDEBAR -->
                     <VisualElement class="s3-sidebar">
-                        <VisualElement class="s3-side-group">
-                            <VisualElement class="s3-row"><Label text="Substrate Size" class="s3-label"/><TextField value="4" class="s3-field"/><Label text="inch" class="s3-unit"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="Process Mode" class="s3-label"/><TextField value="Transparent" class="s3-field"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="Exposure Mode" class="s3-label"/><TextField value="Constant Dose" class="s3-field"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="Contact Mode" class="s3-label"/><DropdownField choices="Hard Contact,-" value="Hard Contact" class="disabled-field"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="Space Mode" class="s3-label"/><TextField value="---" class="s3-field"/></VisualElement>
-                            
-                            <VisualElement class="s3-row"><Label text="Stop After Contact" class="s3-label"/><Button text="ON" class="s3-btn"/><Button text="OFF" class="s3-btn-green"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="WEC Interval" class="s3-label disabled-text"/><Button text="OFF" class="s3-btn" style="flex-grow:1;"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="Mask ID" class="s3-label"/><TextField class="s3-field" style="flex-grow:1; width:auto;"/></VisualElement>
+                        
+                        <!-- DEFAULT RECIPE PANEL -->
+                        <VisualElement name="s3-sidebar-default" style="flex-grow: 1;">
+                            <VisualElement class="s3-side-group">
+                                <VisualElement class="s3-row"><Label text="Substrate Size" class="s3-label"/><TextField value="4" class="s3-field"/><Label text="inch" class="s3-unit"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Process Mode" class="s3-label"/><TextField value="Transparent" class="s3-field"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Exposure Mode" class="s3-label"/><TextField value="Constant Dose" class="s3-field"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Contact Mode" class="s3-label"/><DropdownField choices="Hard Contact,-" value="Hard Contact" class="disabled-field"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Space Mode" class="s3-label"/><TextField value="---" class="s3-field"/></VisualElement>
+                                
+                                <VisualElement class="s3-row"><Label text="Stop After Contact" class="s3-label"/><Button text="ON" class="s3-btn"/><Button text="OFF" class="s3-btn-green"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="WEC Interval" class="s3-label disabled-text"/><Button text="OFF" class="s3-btn" style="flex-grow:1;"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Mask ID" class="s3-label"/><TextField class="s3-field" style="flex-grow:1; width:auto;"/></VisualElement>
+                            </VisualElement>
+
+                            <Label text="Sector Exposure Settings" class="s3-header-label"/>
+
+                            <VisualElement class="s3-side-group">
+                                <VisualElement class="s3-row"><Label text="Exposure Time" class="s3-label disabled-text"/><TextField value="0.0" class="s3-field"/><Label text="sec" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Dose" class="s3-label"/><TextField value="200" class="s3-field-white"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                            </VisualElement>
+
+                            <VisualElement class="s3-side-group" style="margin-top:15px;">
+                                <VisualElement class="s3-row"><Label text="Alignment Accuracy" class="s3-label disabled-text"/><TextField value="0.8" class="s3-field"/><Label text="µm" class="s3-unit disabled-text"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Separation" class="s3-label"/><TextField value="50" class="s3-field-white"/><VisualElement class="s3-pm-group"><Button text="+" class="s3-pm-btn"/><Button text="-" class="s3-pm-btn"/></VisualElement><Button text="Set" class="s3-set-btn"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Proximity" class="s3-label disabled-text"/><TextField value="0.0" class="s3-field"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Vaccume Contact" class="s3-label disabled-text"/><TextField value="700" class="s3-field"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                                <VisualElement class="s3-row"><DropdownField choices="Exposure,-" value="Exposure" class="disabled-field" style="width:100px; margin-right:5px;"/><TextField value="1200" class="s3-field-white"/><Label text="mbar" class="s3-unit disabled-text"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                            </VisualElement>
+
+                            <Label text="Comment" class="s3-header-label"/>
+                            <VisualElement class="s3-comment-box">
+                                <Label text="Undefined" class="disabled-text"/>
+                            </VisualElement>
                         </VisualElement>
 
-                        <Label text="Sector Exposure Settings" class="s3-header-label"/>
+                        <!-- OPTICS PANEL (Hidden by Default) -->
+                        <VisualElement name="s3-sidebar-optics" style="flex-grow: 1; display: none;">
+                            <Label text="Optic Position" class="s3-header-label" style="text-align: center;"/>
+                            <VisualElement class="s3-side-group" style="padding: 10px; align-items: center; background-color: #d8d8d8;">
+                                <VisualElement style="flex-direction: row; align-items: center; margin-bottom: 10px;">
+                                    <Label text="Y" style="width: 20px; font-weight: bold; color: #666;"/>
+                                    <VisualElement style="width: 140px; height: 60px; background-color: white; border-radius: 5px; justify-content: center; align-items: center; border-width: 1px; border-color: #b0b0b0;">
+                                        <VisualElement style="flex-direction: row; width: 40px; justify-content: space-between;">
+                                            <VisualElement style="width: 6px; height: 6px; background-color: #1a365d; border-radius: 3px;"/>
+                                            <VisualElement style="width: 6px; height: 6px; background-color: #1a365d; border-radius: 3px;"/>
+                                        </VisualElement>
+                                    </VisualElement>
+                                </VisualElement>
+                                
+                                <VisualElement style="flex-direction: row; width: 100%; justify-content: space-between; margin-bottom: 5px;">
+                                    <VisualElement style="width: 20px; height: 20px; background-color: #e0e0e0;"/>
+                                    <Label text="XL" style="color: #666; width: 25px; text-align: center;"/>
+                                    <TextField value="93.05" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
+                                    <Label text="XR" style="color: #666; width: 25px; text-align: center;"/>
+                                    <TextField value="37.24" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
+                                </VisualElement>
+                                
+                                <VisualElement style="flex-direction: row; width: 100%; justify-content: space-between; margin-bottom: 5px;">
+                                    <Label text="Y L" style="color: #666; width: 25px; text-align: center; margin-left: 20px;"/>
+                                    <TextField value="176.57" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
+                                    <Label text="Y R" style="color: #666; width: 25px; text-align: center;"/>
+                                    <TextField value="176.57" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
+                                </VisualElement>
 
-                        <VisualElement class="s3-side-group">
-                            <VisualElement class="s3-row"><Label text="Exposure Time" class="s3-label disabled-text"/><TextField value="0.0" class="s3-field"/><Label text="sec" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="Dose" class="s3-label"/><TextField value="200" class="s3-field-white"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
-                        </VisualElement>
+                                <VisualElement style="flex-direction: row; align-items: center; margin-bottom: 5px; margin-top: 5px;">
+                                    <Label text="Z" style="width: 20px; font-weight: bold; color: #666;"/>
+                                    <VisualElement style="width: 140px; height: 30px; background-color: white; border-radius: 0px; justify-content: center; align-items: center; border-width: 1px; border-color: #b0b0b0;">
+                                        <VisualElement style="flex-direction: row; width: 40px; justify-content: space-between;">
+                                            <VisualElement style="width: 4px; height: 10px; background-color: #1a365d;"/>
+                                            <VisualElement style="width: 4px; height: 10px; background-color: #1a365d;"/>
+                                        </VisualElement>
+                                    </VisualElement>
+                                </VisualElement>
 
-                        <VisualElement class="s3-side-group" style="margin-top:15px;">
-                            <VisualElement class="s3-row"><Label text="Alignment Accuracy" class="s3-label disabled-text"/><TextField value="0.8" class="s3-field"/><Label text="µm" class="s3-unit disabled-text"/><Button text="Set" class="s3-set-btn"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="Separation" class="s3-label"/><TextField value="50" class="s3-field-white"/><VisualElement class="s3-pm-group"><Button text="+" class="s3-pm-btn"/><Button text="-" class="s3-pm-btn"/></VisualElement><Button text="Set" class="s3-set-btn"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="Proximity" class="s3-label disabled-text"/><TextField value="0.0" class="s3-field"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
-                            <VisualElement class="s3-row"><Label text="Vaccume Contact" class="s3-label disabled-text"/><TextField value="700" class="s3-field"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
-                            <VisualElement class="s3-row"><DropdownField choices="Exposure,-" value="Exposure" class="disabled-field" style="width:100px; margin-right:5px;"/><TextField value="1200" class="s3-field-white"/><Label text="mbar" class="s3-unit disabled-text"/><Button text="Set" class="s3-set-btn"/></VisualElement>
-                        </VisualElement>
+                                <VisualElement style="flex-direction: row; width: 100%; justify-content: space-between; margin-bottom: 5px;">
+                                    <VisualElement style="width: 20px; height: 20px; background-color: #e0e0e0;"/>
+                                    <Label text="XL" style="color: #666; width: 25px; text-align: center;"/>
+                                    <TextField value="4.88" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
+                                    <Label text="XR" style="color: #666; width: 25px; text-align: center;"/>
+                                    <TextField value="4.63" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
+                                </VisualElement>
+                            </VisualElement>
 
-                        <Label text="Comment" class="s3-header-label"/>
-                        <VisualElement class="s3-comment-box">
-                            <Label text="Undefined" class="disabled-text"/>
+                            <Label text="Scan Optics" class="s3-header-label" style="text-align: center;"/>
+                            <VisualElement style="flex-direction: row; justify-content: space-around; padding: 5px 10px; margin-bottom: 10px; background-color: #d8d8d8; border-width: 1px; border-color: #b0b0b0;">
+                                <Button text="Save\nPosition" style="width: 60px; height: 40px; white-space: normal; font-size: 10px; background-color: #e0e0e0; color: #666; border-width: 1px;"/>
+                                <Button text="Load\nPosition" style="width: 60px; height: 40px; white-space: normal; font-size: 10px; background-color: #e0e0e0; color: #666; border-width: 1px;"/>
+                                <Button style="width: 50px; height: 40px; background-color: #b0b0b0; border-width: 1px;">
+                                    <VisualElement class="mock-icon" style="align-self: center; background-color: #333; width: 20px; height: 15px; margin-top: 10px;"/>
+                                </Button>
+                            </VisualElement>
+
+                            <Label text="Scan IR Illumination" class="s3-header-label" style="text-align: center;"/>
+                            <VisualElement class="s3-side-group" style="padding: 10px; flex-direction: row; justify-content: space-between; background-color: #e0e0e0;">
+                                <VisualElement style="width: 70px; height: 70px; background-color: white; border-width: 1px; border-color: red;"/>
+                                <VisualElement style="flex-grow: 1; margin-left: 10px;">
+                                    <Label text="Stage Position" style="text-align: right; color: #666; font-size: 10px;"/>
+                                    <VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 2px;"><Label text="X" style="width: 20px; color: #666; font-size: 10px;"/><TextField value="-0.000" class="s3-field-white" style="width: 50px; background-color: #fff; font-size: 10px;"/></VisualElement>
+                                    <VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 2px;"><Label text="Y" style="width: 20px; color: #666; font-size: 10px;"/><TextField value="0.000" class="s3-field-white" style="width: 50px; background-color: #fff; font-size: 10px;"/></VisualElement>
+                                    <VisualElement style="flex-direction: row; justify-content: flex-end; margin-top: 2px;"><Label text="PHI" style="width: 25px; color: #666; font-size: 10px;"/><TextField value="1.021" class="s3-field-white" style="width: 50px; background-color: #fff; font-size: 10px;"/></VisualElement>
+                                    <Label text="0.5 µ/Step" style="text-align: right; color: #666; font-size: 10px; margin-top: 2px;"/>
+                                </VisualElement>
+                            </VisualElement>
+
+                            <VisualElement style="flex-direction: row; justify-content: space-between; padding: 5px 10px; margin-bottom: 5px; background-color: #e0e0e0;">
+                                <VisualElement style="flex-direction: row;"><Button text="Fast" class="s3-btn" style="padding: 2px; font-size: 10px;"/><DropdownField choices="2,-" value="2" class="disabled-field" style="width:40px; font-size: 10px;"/></VisualElement>
+                                <VisualElement style="flex-direction: row;"><Button text="Slow" class="s3-btn-green" style="padding: 2px; font-size: 10px;"/><DropdownField choices="0.5,-" value="0.5" class="disabled-field" style="width:40px; font-size: 10px;"/></VisualElement>
+                            </VisualElement>
+
+                            <Button text="Scan Stage" style="background-color: #ff6b6b; color: white; font-weight: bold; margin: 0 10px; padding: 5px; border-width: 1px; border-color: #d15656;"/>
+                            <Button text="Center Stage" style="background-color: #d8d8d8; color: #666; margin: 5px 10px 10px 10px; padding: 5px; border-width: 1px; border-color: #b0b0b0;"/>
+
+                            <!-- TABS -->
+                            <VisualElement style="flex-direction: row; justify-content: space-between; padding: 5px 10px;">
+                                <VisualElement style="flex-direction: column; width: 30%;">
+                                    <Button text="Position" style="background-color: #8cc63f; color: white; padding: 3px; font-size: 10px; font-weight: bold; border-width: 1px; border-color: #6ca02b;"/>
+                                    <Button style="background-color: #b0b0b0; height: 15px; margin-top: 5px; border-width: 1px;"/>
+                                    <Button style="background-color: #b0b0b0; height: 15px; margin-top: 5px; border-width: 1px;"/>
+                                </VisualElement>
+                                <VisualElement style="flex-direction: column; width: 30%;">
+                                    <Button text="Recipe" style="background-color: #e0e0e0; padding: 3px; font-size: 10px; color: #666; border-width: 1px;"/>
+                                    <Button style="background-color: #b0b0b0; height: 15px; margin-top: 5px; border-width: 1px;"/>
+                                    <Button style="background-color: #b0b0b0; height: 15px; margin-top: 5px; border-width: 1px;"/>
+                                </VisualElement>
+                                <VisualElement style="flex-direction: column; width: 30%;">
+                                    <Button style="background-color: #b0b0b0; height: 15px; border-width: 1px;"/>
+                                    <Button style="background-color: #b0b0b0; height: 15px; margin-top: 5px; border-width: 1px;"/>
+                                    <Button text="+ Controls" style="background-color: #e0e0e0; padding: 3px; font-size: 10px; color: #666; margin-top: 5px; border-width: 1px;"/>
+                                </VisualElement>
+                            </VisualElement>
+
                         </VisualElement>
                     </VisualElement>
 
@@ -285,8 +414,8 @@
                     <Button name="continueButton" class="s3-action-btn"><VisualElement class="s3-small-play"/> <Label text="Continue"/></Button>
                     <Button text="Undo" class="s3-action-btn s3-disabled-btn"/>
                     <VisualElement style="flex-grow:1;"/>
-                    <Button text="[L]" class="s3-action-btn s3-disabled-btn"/>
-                    <Button text="[R]" class="s3-action-btn s3-disabled-btn"/>
+                    <Button name="btnL" text="[L]" class="s3-action-btn"/>
+                    <Button name="btnR" text="[R]" class="s3-action-btn"/>
                     <VisualElement style="flex-grow:1;"/>
                     <Button text="Sep/Cont" class="s3-action-btn s3-disabled-btn"/>
                     <VisualElement style="flex-grow:1;"/>

@@ -50,6 +50,9 @@ public class MachineInteractionAnchor : MonoBehaviour
     // Triggers automatically when clicking directly on the cube anchor zone
     void OnMouseDown()
     {
+        var mainWindow = Object.FindAnyObjectByType<MainWindowController>();
+        if (mainWindow != null && mainWindow.IsPanelCurrentlyOpen()) return;
+
         if (CleanroomUIManager.Instance != null)
         {
             // Open up the screen space cockpit overlay panel
