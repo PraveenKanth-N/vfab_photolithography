@@ -119,6 +119,13 @@ public class PlayerInteraction : MonoBehaviour
                 }
                 return true;
             }
+
+            // Fallback: If we hit a UI element but it wasn't an interactive component (e.g. a background panel)
+            // We should STILL block the click from passing through into the 3D world!
+            if (UI_Target.layer == LayerMask.NameToLayer("UI"))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -152,6 +159,49 @@ public class PlayerInteraction : MonoBehaviour
                 if (foundWafer != null) { target = foundWafer.gameObject; nameLower = target.name.ToLower(); }
             }
 
+            // --- 3. RINSE BOTTLE PICKUP (HIERARCHY WRAPPER CONTEXT) ---
+            if (nameLower.Contains("bottle"))
+            {
+                GameObject parentWrapper = target.transform.parent != null ? target.transform.parent.gameObject : target;
+                PickUpHeldObject(parentWrapper);
+                return;
+            }
+
+            // --- 4. SPIN COATER GENUINE SUBSTRATE EXTRACTION ---
+            if (nameLower.Contains("wafer"))
+            {
+                SpinCoaterController coater = Object.FindAnyObjectByType<SpinCoaterController>();
+                if (coater != null && coater.currentCoaterState != SpinCoaterController.CoaterState.Empty)
+                {
+                    Transform searchRoot = coater.coaterWaferAnchor != null ? coater.coaterWaferAnchor : coater.rotorSpindleChuck;
+                    if (searchRoot != null && target.transform.IsChildOf(searchRoot))
+                    {
+                        GameObject extractedWafer = coater.RemoveWafer();
+                        if (extractedWafer != null) PickUpHeldObject(extractedWafer);
+                        return;
+                    }
+                }
+            }
+
+            // --- 5. MASK ALIGNER SUBSTRATE/MASK HOVER PICKUP EXTRACTION ---
+            if (nameLower.Contains("wafer") || nameLower.Contains("mask") || nameLower.Contains("tray"))
+            {
+                ExposureStationController alignerController = Object.FindAnyObjectByType<ExposureStationController>();
+                if (alignerController != null)
+                {
+                    Transform sharedWaferAnchorNode = alignerController.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
+                    if (sharedWaferAnchorNode == null) sharedWaferAnchorNode = alignerController.waferDockPosition;
+
+                    if (sharedWaferAnchorNode != null && target.transform.IsChildOf(sharedWaferAnchorNode))
+                    {
+                        GameObject extractedObject = sharedWaferAnchorNode.GetChild(0).gameObject;
+                        if (extractedObject.name.ToLower().Contains("mask")) alignerController.isMaskTrayInserted = false;
+                        PickUpHeldObject(extractedObject);
+                        return;
+                    }
+                }
+            }
+
             // --- 1. STANDALONE WAFER PICKUP ---
             if (nameLower.Contains("wafer")) 
             {
@@ -172,44 +222,9 @@ public class PlayerInteraction : MonoBehaviour
                 }
                 else
                 {
-                    ExposureStationController aligner = Object.FindAnyObjectByType<ExposureStationController>();
-                    if (aligner != null) aligner.isMaskTrayInserted = false; 
                     PickUpHeldObject(target);
                 }
                 return;
-            }
-
-            // --- 3. RINSE BOTTLE PICKUP (HIERARCHY WRAPPER CONTEXT) ---
-            if (nameLower.Contains("bottle"))
-            {
-                GameObject parentWrapper = target.transform.parent != null ? target.transform.parent.gameObject : target;
-                PickUpHeldObject(parentWrapper);
-                return;
-            }
-
-            // --- 4. SPIN COATER GENUINE SUBSTRATE EXTRACTION ---
-            SpinCoaterController coater = target.GetComponentInParent<SpinCoaterController>();
-            if (coater != null)
-            {
-                GameObject extractedWafer = coater.RemoveWafer();
-                if (extractedWafer != null) PickUpHeldObject(extractedWafer);
-                return;
-            }
-
-            // --- 5. MASK ALIGNER SUBSTRATE HOVER PICKUP EXTRACTION ---
-            ExposureStationController alignerController = target.GetComponentInParent<ExposureStationController>();
-            if (alignerController != null)
-            {
-                Transform sharedWaferAnchorNode = alignerController.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
-                if (sharedWaferAnchorNode == null) sharedWaferAnchorNode = alignerController.waferDockPosition;
-
-                if (sharedWaferAnchorNode != null && sharedWaferAnchorNode.childCount > 0)
-                {
-                    GameObject extractedObject = sharedWaferAnchorNode.GetChild(0).gameObject;
-                    if (extractedObject.name.ToLower().Contains("mask")) alignerController.isMaskTrayInserted = false;
-                    PickUpHeldObject(extractedObject);
-                    return;
-                }
             }
 
             // --- 6. TOPLID PICKUP ---
@@ -383,9 +398,13 @@ public class PlayerInteraction : MonoBehaviour
 
                 if (sharedWaferAnchorNode != null)
                 {
+                    bool hasTopLid = false;
+                    foreach (Transform child in sharedWaferAnchorNode) { if (child.name.ToLower().Contains("toplid")) hasTopLid = true; }
+
                     if (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray"))
                     {
                         if (targetAligner.isVacuumSealed) return;
+
                         RestoreHeldObjectLayer(); DetachHeldObject();
                         heldObject.transform.SetParent(sharedWaferAnchorNode, false);
                         heldObject.transform.localPosition = new Vector3(0f, 0.015f, 0f); 
@@ -397,10 +416,6 @@ public class PlayerInteraction : MonoBehaviour
 
                     if (heldObject.name.ToLower().Contains("wafer"))
                     {
-                        // Check if TopLid is still on the chuck!
-                        bool hasTopLid = false;
-                        foreach (Transform child in sharedWaferAnchorNode) { if (child.name.ToLower().Contains("toplid")) hasTopLid = true; }
-                        
                         if (hasTopLid) return; // Cannot place wafer until TopLid is removed!
 
                         RestoreHeldObjectLayer(); DetachHeldObject();

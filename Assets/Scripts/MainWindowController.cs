@@ -105,18 +105,18 @@ public class MainWindowController : MonoBehaviour
         {
             if (devToggleTrayBtn != null) 
             { 
-                devToggleTrayBtn.clicked -= exposureController.maskTrayToggleButton.onClick.Invoke; 
-                devToggleTrayBtn.clicked += exposureController.maskTrayToggleButton.onClick.Invoke; 
+                devToggleTrayBtn.clicked -= exposureController.HandleTrayToggleClick; 
+                devToggleTrayBtn.clicked += exposureController.HandleTrayToggleClick; 
             }
             if (devToggleVacuumBtn != null) 
             { 
-                devToggleVacuumBtn.clicked -= exposureController.vacuumButton.onClick.Invoke; 
-                devToggleVacuumBtn.clicked += exposureController.vacuumButton.onClick.Invoke; 
+                devToggleVacuumBtn.clicked -= exposureController.ToggleVacuumClamp; 
+                devToggleVacuumBtn.clicked += exposureController.ToggleVacuumClamp; 
             }
             if (devExecuteExposureBtn != null) 
             { 
-                devExecuteExposureBtn.clicked -= exposureController.executeExposureButton.onClick.Invoke; 
-                devExecuteExposureBtn.clicked += exposureController.executeExposureButton.onClick.Invoke; 
+                devExecuteExposureBtn.clicked -= exposureController.TriggerUVLampIgnition; 
+                devExecuteExposureBtn.clicked += exposureController.TriggerUVLampIgnition; 
             }
         }
 
@@ -308,23 +308,45 @@ public class MainWindowController : MonoBehaviour
             UpdateScreen3Visuals();
             return;
         }
-        else if (currentMachineState == MachineState.Step13_FinalAlignment)
+        if (currentMachineState == MachineState.Step13_FinalAlignment)
         {
+            Debug.Log("[UI FLOW] Step 13 Final Alignment triggered. Shutting down UI and triggering hardware...");
             CloseEntireInterface();
             var exposureController = Object.FindAnyObjectByType<ExposureStationController>();
-            if (exposureController != null && exposureController.executeExposureButton != null)
+            
+            if (exposureController == null) 
             {
+                Debug.LogError("[UI FLOW FATAL] ExposureStationController not found in scene!");
+            }
+            else
+            {
+                Debug.Log("[UI FLOW] Station found. Forcing hardware interlock state...");
                 exposureController.isVacuumSealed = true;
                 exposureController.isMaskTrayInserted = true;
+                if (exposureController.hardwareSequencer != null) 
+                {
+                    Debug.Log("[UI FLOW] Hardware Sequencer found. Forcing tray insertion state.");
+                    exposureController.hardwareSequencer.isTrayInserted = true;
+                }
+                else
+                {
+                    Debug.LogWarning("[UI FLOW] Hardware Sequencer is NULL on the station!");
+                }
 
                 // Push stored parameters right before execution
                 var lithoEngine = Object.FindAnyObjectByType<LithoInferenceEngine>();
                 if (lithoEngine != null)
                 {
+                    Debug.Log($"[UI FLOW] Syncing inference params: Dose={selectedDose}, Focus={selectedDefocus}, NA={selectedNA}");
                     lithoEngine.SetProcessParameters(selectedDose, selectedDefocus, selectedNA);
                 }
+                else
+                {
+                    Debug.LogWarning("[UI FLOW] LithoInferenceEngine not found. Parameters will be default.");
+                }
 
-                exposureController.executeExposureButton.onClick.Invoke();
+                Debug.Log("[UI FLOW] Invoking Execute sequence via direct method call!");
+                exposureController.TriggerUVLampIgnition();
             }
             return;
         }

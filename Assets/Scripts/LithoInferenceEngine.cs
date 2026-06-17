@@ -17,14 +17,6 @@ public class LithoInferenceEngine : MonoBehaviour
 
     [Header("UI Input Elements")]
     public RawImage maskPreviewDisplay;   
-    public Slider doseSlider;
-    public Slider defocusSlider;
-    public Slider naSlider;
-
-    [Header("UI Text Displays")]
-    public TMPro.TextMeshProUGUI doseText;
-    public TMPro.TextMeshProUGUI defocusText;
-    public TMPro.TextMeshProUGUI naText;
 
     [Header("Process Parameters")]
     public float currentDose = 20.0f;
@@ -64,12 +56,6 @@ public class LithoInferenceEngine : MonoBehaviour
         inputRawArray = new float[1 * resolution * resolution * channels];
         maskTexture2D = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false);
         maskPreviewDisplay.texture = maskTexture2D;
-        
-        if (doseSlider != null) doseSlider.onValueChanged.AddListener(delegate { SyncFromLegacySliders(); });
-        if (defocusSlider != null) defocusSlider.onValueChanged.AddListener(delegate { SyncFromLegacySliders(); });
-        if (naSlider != null) naSlider.onValueChanged.AddListener(delegate { SyncFromLegacySliders(); });
-
-        SyncFromLegacySliders();
 
         OnMaskSelectionChanged();
     }
@@ -183,34 +169,17 @@ public class LithoInferenceEngine : MonoBehaviour
         }
     }
 
-    public void SyncFromLegacySliders()
-    {
-        if (doseSlider != null) currentDose = doseSlider.value;
-        if (defocusSlider != null) currentDefocus = defocusSlider.value;
-        if (naSlider != null) currentNA = naSlider.value;
-        OnProcessParameterChanged();
-    }
-
     public void SetProcessParameters(float dose, float defocus, float na)
     {
         currentDose = dose;
         currentDefocus = defocus;
         currentNA = na;
         
-        // Sync backwards to legacy sliders if they exist so they don't jump out of sync
-        if (doseSlider != null) doseSlider.SetValueWithoutNotify(currentDose);
-        if (defocusSlider != null) defocusSlider.SetValueWithoutNotify(currentDefocus);
-        if (naSlider != null) naSlider.SetValueWithoutNotify(currentNA);
-
         OnProcessParameterChanged();
     }
 
     public void OnProcessParameterChanged()
     {
-        if (doseText != null) doseText.text = $"Dose: {currentDose:F2} mJ";
-        if (defocusText != null) defocusText.text = $"Defocus: {currentDefocus:F2} um";
-        if (naText != null) naText.text = $"Numerical Aperture: {currentNA:F2}";
-        
         float normDose = currentDose / 38.0f;
         float normDefocus = currentDefocus / 45.0f;
         float normNA = currentNA / 1.35f;
@@ -236,7 +205,9 @@ public class LithoInferenceEngine : MonoBehaviour
     // --- EXECUTES AT THE MASK ALIGNER (Pipes data natively into Stage 2 buffer) ---
     public void ExecuteModelExposurePipeline()
     {
-        if (inferenceWorker == null || nchwInputArray == null || chemicalInferenceWorker == null) return;
+        if (inferenceWorker == null) { Debug.LogError("[Litho AI Engine] inferenceWorker is null!"); return; }
+        if (nchwInputArray == null) { Debug.LogError("[Litho AI Engine] nchwInputArray is null! Array never initialized!"); return; }
+        if (chemicalInferenceWorker == null) { Debug.LogError("[Litho AI Engine] chemicalInferenceWorker is null! Stage 2 model failed to load."); return; }
 
         Debug.Log("[Litho AI Engine] Processing Phase 1 Aerial Intensity Pass...");
 
@@ -303,6 +274,12 @@ public class LithoInferenceEngine : MonoBehaviour
         {
             chemVisualizer.UpdateDeprotectionPlotDisplay();
             Debug.Log("[Litho AI Engine] Stage 2 view refresh call triggered successfully.");
+        }
+
+        // NEW CONNECTION LINK: Force development calculations to run down the chain instantly
+        if (TryGetComponent<LithoDevelopmentEngine>(out var devEngine))
+        {
+            devEngine.ExecuteDevelopmentPass();
         }
     }
 

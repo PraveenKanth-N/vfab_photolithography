@@ -183,66 +183,75 @@ public class HotplateController : MonoBehaviour
             }
         }
 
-        // --- INFERENCE EXTRACTION USING EXPLICIT NAMED OUTPUT PORTS ---
-        if (worker != null)
-        {
-            int totalPixels = Resolution * Resolution;
-            float[] inputs = new float[totalPixels * 3];
+        // --- INFERENCE EXTRACTION USING EXPLICIT NAMED OUTPUT PORTS ---
+        if (worker != null)
+        {
+            int totalPixels = Resolution * Resolution;
+            float[] inputs = new float[totalPixels * 3];
 
-            float[] means = { 472.3705139160156f, 100.18104553222656f, 65.00565338134766f };
-            float[] stds  = { 129.4272003173828f, 11.57119369506836f, 31.54351806640625f };
+            float[] means = { 472.3705139160156f, 100.18104553222656f, 65.00565338134766f };
+            float[] stds  = { 129.4272003173828f, 11.57119369506836f, 31.54351806640625f };
 
-            int arrayIdx = 0;
-            for (int y = 0; y < Resolution; y++)
-            {
-                for (int x = 0; x < Resolution; x++)
-                {
-                    float nx = (x / (float)Resolution) * 2.0f - 1.0f;
-                    float ny = (y / (float)Resolution) * 2.0f - 1.0f;
-                    float r = Mathf.Sqrt(nx * nx + ny * ny);
+            int arrayIdx = 0;
+            for (int y = 0; y < Resolution; y++)
+            {
+                for (int x = 0; x < Resolution; x++)
+                {
+                    float nx = (x / (float)Resolution) * 2.0f - 1.0f;
+                    float ny = (y / (float)Resolution) * 2.0f - 1.0f;
+                    float r = Mathf.Sqrt(nx * nx + ny * ny);
 
-                    
-                    float hSpinPixel = cachedSpinCenterThickness;
-                    float tempPixel = targetTemperature - (1.5f * (r * r));
+                    
+                    float hSpinPixel = cachedSpinCenterThickness;
+                    float tempPixel = targetTemperature - (1.5f * (r * r));
 
-                    inputs[arrayIdx]     = (hSpinPixel - means[0]) / stds[0];
-                    inputs[arrayIdx + 1] = (tempPixel - means[1]) / stds[1];
-                    inputs[arrayIdx + 2] = (targetBakeTime - means[2]) / stds[2];
-                    arrayIdx += 3;
-                }
-            }
+                    inputs[arrayIdx]     = (hSpinPixel - means[0]) / stds[0];
+                    inputs[arrayIdx + 1] = (tempPixel - means[1]) / stds[1];
+                    inputs[arrayIdx + 2] = (targetBakeTime - means[2]) / stds[2];
+                    arrayIdx += 3;
+                }
+            }
 
-            TensorShape shape = new TensorShape(totalPixels, 3);
-            using Tensor<float> inputTensor = new Tensor<float>(shape, inputs);
-            
-            worker.Schedule(inputTensor);
+            TensorShape shape = new TensorShape(totalPixels, 3);
+            using Tensor<float> inputTensor = new Tensor<float>(shape, inputs);
+            
+            worker.Schedule(inputTensor);
 
-            // Fetch the independent layer outputs cleanly by their explicit string descriptors
-            Tensor<float> thickTensor = worker.PeekOutput("predicted_thickness") as Tensor<float>;
-            Tensor<float> solventTensor = worker.PeekOutput("predicted_solvent") as Tensor<float>;
+            // Fetch the independent layer outputs cleanly by their explicit string descriptors
+            Tensor<float> thickTensor = worker.PeekOutput("predicted_thickness") as Tensor<float>;
+            Tensor<float> solventTensor = worker.PeekOutput("predicted_solvent") as Tensor<float>;
 
-            if (thickTensor != null && solventTensor != null)
-            {
-                thickTensor.CompleteAllPendingOperations();
-                solventTensor.CompleteAllPendingOperations();
+            if (thickTensor != null && solventTensor != null)
+            {
+                thickTensor.CompleteAllPendingOperations();
+                solventTensor.CompleteAllPendingOperations();
 
-                using Tensor<float> cpuThick = thickTensor.ReadbackAndClone() as Tensor<float>;
-                using Tensor<float> cpuSolvent = solventTensor.ReadbackAndClone() as Tensor<float>;
+                using Tensor<float> cpuThick = thickTensor.ReadbackAndClone() as Tensor<float>;
+                using Tensor<float> cpuSolvent = solventTensor.ReadbackAndClone() as Tensor<float>;
 
-                float[] rawThicknessArray = cpuThick.DownloadToArray();
-                float[] rawSolventArray = cpuSolvent.DownloadToArray();
+                float[] rawThicknessArray = cpuThick.DownloadToArray();
+                float[] rawSolventArray = cpuSolvent.DownloadToArray();
 
-                if (metrologyMonitorScreen != null)
-                {
-                    metrologyMonitorScreen.ProcessAndDisplayWafers(rawThicknessArray, rawSolventArray);
-                }
-            }
-            else
-            {
-                Debug.LogError("[Hotplate Engine] Error finding distinct output nodes named 'predicted_thickness' and 'predicted_solvent'!");
-            }
-        }
-    }
+                if (metrologyMonitorScreen != null)
+                {
+                    metrologyMonitorScreen.ProcessAndDisplayWafers(rawThicknessArray, rawSolventArray);
+                }
+
+                // Push thickness handoff to the new Development Stage
+                float finalSoftBakeThickness = rawThicknessArray[0];
+                LithoDevelopmentEngine devEngine = Object.FindAnyObjectByType<LithoDevelopmentEngine>();
+                if (devEngine != null)
+                {
+                    devEngine.initialThicknessNm = finalSoftBakeThickness;
+                    Debug.Log($"[Handoff Success] Pushed final soft-bake thickness of {finalSoftBakeThickness:F1} nm to the Development Stage!");
+                }
+            }
+            else
+            {
+                Debug.LogError("[Hotplate Engine] Error finding distinct output nodes named 'predicted_thickness' and 'predicted_solvent'!");
+            }
+        }
+    }
 
     void UpdateHotplateUI(string message) 
     {

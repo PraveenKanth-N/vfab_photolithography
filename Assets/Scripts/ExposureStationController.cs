@@ -54,9 +54,9 @@ public class ExposureStationController : MonoBehaviour
     }
 
     // STEP 1: TOGGLE MASK TRAY (Runs the 5-step animation chain back or forth)
-    private void HandleTrayToggleClick()
+    public void HandleTrayToggleClick()
     {
-        if (isExposingNow || hardwareSequencer == null) return;
+        if (isExposingNow || hardwareSequencer == null || hardwareSequencer.isRunning) return;
 
         // Toggle state tracking flag
         isMaskTrayInserted = !isMaskTrayInserted;
@@ -117,7 +117,7 @@ public class ExposureStationController : MonoBehaviour
     }
 
     // STEP 2: TOGGLE VACUUM CLAMP
-    private void ToggleVacuumClamp()
+    public void ToggleVacuumClamp()
     {
         if (isExposingNow || !isMaskTrayInserted) return;
         
@@ -126,12 +126,18 @@ public class ExposureStationController : MonoBehaviour
     }
 
     // STEP 3: EXECUTE UV EXPOSURE WITH SEQUENCER INTEGRATION
-    private void TriggerUVLampIgnition()
+    public void TriggerUVLampIgnition()
     {
-        if (!isVacuumSealed || isExposingNow || hardwareSequencer == null) return;
+        Debug.Log($"[HARDWARE STATION] TriggerUVLampIgnition Called! Sealed: {isVacuumSealed}, ExposingNow: {isExposingNow}, SequencerAttached: {hardwareSequencer != null}");
+
+        if (!isVacuumSealed) { Debug.LogError("[HARDWARE STATION] Aborting: Vacuum is NOT sealed!"); return; }
+        if (isExposingNow) { Debug.LogError("[HARDWARE STATION] Aborting: System is already exposing!"); return; }
+        if (hardwareSequencer == null) { Debug.LogError("[HARDWARE STATION] Aborting: hardwareSequencer slot is empty!"); return; }
 
         isExposingNow = true;
         UpdateSystemWorkflowState("Initiating exposure sequence steps...");
+
+        Debug.Log("[HARDWARE STATION] Handing execution to Sequencer script...");
 
         // Hand over execution control directly to the hardware sequencer
         hardwareSequencer.ExecuteExposureSequence(

@@ -17,8 +17,8 @@ public class AlignerAnimationSequencer : MonoBehaviour
     public float sliderMoveDuration = 1.2f;
     public float microscopeDuration = 0.5f;
 
-    private bool isRunning = false;
-    private bool isTrayInserted = false;
+    public bool isRunning = false;
+    public bool isTrayInserted = false;
 
     // MASTER TRIGGER: Hook this directly to your UI "Toggle Mask Tray" Button click
     public void ToggleMaskTray()
@@ -38,7 +38,11 @@ public class AlignerAnimationSequencer : MonoBehaviour
     // MASTER TRIGGER: Hook this directly to your UI "Execute Exposure" Button click
     public void ExecuteExposureSequence(System.Action onUVTrigger, System.Action onModelCompute)
     {
-        if (isRunning || !isTrayInserted) return;
+        Debug.Log($"[SEQUENCER] ExecuteExposureSequence Triggered. isRunning: {isRunning}, isTrayInserted: {isTrayInserted}");
+        if (isRunning) { Debug.LogError("[SEQUENCER] Aborting: Sequencer is already running another task!"); return; }
+        if (!isTrayInserted) { Debug.LogError("[SEQUENCER] Aborting: isTrayInserted is FALSE!"); return; }
+        
+        Debug.Log("[SEQUENCER] Starting Async Cycle...");
         _ = ExecuteExposureCycleAsync(onUVTrigger, onModelCompute);
     }
 

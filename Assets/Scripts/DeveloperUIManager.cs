@@ -79,6 +79,17 @@ public class DeveloperUIManager : MonoBehaviour
             {
                 swerveTimeText.text = value.ToString("F1") + " s";
             }
+            // User requested that image calculation ONLY happens on Swerve click, 
+            // so we do NOT push this to the DevEngine here!
+        }
+    }
+
+    private void PushTimeToDevelopmentEngine(float time)
+    {
+        LithoDevelopmentEngine devEngine = Object.FindAnyObjectByType<LithoDevelopmentEngine>();
+        if (devEngine != null)
+        {
+            devEngine.SetWashTimeAndExecute(time);
         }
     }
 
@@ -127,6 +138,7 @@ public class DeveloperUIManager : MonoBehaviour
             if (float.TryParse(rawNumbers, out float parsed))
             {
                 cachedSwerveTime = parsed;
+                PushTimeToDevelopmentEngine(parsed);
             }
         }
         return cachedSwerveTime;
