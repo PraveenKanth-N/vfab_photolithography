@@ -206,7 +206,7 @@
 }
 
 .disabled-text {
-    color: #aaa;
+    color: #444;
 }
 
 .disabled-field {
@@ -215,7 +215,7 @@
     background-color: transparent;
     border-width: 1px;
     border-color: #ccc;
-    color: #aaa;
+    color: #222;
 }
 
 .disabled-textfield {
@@ -224,7 +224,7 @@
     background-color: transparent;
     border-width: 1px;
     border-color: #ccc;
-    color: #aaa;
+    color: #222;
     padding-left: 5px;
 }
 
@@ -233,8 +233,40 @@
 }
 
 .short {
-    width: 60px;
+    width: 80px;
     flex-grow: 0;
+}
+
+.normal-field, .normal-textfield {
+    flex-grow: 1;
+    min-height: 28px;
+    margin-bottom: 5px;
+}
+
+/* Force the unused empty label out of the layout entirely */
+.normal-field > .unity-label,
+.normal-textfield > .unity-label {
+    display: none;
+    width: 0;
+}
+
+.normal-field > .unity-popup-field__input,
+.normal-textfield > .unity-text-field__input {
+    background-color: white;
+    border-width: 1px;
+    border-color: #999;
+    color: #000;
+    border-radius: 3px;
+    min-height: 26px;
+    padding: 2px 5px;
+    margin: 0;
+}
+
+.normal-field .unity-text-element,
+.normal-textfield .unity-text-element {
+    color: #000;
+    -unity-text-align: middle-left;
+    font-size: 14px;
 }
 
   /* Unity elements overrides */
@@ -245,7 +277,13 @@ DropdownField, TextField, Toggle {
 
 /* FIX: Ensure disabled DropdownField text is visible */
 .disabled-field .unity-text-element {
-    color: #666;
+    color: #222;
+    -unity-font-style: bold;
+}
+
+.disabled-textfield .unity-text-element {
+    color: #222;
+    -unity-font-style: bold;
 }
 
 .disabled-field > .unity-popup-field__input {
@@ -881,4 +919,57 @@ Slider {
 
 .continue:hover {
     background-color: #3b6bc6;
+}
+
+/* TOOL INFO CARDS */
+.tool-card {
+    flex-direction: row;
+    margin-bottom: 5px;
+    height: 120px;
+}
+
+.tool-icon-holder {
+    width: 100px;
+    background-color: #cfc5c4;
+    justify-content: center;
+    align-items: center;
+    margin-right: 5px;
+    border-width: 1px;
+    border-color: #bbb;
+}
+
+.tool-data {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tool-card-title {
+    background-color: #cfc5c4;
+    height: 25px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 5px;
+    border-width: 1px;
+    border-color: #bbb;
+}
+
+.tool-card-title > Label {
+    font-weight: bold;
+    color: #222;
+    font-size: 14px;
+}
+
+.tool-text-container {
+    flex-grow: 1;
+    background-color: #cfc5c4;
+    padding: 15px;
+    border-width: 1px;
+    border-color: #bbb;
+}
+
+.tool-card-text {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 15px;
 }

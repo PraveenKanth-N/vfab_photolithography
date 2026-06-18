@@ -10,6 +10,11 @@ public class LithoDevelopmentEngine : MonoBehaviour
     [Header("Downstream Visualization Frame")]
     public UnityEngine.UI.RawImage waferMonitorDisplay;
 
+    [Header("Metrology Dashboard Text Links")]
+    public TMPro.TextMeshProUGUI layoutTypeText;
+    public TMPro.TextMeshProUGUI cdMetricsText;
+    public TMPro.TextMeshProUGUI roughnessMetricsText;
+
     // Upstream state trackers (Populated from prior processing modules)
     [HideInInspector] public float initialThicknessNm = 300.0f; // Soft-bake tracking target
     [HideInInspector] public float currentWashTime = 30.0f;
@@ -145,8 +150,56 @@ public class LithoDevelopmentEngine : MonoBehaviour
         if (inferenceEngine != null)
         {
             int currentLayoutID = inferenceEngine.maskDropdownIndexOverride; 
-            SendMessage("RunMetrologyInspection", currentLayoutID, SendMessageOptions.DontRequireReceiver);
+            RunMetrologyInspection(currentLayoutID);
         }
+    }
+
+    public void RunMetrologyInspection(int activeLayoutType)
+    {
+        if (binaryWaferPattern == null) return;
+
+        switch(activeLayoutType)
+        {
+            case 0: // Vertical Grating Array
+            case 3: // Single Vertical Line
+                if (TryGetComponent<LithoLineMetrology>(out var vScanner))
+                {
+                    var report = vScanner.AnalyzeGratings(binaryWaferPattern, scanVertically: false);
+                    UpdateLineUI(activeLayoutType == 0 ? "Vertical Grating" : "Single Vertical Line", report);
+                }
+                break;
+
+            case 1: // Horizontal Grating Array
+                if (TryGetComponent<LithoLineMetrology>(out var hScanner))
+                {
+                    var report = hScanner.AnalyzeGratings(binaryWaferPattern, scanVertically: true);
+                    UpdateLineUI("Horizontal Grating Array", report);
+                }
+                break;
+
+            case 2: // 8x8 Contact Matrix Array
+            case 4: // Isolated Contact Window
+                if (TryGetComponent<LithoContactMetrology>(out var cScanner))
+                {
+                    var report = cScanner.AnalyzeContacts(binaryWaferPattern);
+                    UpdateContactUI(activeLayoutType == 2 ? "Contact Hole Array" : "Isolated Via Window", report);
+                }
+                break;
+        }
+    }
+
+    private void UpdateLineUI(string title, LithoLineMetrology.LineReport report)
+    {
+        if (layoutTypeText != null) layoutTypeText.text = $"<b>Mask Layout:</b> {title}";
+        if (cdMetricsText != null) cdMetricsText.text = $"<b>Line CD:</b> {report.meanLineCD:F1} nm\n<b>Trench CD:</b> {report.meanTrenchCD:F1} nm";
+        if (roughnessMetricsText != null) roughnessMetricsText.text = $"<b>LER (3σ):</b> {report.ler3Sigma:F2} nm\n<b>LWR (3σ):</b> {report.lwr3Sigma:F2} nm";
+    }
+
+    private void UpdateContactUI(string title, LithoContactMetrology.ContactReport report)
+    {
+        if (layoutTypeText != null) layoutTypeText.text = $"<b>Mask Layout:</b> {title} ({report.totalContactsDetected} Vias)";
+        if (cdMetricsText != null) cdMetricsText.text = $"<b>Contact CD (Dia):</b> {report.averageDiameterCD:F1} nm\n<b>Grid Uniformity:</b> Stable";
+        if (roughnessMetricsText != null) roughnessMetricsText.text = $"<b>Perimeter LER:</b> {report.contactLER3Sigma:F2} nm\n<b>LWR:</b> N/A";
     }
 
     void OnDestroy()

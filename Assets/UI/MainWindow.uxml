@@ -18,7 +18,7 @@
         <!-- MAIN TOOLBAR -->
         <VisualElement class="toolbar">
             <Button name="newRecipe" text="New Recipe"/>
-            <Button text="Open Recipe"/>
+            <Button name="openRecipe" text="Open Recipe"/>
             <Button text="Save Recipe"/>
             <Button text="Save All Recipe"/>
             <Button text="Save Recipe As"/>
@@ -49,6 +49,7 @@
             <VisualElement name="screen2" class="screen hidden">
                 <VisualElement class="inner-window">
                     <VisualElement class="inner-titlebar">
+                        <Label text="test.rcp" style="color: white; -unity-font-style: bold; margin-left: 15px; font-size: 14px; position: absolute; left: 0;"/>
                         <VisualElement class="window-controls">
                             <Button class="inner-win-btn" text="-"/>
                             <Button class="inner-win-btn" text="☐"/>
@@ -61,30 +62,32 @@
                         <VisualElement class="col-1">
                             <VisualElement class="group-box">
                                 <Label text="General" class="group-title"/>
-                                <VisualElement class="form-row"><Label text="Process" class="field-label disabled-text"/><DropdownField choices="Man Top Stop,-" value="Man Top Stop" class="disabled-field"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Process Mode" class="field-label disabled-text"/><DropdownField choices="Transparent,-" value="Transparent" class="disabled-field"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Exposure Mode" class="field-label disabled-text"/><DropdownField choices="Constant Dose,-" value="Constant Dose" class="disabled-field"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Contact Mode" class="field-label disabled-text"/><DropdownField choices="Hard Contact,-" value="Hard Contact" class="disabled-field"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Spacer Mode" class="field-label disabled-text"/><TextField value="" class="disabled-textfield gray-bg"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Process" class="field-label"/><DropdownField choices="Man. Top Side,Man. Bottom Side,Man. First Print - Top" value="Man. Top Side" class="normal-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Process Mode" class="field-label"/><DropdownField choices="Transparent,Crosshair,Overlay" value="Transparent" class="normal-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Exposure Mode" class="field-label"/><DropdownField choices="Constant Dose,Constant Dose - Interval,Constant Time,Constant Time - Interval" value="Constant Dose" class="normal-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Contact Mode" class="field-label"/><DropdownField choices="Vacuum Contact,Hard Contact,Soft Contact,Proximity,V+H Contact" value="Vacuum Contact" class="normal-field"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Spacer Mode" class="field-label"/><TextField value="" class="normal-textfield"/></VisualElement>
                                 <Button text="Mask ID Settings" class="disabled-btn mask-btn"/>
                                 
-                                <VisualElement class="table-mock">
-                                    <VisualElement class="table-icon-holder"><VisualElement class="icon-circle"/></VisualElement>
-                                    <VisualElement class="table-data">
-                                        <VisualElement class="table-header"><Label text="Parameters" class="th-1"/><Label text="Value" class="th-2"/><Label text="Unit" class="th-3"/></VisualElement>
-                                        <VisualElement class="table-row"><Label text="Tool name" class="td-1"/><Label text="5 inch Mask Holder" class="td-2"/><Label text="" class="td-3"/></VisualElement>
-                                        <VisualElement class="table-row"><Label text="Size" class="td-1"/><Label text="5" class="td-2"/><Label text="inch" class="td-3"/></VisualElement>
-                                        <VisualElement class="table-black-area"/>
+                                <VisualElement class="tool-card">
+                                    <VisualElement class="tool-icon-holder"><VisualElement class="icon-circle"/></VisualElement>
+                                    <VisualElement class="tool-data">
+                                        <VisualElement class="tool-card-title"><Label text="Maskholder"/></VisualElement>
+                                        <VisualElement class="tool-text-container">
+                                            <Label text="- Name: 5 inch Maskholder" class="tool-card-text"/>
+                                            <Label text="- Size: 5 inch" class="tool-card-text"/>
+                                        </VisualElement>
                                     </VisualElement>
                                 </VisualElement>
 
-                                <VisualElement class="table-mock">
-                                    <VisualElement class="table-icon-holder"><VisualElement class="icon-square"/></VisualElement>
-                                    <VisualElement class="table-data">
-                                        <VisualElement class="table-header"><Label text="Parameters" class="th-1"/><Label text="Value" class="th-2"/><Label text="Unit" class="th-3"/></VisualElement>
-                                        <VisualElement class="table-row"><Label text="Tool name" class="td-1"/><Label text="4 inch Chuck" class="td-2"/><Label text="" class="td-3"/></VisualElement>
-                                        <VisualElement class="table-row"><Label text="Size" class="td-1"/><Label text="4" class="td-2"/><Label text="inch" class="td-3"/></VisualElement>
-                                        <VisualElement class="table-black-area"/>
+                                <VisualElement class="tool-card">
+                                    <VisualElement class="tool-icon-holder"><VisualElement class="icon-square"/></VisualElement>
+                                    <VisualElement class="tool-data">
+                                        <VisualElement class="tool-card-title"><Label text="Chuck"/></VisualElement>
+                                        <VisualElement class="tool-text-container">
+                                            <Label text="- Name: 4 inch Chuck" class="tool-card-text"/>
+                                            <Label text="- Size: 4 inch" class="tool-card-text"/>
+                                        </VisualElement>
                                     </VisualElement>
                                 </VisualElement>
                             </VisualElement>
@@ -94,17 +97,17 @@
                         <VisualElement class="col-2">
                             <VisualElement class="group-box">
                                 <Label text="General" class="group-title"/>
-                                <VisualElement class="form-row"><Label text="Separation" class="field-label disabled-text"/><TextField value="50" class="disabled-textfield short"/><Label text="µm" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Proximity" class="field-label disabled-text"/><TextField value="0" class="disabled-textfield short gray-bg"/><Label text="µm" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Thickn Mask" class="field-label disabled-text"/><TextField value="2.5" class="disabled-textfield short"/><Label text="mm" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Thickn Substrate" class="field-label disabled-text"/><TextField value="0.5" class="disabled-textfield short"/><Label text="mm" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Thickn Resist" class="field-label disabled-text"/><TextField value="" class="disabled-textfield short"/><Label text="µm" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Separation" class="field-label"/><TextField value="30" class="normal-textfield short"/><Label text="µm" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Proximity" class="field-label"/><TextField value="0" class="normal-textfield short"/><Label text="µm" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Thickn Mask" class="field-label"/><TextField value="" class="normal-textfield short"/><Label text="mm" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Thickn Substrate" class="field-label"/><TextField value="" class="normal-textfield short"/><Label text="mm" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Thickn Resist" class="field-label"/><TextField value="" class="normal-textfield short"/><Label text="µm" class="unit"/></VisualElement>
                             </VisualElement>
 
                             <VisualElement class="group-box">
                                 <Label text="Handling" class="group-title"/>
-                                <VisualElement class="form-row"><Label text="Robot Speed" class="field-label disabled-text"/><TextField value="20" class="disabled-textfield short gray-bg"/><Label text="%" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Prealign Angle Offset" class="field-label disabled-text"/><TextField value="0" class="disabled-textfield short gray-bg"/><Label text="deg" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Robot Speed" class="field-label"/><TextField value="20" class="normal-textfield short"/><Label text="%" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Prealign Angle Offset" class="field-label"/><TextField value="0" class="normal-textfield short"/><Label text="deg" class="unit"/></VisualElement>
                                 <Button text="Robot Settings" class="disabled-btn"/>
                                 <VisualElement class="form-row"><Button text="Maskcheck Interval" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
                                 <VisualElement class="form-row"><Button text="WEC Interval" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
@@ -133,10 +136,10 @@
                         <VisualElement class="col-3">
                             <VisualElement class="group-box">
                                 <Label text="Misc" class="group-title"/>
-                                <VisualElement class="form-row"><Label text="Compound Offset" class="field-label disabled-text"/><TextField value="0" class="disabled-textfield short gray-bg"/><Label text="µm" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Edge Gap - Purge" class="field-label disabled-text"/><VisualElement class="square-box"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Stop After Contact" class="field-label disabled-text"/><VisualElement class="square-box"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Unload M and S Together" class="field-label disabled-text"/><VisualElement class="square-box"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Compound Offset" class="field-label"/><TextField value="0" class="normal-textfield short"/><Label text="µm" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Edge Gap - Purge" class="field-label"/><VisualElement class="square-box"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Stop After Contact" class="field-label"/><VisualElement class="square-box"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Unload M and S Together" class="field-label"/><VisualElement class="square-box"/></VisualElement>
                                 
                                 <VisualElement class="form-row"><Button text="Alignment Settings" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
                                 <VisualElement class="form-row"><Button text="IR - Illumination" class="disabled-btn flex-btn"/><Button text="OFF" class="disabled-btn off-btn"/></VisualElement>
@@ -149,17 +152,17 @@
 
                             <VisualElement class="group-box">
                                 <Label text="Contact Force" class="group-title"/>
-                                <VisualElement class="form-row"><Label text="Process" class="field-label disabled-text"/><TextField value="1200" class="disabled-textfield short"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Wec" class="field-label disabled-text"/><TextField value="800" class="disabled-textfield short"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Exposure" class="field-label disabled-text"/><TextField value="1200" class="disabled-textfield short"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><DropdownField choices="Vaccume Contact" value="Vaccume Contact" class="disabled-field gray-bg flex-btn"/><TextField value="700" class="disabled-textfield short gray-bg"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
-                                <VisualElement class="form-row"><Label text="Chuck Pressure" class="field-label disabled-text"/><TextField value="0" class="disabled-textfield short gray-bg"/><Label text="Mbar" class="unit disabled-text"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Process" class="field-label"/><TextField value="1100" class="normal-textfield short"/><Label text="Mbar" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Wec" class="field-label"/><TextField value="800" class="normal-textfield short"/><Label text="Mbar" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Exposure" class="field-label"/><TextField value="1100" class="normal-textfield short"/><Label text="Mbar" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><DropdownField choices="Vacuum Contact" value="Vacuum Contact" class="normal-field flex-btn"/><TextField value="800" class="normal-textfield short"/><Label text="Mbar" class="unit"/></VisualElement>
+                                <VisualElement class="form-row"><Label text="Chuck Pressure" class="field-label"/><TextField value="0" class="normal-textfield short"/><Label text="Mbar" class="unit"/></VisualElement>
                             </VisualElement>
                         </VisualElement>
 
                         <VisualElement class="buttons-grid">
                             <Button name="newRecipe" text="New Recipe" class="grid-btn"/>
-                            <Button text="Load Recipe" class="grid-btn"/>
+                            <Button name="openRecipe" text="Load Recipe" class="grid-btn"/>
                             <Button text="Save Recipe" class="grid-btn"/>
                             <Button text="Save Recipe As" class="grid-btn"/>
                         </VisualElement>
@@ -255,16 +258,27 @@
                             </VisualElement>
 
                             <!-- DIAL BOX -->
-                            <VisualElement class="s3-dial-box">
-                                <VisualElement class="s3-dial-col" style="justify-content: center;">
-                                    <Label text="Vaccume Mask" class="s3-dial-title"/>
-                                    <Label text="-0.049" class="s3-dial-readout"/>
-                                    <Label text="Bar" class="s3-dial-unit"/>
+                            <VisualElement class="s3-dial-box" style="flex-direction: column; padding: 8px; background-color: #d8d8d8; border-radius: 5px; width: 230px;">
+                                <VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <Label text="Contact force" style="color: #666; font-size: 12px;"/>
+                                    <VisualElement style="flex-direction: row; align-items: center;"><Label text="1.1145" class="s3-dial-readout"/><Label text="bar" class="s3-dial-unit" style="margin-left: 5px;"/></VisualElement>
                                 </VisualElement>
-                                <VisualElement class="s3-dial-col" style="justify-content: center;">
-                                    <Label text="Contact Force" class="s3-dial-title"/>
-                                    <Label text="0.058" class="s3-dial-readout"/>
-                                    <Label text="Bar" class="s3-dial-unit"/>
+                                <VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <Label text="Vacuum mask" style="color: #666; font-size: 12px;"/>
+                                    <VisualElement style="flex-direction: row; align-items: center;"><Label text="-0.041" class="s3-dial-readout"/><Label text="bar" class="s3-dial-unit" style="margin-left: 5px;"/></VisualElement>
+                                </VisualElement>
+                                <VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <Label text="Vacuum chuck" style="color: #666; font-size: 12px;"/>
+                                    <VisualElement style="flex-direction: row; align-items: center;"><Label text="-0.037" class="s3-dial-readout"/><Label text="bar" class="s3-dial-unit" style="margin-left: 5px;"/></VisualElement>
+                                </VisualElement>
+                                <VisualElement style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <Label text="Vacuum contact" style="color: #666; font-size: 12px;"/>
+                                    <VisualElement style="flex-direction: row; align-items: center;"><Label text="-0.027" class="s3-dial-readout"/><Label text="bar" class="s3-dial-unit" style="margin-left: 5px;"/></VisualElement>
+                                </VisualElement>
+                                <VisualElement style="flex-direction: row; justify-content: space-between;">
+                                    <Button text="Scan Stage" style="flex-grow: 1; padding: 5px; font-size: 9px; margin-right: 3px; background-color: white; border-width: 1px;"/>
+                                    <Button text="Scan Optic" style="flex-grow: 1; padding: 5px; font-size: 9px; margin-right: 3px; background-color: white; border-width: 1px;"/>
+                                    <Button text="Scan IR" style="flex-grow: 1; padding: 5px; font-size: 9px; background-color: white; border-width: 1px;"/>
                                 </VisualElement>
                             </VisualElement>
                         </VisualElement>
@@ -279,7 +293,7 @@
                                 <VisualElement class="s3-row"><Label text="Substrate Size" class="s3-label"/><TextField value="4" class="s3-field"/><Label text="inch" class="s3-unit"/></VisualElement>
                                 <VisualElement class="s3-row"><Label text="Process Mode" class="s3-label"/><TextField value="Transparent" class="s3-field"/></VisualElement>
                                 <VisualElement class="s3-row"><Label text="Exposure Mode" class="s3-label"/><TextField value="Constant Dose" class="s3-field"/></VisualElement>
-                                <VisualElement class="s3-row"><Label text="Contact Mode" class="s3-label"/><DropdownField choices="Hard Contact,-" value="Hard Contact" class="disabled-field"/></VisualElement>
+                                <VisualElement class="s3-row"><Label text="Contact Mode" class="s3-label"/><DropdownField choices="Hard Contact,-" value="Hard Contact" class="normal-field"/></VisualElement>
                                 <VisualElement class="s3-row"><Label text="Space Mode" class="s3-label"/><TextField value="---" class="s3-field"/></VisualElement>
                                 
                                 <VisualElement class="s3-row"><Label text="Stop After Contact" class="s3-label"/><Button text="ON" class="s3-btn"/><Button text="OFF" class="s3-btn-green"/></VisualElement>
@@ -301,7 +315,7 @@
                                 <VisualElement class="s3-row"><Label text="Separation" class="s3-label"/><TextField value="50" class="s3-field-white"/><VisualElement class="s3-pm-group"><Button text="+" class="s3-pm-btn"/><Button text="-" class="s3-pm-btn"/></VisualElement><Button text="Set" class="s3-set-btn"/></VisualElement>
                                 <VisualElement class="s3-row"><Label text="Proximity" class="s3-label disabled-text"/><TextField value="0.0" class="s3-field"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
                                 <VisualElement class="s3-row"><Label text="Vaccume Contact" class="s3-label disabled-text"/><TextField value="700" class="s3-field"/><Label text="" class="s3-unit"/><Button text="Set" class="s3-set-btn"/></VisualElement>
-                                <VisualElement class="s3-row"><DropdownField choices="Exposure,-" value="Exposure" class="disabled-field" style="width:100px; margin-right:5px;"/><TextField value="1200" class="s3-field-white"/><Label text="mbar" class="s3-unit disabled-text"/><Button text="Set" class="s3-set-btn"/></VisualElement>
+                                <VisualElement class="s3-row"><DropdownField choices="Exposure,-" value="Exposure" class="normal-field" style="width:100px; margin-right:5px;"/><TextField value="1200" class="s3-field-white"/><Label text="mbar" class="s3-unit disabled-text"/><Button text="Set" class="s3-set-btn"/></VisualElement>
                             </VisualElement>
 
                             <Label text="Comment" class="s3-header-label"/>
@@ -314,8 +328,7 @@
                         <VisualElement name="s3-sidebar-optics" style="flex-grow: 1; display: none;">
                             <Label text="Optic Position" class="s3-header-label" style="text-align: center;"/>
                             <VisualElement class="s3-side-group" style="padding: 10px; align-items: center; background-color: #d8d8d8;">
-                                <VisualElement style="flex-direction: row; align-items: center; margin-bottom: 10px;">
-                                    <Label text="Y" style="width: 20px; font-weight: bold; color: #666;"/>
+                                <VisualElement style="flex-direction: row; align-items: center; margin-bottom: 10px; justify-content: center;">
                                     <VisualElement style="width: 140px; height: 60px; background-color: white; border-radius: 5px; justify-content: center; align-items: center; border-width: 1px; border-color: #b0b0b0;">
                                         <VisualElement style="flex-direction: row; width: 40px; justify-content: space-between;">
                                             <VisualElement style="width: 6px; height: 6px; background-color: #1a365d; border-radius: 3px;"/>
@@ -323,22 +336,24 @@
                                         </VisualElement>
                                     </VisualElement>
                                 </VisualElement>
-                                
-                                <VisualElement style="flex-direction: row; width: 100%; justify-content: space-between; margin-bottom: 5px;">
-                                    <VisualElement style="width: 20px; height: 20px; background-color: #e0e0e0;"/>
-                                    <Label text="XL" style="color: #666; width: 25px; text-align: center;"/>
-                                    <TextField value="93.05" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
-                                    <Label text="XR" style="color: #666; width: 25px; text-align: center;"/>
-                                    <TextField value="37.24" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
-                                </VisualElement>
-                                
-                                <VisualElement style="flex-direction: row; width: 100%; justify-content: space-between; margin-bottom: 5px;">
-                                    <Label text="Y L" style="color: #666; width: 25px; text-align: center; margin-left: 20px;"/>
-                                    <TextField value="176.57" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
-                                    <Label text="Y R" style="color: #666; width: 25px; text-align: center;"/>
-                                    <TextField value="176.57" class="s3-field-white" style="width: 50px; background-color: #fff;"/>
-                                </VisualElement>
 
+                                <VisualElement style="width: 100%; padding: 5px;">
+                                    <VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 5px;">
+                                        <Label text="Left Optic Pos" style="color: #666; font-size: 11px; width: 85px;"/>
+                                        <Label text="X" style="color: #666; font-size: 11px;"/><Label text="93.05" style="color: #4a86e8; font-size: 11px; font-weight: bold;"/>
+                                        <Label text="Y" style="color: #666; font-size: 11px; margin-left: 5px;"/><Label text="176.57" style="color: #4a86e8; font-size: 11px; font-weight: bold;"/>
+                                    </VisualElement>
+                                    <VisualElement style="flex-direction: row; justify-content: space-between; margin-bottom: 5px;">
+                                        <Label text="Right Optic Pos" style="color: #666; font-size: 11px; width: 85px;"/>
+                                        <Label text="X" style="color: #666; font-size: 11px;"/><Label text="37.24" style="color: #4a86e8; font-size: 11px; font-weight: bold;"/>
+                                        <Label text="Y" style="color: #666; font-size: 11px; margin-left: 5px;"/><Label text="176.57" style="color: #4a86e8; font-size: 11px; font-weight: bold;"/>
+                                    </VisualElement>
+                                    <VisualElement style="flex-direction: row; justify-content: flex-start; margin-top: 5px;">
+                                        <Label text="Left Z" style="color: #666; font-size: 11px; margin-right: 5px;"/><Label text="1.002" style="color: #4a86e8; font-size: 11px; font-weight: bold; margin-right: 25px;"/>
+                                        <Label text="Right Z" style="color: #666; font-size: 11px; margin-right: 5px;"/><Label text="1.005" style="color: #4a86e8; font-size: 11px; font-weight: bold;"/>
+                                    </VisualElement>
+                                </VisualElement>
+                                
                                 <VisualElement style="flex-direction: row; align-items: center; margin-bottom: 5px; margin-top: 5px;">
                                     <Label text="Z" style="width: 20px; font-weight: bold; color: #666;"/>
                                     <VisualElement style="width: 140px; height: 30px; background-color: white; border-radius: 0px; justify-content: center; align-items: center; border-width: 1px; border-color: #b0b0b0;">
@@ -360,8 +375,8 @@
 
                             <Label text="Scan Optics" class="s3-header-label" style="text-align: center;"/>
                             <VisualElement style="flex-direction: row; justify-content: space-around; padding: 5px 10px; margin-bottom: 10px; background-color: #d8d8d8; border-width: 1px; border-color: #b0b0b0;">
-                                <Button text="Save\nPosition" style="width: 60px; height: 40px; white-space: normal; font-size: 10px; background-color: #e0e0e0; color: #666; border-width: 1px;"/>
-                                <Button text="Load\nPosition" style="width: 60px; height: 40px; white-space: normal; font-size: 10px; background-color: #e0e0e0; color: #666; border-width: 1px;"/>
+                                <Button text="Save Position" style="width: 60px; height: 40px; white-space: normal; font-size: 10px; background-color: #e0e0e0; color: #666; border-width: 1px;"/>
+                                <Button text="Load Position" style="width: 60px; height: 40px; white-space: normal; font-size: 10px; background-color: #e0e0e0; color: #666; border-width: 1px;"/>
                                 <Button style="width: 50px; height: 40px; background-color: #b0b0b0; border-width: 1px;">
                                     <VisualElement class="mock-icon" style="align-self: center; background-color: #333; width: 20px; height: 15px; margin-top: 10px;"/>
                                 </Button>
@@ -380,8 +395,8 @@
                             </VisualElement>
 
                             <VisualElement style="flex-direction: row; justify-content: space-between; padding: 5px 10px; margin-bottom: 5px; background-color: #e0e0e0;">
-                                <VisualElement style="flex-direction: row;"><Button text="Fast" class="s3-btn" style="padding: 2px; font-size: 10px;"/><DropdownField choices="2,-" value="2" class="disabled-field" style="width:40px; font-size: 10px;"/></VisualElement>
-                                <VisualElement style="flex-direction: row;"><Button text="Slow" class="s3-btn-green" style="padding: 2px; font-size: 10px;"/><DropdownField choices="0.5,-" value="0.5" class="disabled-field" style="width:40px; font-size: 10px;"/></VisualElement>
+                                <VisualElement style="flex-direction: row;"><Button text="Fast" class="s3-btn" style="padding: 2px; font-size: 10px;"/><DropdownField choices="2,-" value="2" class="normal-field" style="width:40px; font-size: 10px;"/></VisualElement>
+                                <VisualElement style="flex-direction: row;"><Button text="Slow" class="s3-btn-green" style="padding: 2px; font-size: 10px;"/><DropdownField choices="0.5,-" value="0.5" class="normal-field" style="width:40px; font-size: 10px;"/></VisualElement>
                             </VisualElement>
 
                             <Button text="Scan Stage" style="background-color: #ff6b6b; color: white; font-weight: bold; margin: 0 10px; padding: 5px; border-width: 1px; border-color: #d15656;"/>
@@ -413,7 +428,7 @@
 
                 <!-- S3 BOTTOM BAR -->
                 <VisualElement class="s3-global-bottom">
-                    <Button name="continueButton" class="s3-action-btn"><VisualElement class="s3-small-play"/> <Label text="Continue"/></Button>
+                    <Button name="continueButton" class="s3-action-btn" style="width: 100px;"><VisualElement class="s3-small-play"/> <Label text="Continue"/></Button>
                     <Button text="Undo" class="s3-action-btn s3-disabled-btn"/>
                     <VisualElement style="flex-grow:1;"/>
                     <Button name="btnL" text="[L]" class="s3-action-btn"/>

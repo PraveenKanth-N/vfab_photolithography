@@ -79,8 +79,14 @@ public class MainWindowController : MonoBehaviour
         screen2 = mainRoot.Q<VisualElement>("screen2");
         screen3 = mainRoot.Q<VisualElement>("screen3");
 
-        var newRecipeBtn = mainRoot.Q<Button>("newRecipe");
-        if (newRecipeBtn != null) newRecipeBtn.clicked += OpenRecipe;
+        // Unbind newRecipe (it shouldn't open step 2 anymore)
+        mainRoot.Query<Button>("newRecipe").ForEach(btn => btn.clicked -= OpenRecipe);
+
+        // Bind openRecipe to transition to step 2
+        mainRoot.Query<Button>("openRecipe").ForEach(btn => {
+            btn.clicked -= OpenRecipe;
+            btn.clicked += OpenRecipe;
+        });
 
         var runBtn = mainRoot.Q<Button>("runButton");
         if (runBtn != null) runBtn.clicked += OpenMachine;
