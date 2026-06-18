@@ -178,7 +178,7 @@ public class ExposureStationController : MonoBehaviour
     private void UpdateSystemWorkflowState(string message)
     {
         // Status text string readouts
-        if (stationStatusText != null) stationStatusText.text = "SUSS Aligner: " + message;
+        if (stationStatusText != null) stationStatusText.text = "Mask Aligner: " + message;
 
         // 1. Tray button locked if exposure cycle is actively running
         if (maskTrayToggleButton != null) maskTrayToggleButton.interactable = !isExposingNow;

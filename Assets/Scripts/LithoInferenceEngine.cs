@@ -276,11 +276,24 @@ public class LithoInferenceEngine : MonoBehaviour
             Debug.Log("[Litho AI Engine] Stage 2 view refresh call triggered successfully.");
         }
 
-        // NEW CONNECTION LINK: Force development calculations to run down the chain instantly
-        if (TryGetComponent<LithoDevelopmentEngine>(out var devEngine))
+        // Removed forced development execution here.
+        // It should ONLY trigger when the user explicitly presses SwerveDev on the UI!
+
+        // --- DATA ANALYSIS DEBUG FOR HORIZONTAL SLICE (EDGE FOCUS) ---
+        int midRow = resolution / 2;
+        int startIndex = midRow * resolution;
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        
+        // We focus on X = 200 to 312 to capture the edges of the central vertical strip
+        int startX = 200;
+        int endX = 312;
+        sb.Append($"[PEB Edge Analysis] Horizontal slice at Y={midRow}, from X={startX} to X={endX} (EVERY pixel):\n");
+        for (int x = startX; x <= endX; x++)
         {
-            devEngine.ExecuteDevelopmentPass();
+            float val = chemicalResultsData[startIndex + x];
+            sb.Append(val.ToString("F3")).Append(" | ");
         }
+        Debug.Log(sb.ToString());
     }
 
     public Texture2D GenerateStaticPreviewTexture(int targetIndex)

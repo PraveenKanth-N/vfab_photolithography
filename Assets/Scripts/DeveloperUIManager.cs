@@ -47,6 +47,9 @@ public class DeveloperUIManager : MonoBehaviour
                 if (swerveTimeText != null) swerveTimeText.text = "0.0 s";
                 isCountingDown = false;
                 
+                // The timer has naturally hit zero! Now we push the calculation to the AI model.
+                PushTimeToDevelopmentEngine(cachedSwerveTime);
+
                 pendingRestore = true;
                 restoreTime = Time.time + 1.5f;
             }
@@ -58,6 +61,34 @@ public class DeveloperUIManager : MonoBehaviour
                 pendingRestore = false;
                 RestoreTimeText();
             }
+        }
+    }
+
+    public void OnClick_Skip()
+    {
+        if (isCountingDown)
+        {
+            // Instantly kill the countdown
+            isCountingDown = false;
+            targetEndTime = Time.time;
+            
+            if (swerveTimeText != null) swerveTimeText.text = "0.0 s";
+
+            // Push the calculation immediately
+            PushTimeToDevelopmentEngine(cachedSwerveTime);
+
+            pendingRestore = true;
+            restoreTime = Time.time + 1.5f;
+
+            // Optional: If you want to skip the fluid animations too, you could stop them here.
+            if (developerFluid != null) developerFluid.StopAllCoroutines();
+            if (diFluid != null) diFluid.StopAllCoroutines();
+        }
+        else
+        {
+            // If not counting down, but user clicks skip, just compute right away
+            SyncTime(); // ensure cached time is up to date
+            PushTimeToDevelopmentEngine(cachedSwerveTime);
         }
     }
 
@@ -138,7 +169,8 @@ public class DeveloperUIManager : MonoBehaviour
             if (float.TryParse(rawNumbers, out float parsed))
             {
                 cachedSwerveTime = parsed;
-                PushTimeToDevelopmentEngine(parsed);
+                // Removed PushTimeToDevelopmentEngine(parsed) from here!
+                // It will only be pushed when the timer hits zero or Skip is clicked.
             }
         }
         return cachedSwerveTime;

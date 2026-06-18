@@ -24,9 +24,14 @@ public class LithoDevelopmentEngine : MonoBehaviour
     // Fixed Mack Dissolution Kinetic Constants for 193nm CAR
     private const float R_MAX = 120.0f;  // Max etch speed (nm/s)
     private const float R_MIN = 0.05f;   // Leakage rate (nm/s)
-    private const float N_CONTRAST = 6.5f; 
+    
+    // BETTER OPTION #2: Lower contrast exponent preserves the U-Net blurred transition slope organically
+    private const float N_CONTRAST = 5f; 
     private const float M_TH = 0.55f;    // Threshold limit
     private float mackConstantA;
+
+    // BETTER OPTION #1: Stationary Metrology Ruler (Fixed inspection plane at 15% of film height)
+    private const float METROLOGY_THRESHOLD_NM = 100f;
 
     void Awake()
     {
@@ -40,6 +45,16 @@ public class LithoDevelopmentEngine : MonoBehaviour
         remainingHeightMap = new float[resolution * resolution];
 
         waferTexture2D = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false);
+        
+        // Explicitly clear the initial texture so it is blank before the user clicks Swerve
+        Color32[] clearPixels = new Color32[resolution * resolution];
+        Color32 clearColor = new Color32(0, 0, 0, 0); // Transparent blank canvas
+        for (int i = 0; i < clearPixels.Length; i++) clearPixels[i] = clearColor;
+        waferTexture2D.SetPixels32(clearPixels);
+        waferTexture2D.Apply();
+
+        // Crisp pixel rendering essential for sub-nanometer edge-tracking accuracy
+        waferTexture2D.filterMode = FilterMode.Point;
         
         if (waferMonitorDisplay != null)
             waferMonitorDisplay.texture = waferTexture2D;
@@ -68,13 +83,13 @@ public class LithoDevelopmentEngine : MonoBehaviour
 
         if (polymerArrayM.Length != totalPixels) return;
 
-        // --- DEEP DIVE VALIDATION LOGS ---
+        // --- DEEP DIVE VALIDATION LOGS (FULLY RETAINED) ---
         Debug.Log("================ DEVELOPMENT DIAGNOSTICS ================");
         Debug.Log($"1. Incoming Hotplate Film Thickness: {initialThicknessNm:F2} nm");
         Debug.Log($"2. Swerve Wash Time (from UI): {currentWashTime:F2} seconds");
         Debug.Log($"3. Model Output Validation: Fetched array of size {polymerArrayM.Length}.");
         
-        // Let's sample a small 3x3 patch from the exact center of the AI model output
+        // Sample a small 3x3 patch from the exact center of the AI model output
         int center = resolution / 2;
         string sampleRaw = "";
         for (int y = -1; y <= 1; y++) {
@@ -93,7 +108,7 @@ public class LithoDevelopmentEngine : MonoBehaviour
         {
             float mVal = Mathf.Clamp01(polymerArrayM[i]);
 
-            // Compute Mack dissolution velocity equations
+            // Compute pure Mack dissolution velocity equations exactly as defined by literature
             float invM = 1.0f - mVal;
             float invMPow = Mathf.Pow(invM, N_CONTRAST);
             
@@ -102,25 +117,36 @@ public class LithoDevelopmentEngine : MonoBehaviour
             
             float rate = R_MAX * (numerator / denominator) + R_MIN;
 
-            // Fluid erosion calculation
+            // Fluid erosion calculation (Pure linear integration front)
             float removedNm = rate * currentWashTime;
             float finalHeight = Mathf.Max(initialThicknessNm - removedNm, 0.0f);
             remainingHeightMap[i] = finalHeight;
 
-            // Binary Wafer Masking: 0 = Cleared Silicon (Black), 1 = Intact Resist (White)
-            byte binaryState = (finalHeight > 0.0f) ? (byte)1 : (byte)0;
+            // OUTPUT B (BINARY WAFER MASK): Evaluated against an absolute stationary reference ruler.
+            // The CD moves dynamically because the underlying height gradient shifts across the check plane!
+            byte binaryState = (finalHeight > METROLOGY_THRESHOLD_NM) ? (byte)1 : (byte)0;
             binaryWaferPattern[i] = binaryState;
 
-            // Map binary matrix array states to top-down preview colors
-            byte colorVal = (byte)(binaryState * 255);
+            // OUTPUT A (CONTINUOUS HEALTH DIAGNOSTIC): Rendered as a smooth top-down grayscale gradient.
+            // Exposes the genuine, non-linear chemical transition zone directly to the UI panel.
+            float normalizedHeight = finalHeight / initialThicknessNm;
+            byte colorVal = (byte)(normalizedHeight * 255);
             textureColorBuffer[i] = new Color32(colorVal, colorVal, colorVal, 255);
         });
 
-        // Blit color arrays onto target GPU texture textures
+        // Blit color arrays onto target GPU texture structures
         waferTexture2D.SetPixels32(textureColorBuffer);
         waferTexture2D.Apply();
         
         Debug.Log("[Litho Dev Engine] Development calculation and visualization arrays synchronized successfully.");
+
+        // --- DISPATCHER HANDSHAKE TRIGGER ---
+        // Automatically dispatches the uncorrupted data map to your standalone metrology modules
+        if (inferenceEngine != null)
+        {
+            int currentLayoutID = inferenceEngine.maskDropdownIndexOverride; 
+            SendMessage("RunMetrologyInspection", currentLayoutID, SendMessageOptions.DontRequireReceiver);
+        }
     }
 
     void OnDestroy()
