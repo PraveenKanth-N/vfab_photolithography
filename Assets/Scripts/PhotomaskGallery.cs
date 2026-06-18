@@ -61,7 +61,7 @@ public class PhotomaskGalleryUI : MonoBehaviour
         {
             lithoEngine.maskDropdownIndexOverride = maskIndex; 
             lithoEngine.BakeSelectedMaskMatrix();
-            lithoEngine.PaintBakedPatternOntoObject(interactingMaskObject);
+            // Removed dynamic painting so the photomask keeps its static glass material
         }
 
         interactingMaskObject.name = $"PR_Photomask_Index_{maskIndex}";

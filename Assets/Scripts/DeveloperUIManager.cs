@@ -12,8 +12,14 @@ public class DeveloperUIManager : MonoBehaviour
     [Header("Time Display (Drag your TMP_Text here)")]
     public TMP_Text swerveTimeText;
 
+    [Header("Pattern Rendering")]
+    [Tooltip("Drag the Assets/Materials/StaticPhotomaskMat.mat here!")]
+    public Material developedPatternMaterial;
+
     private float cachedSwerveTime = 30f;
     private float targetEndTime = 0f;
+    private float swerveStartTime = 0f;
+    private bool decalSpawned = false;
     private bool isCountingDown = false;
     private bool pendingRestore = false;
     private float restoreTime = 0f;
@@ -37,6 +43,13 @@ public class DeveloperUIManager : MonoBehaviour
     {
         if (isCountingDown)
         {
+            // Spawn pattern after exactly 5 seconds of swerving
+            if (!decalSpawned && (Time.time - swerveStartTime) >= 5.0f)
+            {
+                SpawnWaferDecal();
+                decalSpawned = true;
+            }
+
             float remaining = targetEndTime - Time.time;
             if (remaining > 0f)
             {
@@ -49,6 +62,11 @@ public class DeveloperUIManager : MonoBehaviour
                 
                 // The timer has naturally hit zero! Now we push the calculation to the AI model.
                 PushTimeToDevelopmentEngine(cachedSwerveTime);
+                if (!decalSpawned)
+                {
+                    SpawnWaferDecal(); // Failsafe if time was less than 5s
+                    decalSpawned = true;
+                }
 
                 pendingRestore = true;
                 restoreTime = Time.time + 1.5f;
@@ -76,6 +94,7 @@ public class DeveloperUIManager : MonoBehaviour
 
             // Push the calculation immediately
             PushTimeToDevelopmentEngine(cachedSwerveTime);
+            if (!decalSpawned) SpawnWaferDecal();
 
             pendingRestore = true;
             restoreTime = Time.time + 1.5f;
@@ -124,6 +143,77 @@ public class DeveloperUIManager : MonoBehaviour
         }
     }
 
+    private void SpawnWaferDecal()
+    {
+        if (developerFluid == null) 
+        {
+            Debug.LogError("[DeveloperUI] developerFluid is NULL! Cannot spawn pattern.");
+            return;
+        }
+        
+        // Locate the physical wafer sitting in the developer basin
+        Transform physicalWafer = null;
+        foreach (Transform child in developerFluid.transform)
+        {
+            if (child.name.ToLower().Contains("wafer") || child.name.ToLower().Contains("substrate"))
+            {
+                physicalWafer = child;
+                break;
+            }
+        }
+
+        if (physicalWafer == null)
+        {
+            Debug.LogError("[DeveloperUI] Could not find the wafer inside the developerFluid! It might be parented somewhere else.");
+            
+            // Fallback: search the whole scene
+            WaferPatternAnimator[] anims = Object.FindObjectsByType<WaferPatternAnimator>(FindObjectsSortMode.None);
+            if (anims.Length > 0) return; // already spawned
+
+            GameObject fallback = GameObject.Find("PR_Wafer");
+            if (fallback == null) fallback = GameObject.Find("Substrate");
+            if (fallback != null) physicalWafer = fallback.transform;
+            
+            if (physicalWafer == null)
+            {
+                Debug.LogError("[DeveloperUI] FALLBACK FAILED. No wafer found in the entire scene.");
+                return;
+            }
+        }
+
+        Debug.Log($"[DeveloperUI] Spawning pattern decal exactly on {physicalWafer.name}");
+            // Create a microscopic 3D cylinder to act as a 2D circle decal mask
+            GameObject decal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            decal.name = "Developed_Pattern_Decal";
+            
+            // Destroy physical collider to prevent interaction glitches
+            Destroy(decal.GetComponent<Collider>());
+            
+            // Snap the decal exactly to the wafer's local coordinate space
+            decal.transform.SetParent(physicalWafer, false);
+            
+            // Position it exactly on the top surface of the wafer. 
+            decal.transform.localPosition = new Vector3(0f, 1.02f, 0f);
+            decal.transform.localRotation = Quaternion.identity;
+            
+            // Scale the cylinder to match the wafer diameter. 
+            // We use 0.05f for thickness because the parent wafer is already scaled down to 0.01f.
+            // Using 0.0001f caused the world Y scale to drop to 0.000001f, which Unity culls entirely!
+            decal.transform.localScale = new Vector3(1.0f, 0.05f, 1.0f);
+            
+            if (developedPatternMaterial != null)
+            {
+                decal.GetComponent<MeshRenderer>().material = developedPatternMaterial;
+            }
+            else
+            {
+                Debug.LogWarning("[Developer UI] No material assigned for the pattern decal!");
+            }
+            
+            // Attach the animator script to smoothly fade it in over 2 seconds
+            decal.AddComponent<WaferPatternAnimator>();
+    }
+
     public void OnClick_SwerveDeveloper()
     {
         float time = SyncTime();
@@ -133,6 +223,8 @@ public class DeveloperUIManager : MonoBehaviour
             developerFluid.ExecuteUISwerve();
             
             targetEndTime = Time.time + time;
+            swerveStartTime = Time.time;
+            decalSpawned = false;
             isCountingDown = true;
             pendingRestore = false;
         }
@@ -151,6 +243,8 @@ public class DeveloperUIManager : MonoBehaviour
             diFluid.ExecuteUISwerve();
             
             targetEndTime = Time.time + time;
+            swerveStartTime = Time.time;
+            decalSpawned = false;
             isCountingDown = true;
             pendingRestore = false;
         }
