@@ -37,7 +37,7 @@ public class MouseLook : MonoBehaviour
             else UnlockCursor();
         }
 
-        if (!isCursorLocked && Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
         {
             // NEW UI PROTECTION SENSORS: If our custom photomask collage gallery layout is open, DO NOT lock the cursor!
             if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen)

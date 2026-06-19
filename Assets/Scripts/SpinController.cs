@@ -81,7 +81,11 @@ public class SpinCoaterController : MonoBehaviour
             Model model = ModelLoader.Load(modelAsset);
             
             // FIXED: Replaced WorkerFactory.CreateWorker with a direct constructor call
+#if UNITY_WEBGL && !UNITY_EDITOR
+            engine = new Worker(model, BackendType.GPUPixel);
+#else
             engine = new Worker(model, BackendType.GPUCompute);
+#endif
         }
         else
         {

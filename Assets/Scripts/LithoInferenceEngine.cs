@@ -47,11 +47,15 @@ public class LithoInferenceEngine : MonoBehaviour
 
         // Initialize Stage 1 worker pipeline
         runtimeModel = ModelLoader.Load(onnxModelAsset);
-        inferenceWorker = new Worker(runtimeModel, BackendType.GPUCompute);
-
-        // Initialize Stage 2 chemical compute core on GPU
         runtimeChemicalModel = ModelLoader.Load(chemicalModelAsset);
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        inferenceWorker = new Worker(runtimeModel, BackendType.GPUPixel);
+        chemicalInferenceWorker = new Worker(runtimeChemicalModel, BackendType.GPUPixel);
+#else
+        inferenceWorker = new Worker(runtimeModel, BackendType.GPUCompute);
         chemicalInferenceWorker = new Worker(runtimeChemicalModel, BackendType.GPUCompute);
+#endif
 
         inputRawArray = new float[1 * resolution * resolution * channels];
         maskTexture2D = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false);

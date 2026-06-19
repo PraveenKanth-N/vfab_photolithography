@@ -54,7 +54,11 @@ public class HotplateController : MonoBehaviour
         if (onnxModelAsset != null)
         {
             Model runtimeModel = ModelLoader.Load(onnxModelAsset);
+#if UNITY_WEBGL && !UNITY_EDITOR
+            worker = new Worker(runtimeModel, BackendType.GPUPixel);
+#else
             worker = new Worker(runtimeModel, BackendType.GPUCompute);
+#endif
         }
         else
         {

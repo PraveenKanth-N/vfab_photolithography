@@ -1,5 +1,5 @@
 using UnityEngine;
-using System.Threading.Tasks;
+using System.Collections;
 
 public class AlignerAnimationSequencer : MonoBehaviour
 {
@@ -27,11 +27,11 @@ public class AlignerAnimationSequencer : MonoBehaviour
 
         if (!isTrayInserted)
         {
-            _ = ExecuteTrayInsertionSequence();
+            StartCoroutine(ExecuteTrayInsertionSequence());
         }
         else
         {
-            _ = ExecuteTrayEjectionSequence();
+            StartCoroutine(ExecuteTrayEjectionSequence());
         }
     }
 
@@ -43,13 +43,13 @@ public class AlignerAnimationSequencer : MonoBehaviour
         if (!isTrayInserted) { Debug.LogError("[SEQUENCER] Aborting: isTrayInserted is FALSE!"); return; }
         
         Debug.Log("[SEQUENCER] Starting Async Cycle...");
-        _ = ExecuteExposureCycleAsync(onUVTrigger, onModelCompute);
+        StartCoroutine(ExecuteExposureCycleAsync(onUVTrigger, onModelCompute));
     }
 
     // =====================================================================
     // 1. INSERTION SEQUENCE
     // =====================================================================
-    private async Task ExecuteTrayInsertionSequence()
+    private IEnumerator ExecuteTrayInsertionSequence()
     {
         isRunning = true;
         isTrayInserted = true;
@@ -57,23 +57,23 @@ public class AlignerAnimationSequencer : MonoBehaviour
 
         // Step 1: Rotate tray in
         PlayAnimation(trayHingeAnimator, "Tray_Rotate_In");
-        await Task.Delay((int)(trayRotateDuration * 1000));
+        yield return new WaitForSeconds(trayRotateDuration);
 
         // Step 2: Bring tray down (assumes lift-down puts it in place)
         PlayAnimation(trayLiftAnimator, "Tray_Lift_Down");
-        await Task.Delay((int)(trayLiftDuration * 1000));
+        yield return new WaitForSeconds(trayLiftDuration);
 
         // Step 3: Bring holder down
         PlayAnimation(holderAnimator, "Holder_Down");
-        await Task.Delay((int)(holderDuration * 1000));
+        yield return new WaitForSeconds(holderDuration);
 
         // Step 4: Slider inspect
         PlayAnimation(sliderAnimator, "Slider_Inspect");
-        await Task.Delay((int)(sliderMoveDuration * 1000));
+        yield return new WaitForSeconds(sliderMoveDuration);
 
         // Step 5: Microscope down
         PlayAnimation(microscopeAnimator, "Microscope_Down");
-        await Task.Delay((int)(microscopeDuration * 1000));
+        yield return new WaitForSeconds(microscopeDuration);
 
         isRunning = false;
         Debug.Log("[Sequencer] Insertion Complete. Optics Engaged.");
@@ -82,7 +82,7 @@ public class AlignerAnimationSequencer : MonoBehaviour
     // =====================================================================
     // 2. EJECTION SEQUENCE
     // =====================================================================
-    private async Task ExecuteTrayEjectionSequence()
+    private IEnumerator ExecuteTrayEjectionSequence()
     {
         isRunning = true;
         isTrayInserted = false;
@@ -90,23 +90,23 @@ public class AlignerAnimationSequencer : MonoBehaviour
 
         // Step 1: Microscope up
         PlayAnimation(microscopeAnimator, "Microscope_Up");
-        await Task.Delay((int)(microscopeDuration * 1000));
+        yield return new WaitForSeconds(microscopeDuration);
 
         // Step 2: Slider despect
         PlayAnimation(sliderAnimator, "Slider_Despect");
-        await Task.Delay((int)(sliderMoveDuration * 1000));
+        yield return new WaitForSeconds(sliderMoveDuration);
 
         // Step 3: Holder up
         PlayAnimation(holderAnimator, "Holder_Up");
-        await Task.Delay((int)(holderDuration * 1000));
+        yield return new WaitForSeconds(holderDuration);
 
         // Step 4: Tray up
         PlayAnimation(trayLiftAnimator, "Tray_Lift_Up");
-        await Task.Delay((int)(trayLiftDuration * 1000));
+        yield return new WaitForSeconds(trayLiftDuration);
 
         // Step 5: Rotate tray out
         PlayAnimation(trayHingeAnimator, "Tray_Rotate_Out");
-        await Task.Delay((int)(trayRotateDuration * 1000));
+        yield return new WaitForSeconds(trayRotateDuration);
 
         isRunning = false;
         Debug.Log("[Sequencer] Ejection Complete. Tray Clear.");
@@ -115,18 +115,18 @@ public class AlignerAnimationSequencer : MonoBehaviour
     // =====================================================================
     // 3. EXPOSURE CYCLE SEQUENCE
     // =====================================================================
-    private async Task ExecuteExposureCycleAsync(System.Action onUVTrigger, System.Action onModelCompute)
+    private IEnumerator ExecuteExposureCycleAsync(System.Action onUVTrigger, System.Action onModelCompute)
     {
         isRunning = true;
         Debug.Log("[Sequencer] Starting Exposure Cycle...");
 
         // Step 1: Bring microscope up
         PlayAnimation(microscopeAnimator, "Microscope_Up");
-        await Task.Delay((int)(microscopeDuration * 1000));
+        yield return new WaitForSeconds(microscopeDuration);
 
         // Step 2: Slider forward
         PlayAnimation(sliderAnimator, "Slider_Forward");
-        await Task.Delay((int)(sliderMoveDuration * 1000));
+        yield return new WaitForSeconds(sliderMoveDuration);
 
         // STEP 3: TRIGGER UV LIGHT AND AI CALCULATION RUNTIME HERE
         Debug.Log("[Sequencer] Firing UV Optics Beam...");
@@ -134,15 +134,15 @@ public class AlignerAnimationSequencer : MonoBehaviour
         onModelCompute?.Invoke(); // Fires your UNet Inference pipeline array
         
         // Hold exposure window open briefly for visual effect
-        await Task.Delay(1500); 
+        yield return new WaitForSeconds(1.5f); 
 
         // Step 4: Slider back (backward)
         PlayAnimation(sliderAnimator, "Slider_Backward");
-        await Task.Delay((int)(sliderMoveDuration * 1000));
+        yield return new WaitForSeconds(sliderMoveDuration);
 
         // Step 5: Bring microscope down
         PlayAnimation(microscopeAnimator, "Microscope_Down");
-        await Task.Delay((int)(microscopeDuration * 1000));
+        yield return new WaitForSeconds(microscopeDuration);
 
         isRunning = false;
         Debug.Log("[Sequencer] Exposure Cycle Finished.");

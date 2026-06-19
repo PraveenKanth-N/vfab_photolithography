@@ -83,21 +83,14 @@ public class MainWindowController : MonoBehaviour
         mainRoot.Query<Button>("newRecipe").ForEach(btn => btn.clicked -= OpenRecipe);
 
         // Bind openRecipe to transition to step 2
-        mainRoot.Query<Button>("openRecipe").ForEach(btn => {
-            btn.clicked -= OpenRecipe;
-            btn.clicked += OpenRecipe;
-        });
+        mainRoot.Query<Button>("openRecipe").ForEach(btn => BindButton(btn, OpenRecipe));
 
         var runBtn = mainRoot.Q<Button>("runButton");
-        if (runBtn != null) runBtn.clicked += OpenMachine;
+        BindButton(runBtn, OpenMachine);
 
         // Hook up the new Continue button on screen 3 to advance state!
         var continueBtn = mainRoot.Q<Button>("continueButton");
-        if (continueBtn != null)
-        {
-            continueBtn.clicked -= AdvanceMachineState;
-            continueBtn.clicked += AdvanceMachineState;
-        }
+        BindButton(continueBtn, AdvanceMachineState);
 
         // =========================================================
         // DEV CONTROLS WIRING
@@ -106,49 +99,24 @@ public class MainWindowController : MonoBehaviour
         var devToggleVacuumBtn = mainRoot.Q<Button>("devToggleVacuumBtn");
         var devExecuteExposureBtn = mainRoot.Q<Button>("devExecuteExposureBtn");
         
-        var exposureController = Object.FindAnyObjectByType<ExposureStationController>();
+        var exposureController = UnityEngine.Object.FindAnyObjectByType<ExposureStationController>();
         if (exposureController != null)
         {
-            if (devToggleTrayBtn != null) 
-            { 
-                devToggleTrayBtn.clicked -= exposureController.HandleTrayToggleClick; 
-                devToggleTrayBtn.clicked += exposureController.HandleTrayToggleClick; 
-            }
-            if (devToggleVacuumBtn != null) 
-            { 
-                devToggleVacuumBtn.clicked -= exposureController.ToggleVacuumClamp; 
-                devToggleVacuumBtn.clicked += exposureController.ToggleVacuumClamp; 
-            }
-            if (devExecuteExposureBtn != null) 
-            { 
-                devExecuteExposureBtn.clicked -= exposureController.TriggerUVLampIgnition; 
-                devExecuteExposureBtn.clicked += exposureController.TriggerUVLampIgnition; 
-            }
+            BindButton(devToggleTrayBtn, exposureController.HandleTrayToggleClick);
+            BindButton(devToggleVacuumBtn, exposureController.ToggleVacuumClamp);
+            BindButton(devExecuteExposureBtn, exposureController.TriggerUVLampIgnition);
         }
 
         // Hook up the new EXIT button on screen 3 bottom bar
         var exitBtn = mainRoot.Q<Button>("exitButton");
-        if (exitBtn != null)
-        {
-            exitBtn.clicked -= CloseEntireInterface;
-            exitBtn.clicked += CloseEntireInterface;
-        }
+        BindButton(exitBtn, CloseEntireInterface);
 
         // Hook up your UXML exit button cleanly
         var closeBtn = mainRoot.Q<Button>("CloseBtn");
-        if (closeBtn != null)
-        {
-            // Remove previous listeners just in case
-            closeBtn.clicked -= CloseEntireInterface;
-            closeBtn.clicked += CloseEntireInterface;
-        }
+        BindButton(closeBtn, CloseEntireInterface);
 
         var closeMaskPopupBtn = mainRoot.Q<Button>("closeMaskPopupBtn");
-        if (closeMaskPopupBtn != null)
-        {
-            closeMaskPopupBtn.clicked -= HideMaskPopup;
-            closeMaskPopupBtn.clicked += HideMaskPopup;
-        }
+        BindButton(closeMaskPopupBtn, HideMaskPopup);
 
         // --- NEW SLIDER HOOKUPS ---
         var doseSlider = mainRoot.Q<Slider>("uiDoseSlider");
@@ -653,5 +621,21 @@ public class MainWindowController : MonoBehaviour
         {
             screenToShow.RemoveFromClassList("hidden");
         }
+    }
+
+    private void BindButton(Button btn, System.Action action)
+    {
+        if (btn == null) return;
+        
+        // Always strip standard listener to avoid double-firing
+        btn.clicked -= action;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // CRITICAL WEBGL FIX: PointerUp guarantees it fires even if the mouse moved (bypassing WebGL click bugs), 
+        // but safely waits until the mouse is released so we don't crash UI Toolkit by hiding an element with active pointer capture.
+        btn.RegisterCallback<PointerUpEvent>(evt => action());
+#else
+        btn.clicked += action;
+#endif
     }
 }
