@@ -53,7 +53,7 @@ public class MainWindowController : MonoBehaviour
     {
         if (targetUIDocument == null)
         {
-            targetUIDocument = Object.FindObjectOfType<UIDocument>(true);
+            targetUIDocument = Object.FindAnyObjectByType<UIDocument>(FindObjectsInactive.Include);
         }
 
         if (targetUIDocument == null)

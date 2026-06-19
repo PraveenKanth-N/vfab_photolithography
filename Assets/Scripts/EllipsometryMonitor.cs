@@ -34,8 +34,6 @@ public class EllipsometryMonitor : MonoBehaviour
         // =====================================================================
         // TRIPLE-VERIFIED MODEL TARGET DENORMALIZATION CONSTANTS
         // =====================================================================
-        const float hMean = 472.3948f;      // Mean thickness (nm)
-        const float hStd  = 144.48735f;     // Thickness standard deviation (nm)
 
         const float cMean = 0.05266726f;    // Mean solvent volume fraction 
         const float cStd  = 0.05717264f;    // Solvent volume fraction standard deviation
@@ -101,11 +99,6 @@ public class EllipsometryMonitor : MonoBehaviour
         // Scale solvent fraction up to dynamic volume percentage display bounds
         float displaySolventPercent = Mathf.Clamp(cAvg * 100f, 0f, 100f);
         if (avgSolventTextMetric != null) avgSolventTextMetric.text = $"Residual Solvent: {displaySolventPercent:F2}% Vol";
-
-        // Pass 2: Render crisp, high-contrast structural colors based on the true frame bounds
-        const float globalMinThickness = 250.0f;
-        const float globalMaxThickness = 700.0f;
-        const float globalThicknessRange = globalMaxThickness - globalMinThickness;
 
         // Pass 2: Render color palette based on strict absolute physical references
         for (int y = 0; y < Res; y++)

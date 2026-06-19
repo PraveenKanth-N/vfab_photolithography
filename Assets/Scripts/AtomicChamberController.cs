@@ -119,7 +119,7 @@ public class AtomicChamberController : MonoBehaviour
     {
         float elapsed = 0f;
         int targetSolventCount = 60; 
-        int targetPACCount = 45;
+        // int targetPACCount = 45;
 
         while (elapsed < duration)
         {
