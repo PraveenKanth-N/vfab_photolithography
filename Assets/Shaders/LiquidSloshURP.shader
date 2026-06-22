@@ -98,7 +98,13 @@ Shader "Custom/LiquidSloshURP"
                 float2 distortedUV = screenUV + (normal.xz * _RefractionIndex);
                 
                 // Grab the background pixel color using the distorted UV coordinates
+#if defined(SHADER_API_GLES3) || defined(SHADER_API_GLES)
+                // WebGL Fallback: Opaque texture sampling is often corrupted or unsupported in web browsers.
+                // We fallback to a standard diffuse color representation to prevent black/glitchy rendering.
+                float3 backgroundScene = _BaseColor.rgb;
+#else
                 float3 backgroundScene = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, distortedUV).rgb;
+#endif
 
                 // --- 2. ADVANCED SURFACE LIGHTING (Specular) ---
                 float ndotl = saturate(dot(normal, lightDir));
@@ -121,7 +127,7 @@ Shader "Custom/LiquidSloshURP"
                 
                 // Add the specular reflections and edge fresnel highlights on top
                 finalColor.rgb = waterBase + specularComponent + (fresnel * 0.4 * mainLight.color);
-                finalColor.a = 1.0; // The pixel itself is solid because it contains the background!
+                finalColor.a = _BaseColor.a; // Use the material's alpha slider to support transparency!
                 
                 return finalColor;
             }

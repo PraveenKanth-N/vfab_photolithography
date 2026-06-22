@@ -294,18 +294,25 @@ public class MainWindowController : MonoBehaviour
             }
             else
             {
-                Debug.Log("[UI FLOW] Station found. Forcing hardware interlock state...");
+                Debug.Log("[UI FLOW] Station found. Checking hardware interlock state...");
+                if (!exposureController.isMaskTrayInserted)
+                {
+                    // Show popup!
+                    if (targetUIDocument != null)
+                    {
+                        var popup = targetUIDocument.rootVisualElement.Q<VisualElement>("maskPopupOverlay");
+                        if (popup != null) 
+                        {
+                            var popupLabel = popup.Q<Label>("maskPopupLabel");
+                            if (popupLabel != null) popupLabel.text = "Please insert the mask tray first!";
+                            popup.style.display = DisplayStyle.Flex;
+                            popup.BringToFront();
+                        }
+                    }
+                    return; // Do not advance!
+                }
+
                 exposureController.isVacuumSealed = true;
-                exposureController.isMaskTrayInserted = true;
-                if (exposureController.hardwareSequencer != null) 
-                {
-                    Debug.Log("[UI FLOW] Hardware Sequencer found. Forcing tray insertion state.");
-                    exposureController.hardwareSequencer.isTrayInserted = true;
-                }
-                else
-                {
-                    Debug.LogWarning("[UI FLOW] Hardware Sequencer is NULL on the station!");
-                }
 
                 // Push stored parameters right before execution
                 var lithoEngine = Object.FindAnyObjectByType<LithoInferenceEngine>();
@@ -429,6 +436,20 @@ public class MainWindowController : MonoBehaviour
                 schematicLayer.style.display = DisplayStyle.None;
                 if (sidebarDefault != null) sidebarDefault.style.display = DisplayStyle.Flex;
                 if (sidebarOptics != null) sidebarOptics.style.display = DisplayStyle.None;
+                
+                // Keep the crosshairs visible from Step 11 so they don't abruptly disappear
+                if (waferLeft != null && waferRight != null) 
+                {
+                    waferLeft.style.display = DisplayStyle.Flex;
+                    waferRight.style.display = DisplayStyle.Flex;
+                    waferLeft.style.translate = new StyleTranslate(new Translate(0, 0, 0));
+                    waferRight.style.translate = new StyleTranslate(new Translate(0, 0, 0));
+                    var finalGrey = new StyleColor(new Color(0.5f, 0.5f, 0.5f, 0.6f));
+                    waferLeft.ElementAt(0).style.backgroundColor = finalGrey;
+                    waferLeft.ElementAt(1).style.backgroundColor = finalGrey;
+                    waferRight.ElementAt(0).style.backgroundColor = finalGrey;
+                    waferRight.ElementAt(1).style.backgroundColor = finalGrey;
+                }
                 break;
             case MachineState.Step13_FinalAlignment:
                 statusText.text = "Final Alignment";
@@ -633,7 +654,12 @@ public class MainWindowController : MonoBehaviour
 #if UNITY_WEBGL && !UNITY_EDITOR
         // CRITICAL WEBGL FIX: PointerUp guarantees it fires even if the mouse moved (bypassing WebGL click bugs), 
         // but safely waits until the mouse is released so we don't crash UI Toolkit by hiding an element with active pointer capture.
-        btn.RegisterCallback<PointerUpEvent>(evt => action());
+        // We MUST manually check `enabledSelf` because PointerUp bubbles up regardless of UI disablement!
+        btn.RegisterCallback<PointerUpEvent>(evt => 
+        {
+            if (!btn.enabledSelf) return;
+            action();
+        });
 #else
         btn.clicked += action;
 #endif

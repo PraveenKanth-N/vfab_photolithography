@@ -108,36 +108,44 @@ public class LithoDevelopmentEngine : MonoBehaviour
 
         Color32[] textureColorBuffer = new Color32[totalPixels];
 
-        // Process a high-speed multi-threaded parallel block across all CPU cores
-        Parallel.For(0, totalPixels, i =>
+        // Process dissolution math
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // CRITICAL WEBGL FIX: Parallel.For deadlocks WebGL builds because they lack a true background thread pool.
+        for (int i = 0; i < totalPixels; i++)
         {
             float mVal = Mathf.Clamp01(polymerArrayM[i]);
-
-            // Compute pure Mack dissolution velocity equations exactly as defined by literature
             float invM = 1.0f - mVal;
             float invMPow = Mathf.Pow(invM, N_CONTRAST);
-            
             float numerator = Mathf.Pow((mackConstantA + 1.0f) * invM, N_CONTRAST);
             float denominator = mackConstantA + invMPow;
-            
             float rate = R_MAX * (numerator / denominator) + R_MIN;
-
-            // Fluid erosion calculation (Pure linear integration front)
             float removedNm = rate * currentWashTime;
             float finalHeight = Mathf.Max(initialThicknessNm - removedNm, 0.0f);
             remainingHeightMap[i] = finalHeight;
-
-            // OUTPUT B (BINARY WAFER MASK): Evaluated against an absolute stationary reference ruler.
-            // The CD moves dynamically because the underlying height gradient shifts across the check plane!
-            byte binaryState = (finalHeight > METROLOGY_THRESHOLD_NM) ? (byte)1 : (byte)0;
-            binaryWaferPattern[i] = binaryState;
-
-            // OUTPUT A (CONTINUOUS HEALTH DIAGNOSTIC): Rendered as a smooth top-down grayscale gradient.
-            // Exposes the genuine, non-linear chemical transition zone directly to the UI panel.
+            binaryWaferPattern[i] = (finalHeight > METROLOGY_THRESHOLD_NM) ? (byte)1 : (byte)0;
+            float normalizedHeight = finalHeight / initialThicknessNm;
+            byte colorVal = (byte)(normalizedHeight * 255);
+            textureColorBuffer[i] = new Color32(colorVal, colorVal, colorVal, 255);
+        }
+#else
+        // High-performance parallel block for Desktop
+        Parallel.For(0, totalPixels, i =>
+        {
+            float mVal = Mathf.Clamp01(polymerArrayM[i]);
+            float invM = 1.0f - mVal;
+            float invMPow = Mathf.Pow(invM, N_CONTRAST);
+            float numerator = Mathf.Pow((mackConstantA + 1.0f) * invM, N_CONTRAST);
+            float denominator = mackConstantA + invMPow;
+            float rate = R_MAX * (numerator / denominator) + R_MIN;
+            float removedNm = rate * currentWashTime;
+            float finalHeight = Mathf.Max(initialThicknessNm - removedNm, 0.0f);
+            remainingHeightMap[i] = finalHeight;
+            binaryWaferPattern[i] = (finalHeight > METROLOGY_THRESHOLD_NM) ? (byte)1 : (byte)0;
             float normalizedHeight = finalHeight / initialThicknessNm;
             byte colorVal = (byte)(normalizedHeight * 255);
             textureColorBuffer[i] = new Color32(colorVal, colorVal, colorVal, 255);
         });
+#endif
 
         // Blit color arrays onto target GPU texture structures
         waferTexture2D.SetPixels32(textureColorBuffer);

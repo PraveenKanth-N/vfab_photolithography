@@ -163,8 +163,9 @@ public class ExposureStationController : MonoBehaviour
 
     private IEnumerator WrapUpExposureWithDelay()
     {
-        // Keep the light visible slightly so the flare doesn't blink out instantenously
-        yield return new WaitForSeconds(1.5f);
+        // Keep the light visible slightly so the flare doesn't blink out instantaneously.
+        // Extended to 3.5s so it covers the entire return animation of the slider/microscope!
+        yield return new WaitForSeconds(3.5f);
 
         if (uvChamberLightSource != null) uvChamberLightSource.SetActive(false);
 
