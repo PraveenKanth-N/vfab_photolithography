@@ -215,12 +215,12 @@ public class MainWindowController : MonoBehaviour
             {
                 if (exposureController.topDeckAnchor != null)
                 {
-                    foreach (Transform t in exposureController.topDeckAnchor) if (t.name.ToLower().Contains("mask")) hasMask = true;
+                    foreach (Transform t in exposureController.topDeckAnchor) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("mask")) hasMask = true;
                 }
                 if (!hasMask)
                 {
                     Transform waferAnchor = exposureController.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
-                    if (waferAnchor != null) foreach (Transform t in waferAnchor) if (t.name.ToLower().Contains("mask")) hasMask = true;
+                    if (waferAnchor != null) foreach (Transform t in waferAnchor) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("mask")) hasMask = true;
                 }
             }
 
@@ -254,12 +254,12 @@ public class MainWindowController : MonoBehaviour
             {
                 if (exposureController.waferDockPosition != null)
                 {
-                    foreach (Transform t in exposureController.waferDockPosition) if (t.name.ToLower().Contains("wafer")) hasWafer = true;
+                    foreach (Transform t in exposureController.waferDockPosition) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("wafer")) hasWafer = true;
                 }
                 if (!hasWafer)
                 {
                     Transform chuck = exposureController.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
-                    if (chuck != null) foreach (Transform t in chuck) if (t.name.ToLower().Contains("wafer")) hasWafer = true;
+                    if (chuck != null) foreach (Transform t in chuck) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("wafer")) hasWafer = true;
                 }
             }
 

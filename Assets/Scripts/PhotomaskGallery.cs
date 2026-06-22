@@ -16,22 +16,37 @@ public class PhotomaskGalleryUI : MonoBehaviour
     private GameObject interactingMaskObject;
     private MouseLook cameraLookScript;
     public bool isGalleryOpen = false; // Live state tracking property for PlayerInteraction to read
+    private Canvas rootCanvas;
 
     void Awake()
     {
         Instance = this;
-        gameObject.SetActive(false); 
+        
+        rootCanvas = GetComponentInParent<Canvas>();
+        if (rootCanvas != null) rootCanvas.gameObject.SetActive(false);
+        else gameObject.SetActive(false);
+
         cameraLookScript = Object.FindAnyObjectByType<MouseLook>();
 
         for (int i = 0; i < maskSelectionButtons.Length; i++)
         {
             int index = i; 
             maskSelectionButtons[i].onClick.AddListener(() => SelectMaskPattern(index));
+        }
+        
+        RefreshThumbnails();
+    }
 
+    public void RefreshThumbnails()
+    {
+        if (maskSelectionButtons == null || lithoEngine == null) return;
+        
+        for (int i = 0; i < maskSelectionButtons.Length; i++)
+        {
             RawImage buttonImage = maskSelectionButtons[i].GetComponentInChildren<RawImage>();
-            if (buttonImage != null && lithoEngine != null)
+            if (buttonImage != null)
             {
-                buttonImage.texture = lithoEngine.GenerateStaticPreviewTexture(index);
+                buttonImage.texture = lithoEngine.GenerateStaticPreviewTexture(i);
             }
         }
     }
@@ -42,7 +57,9 @@ public class PhotomaskGalleryUI : MonoBehaviour
         
         // 1. Flip tracking property flags FIRST before passing commands to look calculations
         isGalleryOpen = true;
-        gameObject.SetActive(true);
+        
+        if (rootCanvas != null) rootCanvas.gameObject.SetActive(true);
+        else gameObject.SetActive(true);
         
         // 2. Break camera look tracking states cleanly
         if (cameraLookScript != null)
@@ -67,8 +84,10 @@ public class PhotomaskGalleryUI : MonoBehaviour
         interactingMaskObject.name = $"PR_Photomask_Index_{maskIndex}";
         
         // 1. Drop active tracking state parameters
-        gameObject.SetActive(false);
         isGalleryOpen = false;
+        
+        if (rootCanvas != null) rootCanvas.gameObject.SetActive(false);
+        else gameObject.SetActive(false);
 
         // 2. Restore standard look inputs
         if (cameraLookScript != null)

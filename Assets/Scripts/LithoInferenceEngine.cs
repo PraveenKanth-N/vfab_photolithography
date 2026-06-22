@@ -17,11 +17,17 @@ public class LithoInferenceEngine : MonoBehaviour
 
     [Header("UI Input Elements")]
     public RawImage maskPreviewDisplay;   
+    public Slider cdSlider; // ADDED: Slider reference to link up the dynamic CD input
+    public TextMeshProUGUI cdValueText; // ADDED: Text label to display the current CD value
+    public TextMeshProUGUI nmValueText; // ADDED: True nanometer reading
 
     [Header("Process Parameters")]
     public float currentDose = 20.0f;
     public float currentDefocus = 0.0f;
     public float currentNA = 0.8f;
+    
+    [Header("Dynamic Mask Parameterization")]
+    public int currentCD = 24; // ADDED: Tracks real-time grid cell allocations (equivalent to ~nm sizes)
 
     [HideInInspector] public bool isSystemExposing = false;
     [HideInInspector] public int maskDropdownIndexOverride = 0;
@@ -61,75 +67,74 @@ public class LithoInferenceEngine : MonoBehaviour
         maskTexture2D = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false);
         maskPreviewDisplay.texture = maskTexture2D;
 
+        // Hook up slider listeners automatically if assigned to prevent inspector misses
+        if (cdSlider != null)
+        {
+            cdSlider.onValueChanged.AddListener(delegate { OnCDSliderChanged(); });
+            currentCD = Mathf.RoundToInt(cdSlider.value);
+        }
+
         OnMaskSelectionChanged();
+    }
+
+    // ADDED: Listens directly to UI slider events to dynamically alter geometries
+    public void OnCDSliderChanged()
+    {
+        if (cdSlider == null) return;
+        currentCD = Mathf.RoundToInt(cdSlider.value);
+        if (cdValueText != null) cdValueText.text = "Critical Dimension: " + currentCD.ToString() ;
+        if (nmValueText != null) nmValueText.text = (currentCD * 3.91f).ToString("F2") + " nm";
+        
+        OnMaskSelectionChanged();
+
+        // Refresh the thumbnail gallery UI buttons to reflect the new dynamic sizes
+        if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.gameObject.activeInHierarchy == false)
+        {
+            // Even if the root canvas is off, we can call this if the instance is active
+            PhotomaskGalleryUI.Instance.RefreshThumbnails();
+        }
+        else if (PhotomaskGalleryUI.Instance != null)
+        {
+            PhotomaskGalleryUI.Instance.RefreshThumbnails();
+        }
     }
 
     public void BakeSelectedMaskMatrix()
     {
-        int selectedIndex = maskDropdownIndexOverride;
-        for (int i = 0; i < resolution * resolution; i++) inputRawArray[i * channels + 0] = 0.0f;
-
-        if (selectedIndex == 0) 
-        {
-            int cd = 24, pitch = 32; int startOffset = (resolution - (7 * cd + 6 * pitch)) / 2;
-            for (int col = 0; col < 7; col++) BlitVerticalStripe(startOffset + col * (cd + pitch), cd);
-        }
-        else if (selectedIndex == 1) 
-        {
-            int cd = 24, pitch = 32; int startOffset = (resolution - (7 * cd + 6 * pitch)) / 2;
-            for (int row = 0; row < 7; row++) BlitHorizontalStripe(startOffset + row * (cd + pitch), cd);
-        }
-        else if (selectedIndex == 2) 
-        {
-            int cd = 24, pitch = 32; int startOffset = (resolution - (8 * cd + 7 * pitch)) / 2;
-            for (int r = 0; r < 8; r++) {
-                for (int c = 0; c < 8; c++) BlitSquareBlock(startOffset + c * (cd + pitch), startOffset + r * (cd + pitch), cd);
-            }
-        }
-        else if (selectedIndex == 3) { int cd = 32; BlitVerticalStripe((resolution - cd) / 2, cd); }
-        else if (selectedIndex == 4) { int cd = 40; BlitSquareBlock((resolution - cd) / 2, (resolution - cd) / 2, cd); }
-
-        Color32[] textureColorBuffer = new Color32[resolution * resolution];
-        for (int y = 0; y < resolution; y++)
-        {
-            for (int x = 0; x < resolution; x++)
-            {
-                int idx = y * resolution + x;
-                byte maskVal = (byte)(inputRawArray[idx * channels + 0] * 255);
-                textureColorBuffer[idx] = new Color32(maskVal, maskVal, maskVal, 255);
-            }
-        }
-        maskTexture2D.SetPixels32(textureColorBuffer);
-        maskTexture2D.Apply();
-
-        OnProcessParameterChanged();
+        OnMaskSelectionChanged();
     }
 
     public void OnMaskSelectionChanged()
     {
         int selectedIndex = maskDropdownIndexOverride;
+        // Zero out the mask geometry channel cleanly
         for (int i = 0; i < resolution * resolution; i++) inputRawArray[i * channels + 0] = 0.0f;
+
+        // FIXED: Re-derived spatial offsets dynamically using 'currentCD' instead of hardcoded numbers
+        int cd = currentCD;
+        int pitch = Mathf.RoundToInt(cd * 1.33f); // Keeps pitch proportional to mask line sizes to prevent packing collisions
 
         if (selectedIndex == 0) 
         {
-            int cd = 24, pitch = 32; int startOffset = (resolution - (7 * cd + 6 * pitch)) / 2;
+            int startOffset = (resolution - (7 * cd + 6 * pitch)) / 2;
             for (int col = 0; col < 7; col++) BlitVerticalStripe(startOffset + col * (cd + pitch), cd);
         }
         else if (selectedIndex == 1) 
         {
-            int cd = 24, pitch = 32; int startOffset = (resolution - (7 * cd + 6 * pitch)) / 2;
+            int startOffset = (resolution - (7 * cd + 6 * pitch)) / 2;
             for (int row = 0; row < 7; row++) BlitHorizontalStripe(startOffset + row * (cd + pitch), cd);
         }
         else if (selectedIndex == 2) 
         {
-            int cd = 24, pitch = 32; int startOffset = (resolution - (8 * cd + 7 * pitch)) / 2;
+            int startOffset = (resolution - (8 * cd + 7 * pitch)) / 2;
             for (int r = 0; r < 8; r++) {
                 for (int c = 0; c < 8; c++) BlitSquareBlock(startOffset + c * (cd + pitch), startOffset + r * (cd + pitch), cd);
             }
         }
-        else if (selectedIndex == 3) { int cd = 32; BlitVerticalStripe((resolution - cd) / 2, cd); }
-        else if (selectedIndex == 4) { int cd = 40; BlitSquareBlock((resolution - cd) / 2, (resolution - cd) / 2, cd); }
+        else if (selectedIndex == 3) { BlitVerticalStripe((resolution - cd) / 2, cd); }
+        else if (selectedIndex == 4) { BlitSquareBlock((resolution - cd) / 2, (resolution - cd) / 2, cd); }
 
+        // Redraw preview panel
         Color32[] textureColorBuffer = new Color32[resolution * resolution];
         for (int y = 0; y < resolution; y++)
         {
@@ -300,11 +305,17 @@ public class LithoInferenceEngine : MonoBehaviour
         Debug.Log(sb.ToString());
     }
 
+    // FIXED: Scaled preview thumbnail geometries down using the slider scaling coefficient
     public Texture2D GenerateStaticPreviewTexture(int targetIndex)
     {
         int localRes = 128; 
         Texture2D previewTex = new Texture2D(localRes, localRes, TextureFormat.RGBA32, false);
         Color32[] pixels = new Color32[localRes * localRes];
+
+        // Maps 512-mesh scale down to thumbnail size ratio cleanly (~0.25)
+        float sizeRatio = (float)currentCD / resolution;
+        int cd = Mathf.Clamp(Mathf.RoundToInt(localRes * sizeRatio), 4, 40);
+        int pitch = Mathf.RoundToInt(cd * 1.33f);
 
         for (int y = 0; y < localRes; y++)
         {
@@ -314,7 +325,7 @@ public class LithoInferenceEngine : MonoBehaviour
 
                 if (targetIndex == 0) 
                 {
-                    int cd = 6, pitch = 8; int startOffset = (localRes - (7 * cd + 6 * pitch)) / 2;
+                    int startOffset = (localRes - (7 * cd + 6 * pitch)) / 2;
                     for (int col = 0; col < 7; col++) {
                         int xStart = startOffset + col * (cd + pitch);
                         if (x >= xStart && x < xStart + cd) isWhite = true;
@@ -322,7 +333,7 @@ public class LithoInferenceEngine : MonoBehaviour
                 }
                 else if (targetIndex == 1) 
                 {
-                    int cd = 6, pitch = 8; int startOffset = (localRes - (7 * cd + 6 * pitch)) / 2;
+                    int startOffset = (localRes - (7 * cd + 6 * pitch)) / 2;
                     for (int row = 0; row < 7; row++) {
                         int yStart = startOffset + row * (cd + pitch);
                         if (y >= yStart && y < yStart + cd) isWhite = true;
@@ -330,7 +341,7 @@ public class LithoInferenceEngine : MonoBehaviour
                 }
                 else if (targetIndex == 2) 
                 {
-                    int cd = 6, pitch = 8; int startOffset = (localRes - (8 * cd + 7 * pitch)) / 2;
+                    int startOffset = (localRes - (8 * cd + 7 * pitch)) / 2;
                     for (int r = 0; r < 8; r++) {
                         for (int c = 0; c < 8; c++) {
                             int xStart = startOffset + c * (cd + pitch); int yStart = startOffset + r * (cd + pitch);
@@ -338,8 +349,8 @@ public class LithoInferenceEngine : MonoBehaviour
                         }
                     }
                 }
-                else if (targetIndex == 3) { int cd = 8; if (x >= (localRes - cd) / 2 && x < (localRes - cd) / 2 + cd) isWhite = true; }
-                else if (targetIndex == 4) { int cd = 10; if (x >= (localRes - cd) / 2 && x < (localRes - cd) / 2 + cd && y >= (localRes - cd) / 2 && y < (localRes - cd) / 2 + cd) isWhite = true; }
+                else if (targetIndex == 3) { if (x >= (localRes - cd) / 2 && x < (localRes - cd) / 2 + cd) isWhite = true; }
+                else if (targetIndex == 4) { if (x >= (localRes - cd) / 2 && x < (localRes - cd) / 2 + cd && y >= (localRes - cd) / 2 && y < (localRes - cd) / 2 + cd) isWhite = true; }
 
                 byte val = (byte)(isWhite ? 255 : 0);
                 pixels[y * localRes + x] = new Color32(val, val, val, 255);
