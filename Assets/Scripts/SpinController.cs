@@ -265,6 +265,7 @@ public class SpinCoaterController : MonoBehaviour
         
         if (MicroscopeInterfaceManager.Instance != null)
         {
+            MicroscopeInterfaceManager.Instance.SetChamberState(true);
             AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
             if (chamber != null)
             {
@@ -470,7 +471,8 @@ public class SpinCoaterController : MonoBehaviour
         bool canSelectRecipe = (currentCoaterState == CoaterState.WaferLoaded || currentCoaterState == CoaterState.PRDispensed);
         bool canSpinNow = (currentCoaterState == CoaterState.PRDispensed);
         
-        if (dispenseButton != null) dispenseButton.interactable = (currentCoaterState == CoaterState.WaferLoaded);
+        bool isLidOpen = lidController != null && lidController.isOpen;
+        if (dispenseButton != null) dispenseButton.interactable = (currentCoaterState == CoaterState.WaferLoaded && isLidOpen);
         if (startSpinButton != null) startSpinButton.interactable = canSpinNow;
 
         if (speedSlider != null) speedSlider.interactable = canSelectRecipe;

@@ -11,7 +11,7 @@
             <VisualElement class="window-controls">
                 <Button name="MinBtn" class="win-btn" text="-"/>
                 <Button name="MaxBtn" class="win-btn" text="☐"/>
-                <Button name="CloseBtn" class="win-btn close-btn" text="✕"/>
+                <Button name="CloseBtn" class="win-btn close-btn" text="X"/>
             </VisualElement>
         </VisualElement>
 
@@ -35,7 +35,7 @@
                         <VisualElement class="window-controls">
                             <Button class="inner-win-btn" text="-"/>
                             <Button class="inner-win-btn" text="☐"/>
-                            <Button class="inner-win-btn close-btn" text="✕"/>
+                            <Button class="inner-win-btn close-btn" text="X"/>
                         </VisualElement>
                     </VisualElement>
                     <VisualElement class="inner-content center-content">
@@ -53,7 +53,7 @@
                         <VisualElement class="window-controls">
                             <Button class="inner-win-btn" text="-"/>
                             <Button class="inner-win-btn" text="☐"/>
-                            <Button class="inner-win-btn close-btn" text="✕"/>
+                            <Button class="inner-win-btn close-btn" text="X"/>
                         </VisualElement>
                     </VisualElement>
                     
@@ -222,7 +222,7 @@
                             </VisualElement>
                             <!-- SCHEMATIC LAYER -->
                             <VisualElement name="s3-schematic-layer" class="s3-schematic-view" style="display: none;">
-                                <Label text="[Schematic Placeholder]" style="color: #666; font-size: 24px;"/>
+                                
                             </VisualElement>
                         </VisualElement>
                         

@@ -151,6 +151,15 @@ public class FluidInteractionController : MonoBehaviour
         if (swerveDurationTimer >= swerveTotalTime)
         {
             isSwerving = false;
+
+            // Trigger atomic development dissolution on Microscope
+            if (MicroscopeInterfaceManager.Instance != null)
+            {
+                MicroscopeInterfaceManager.Instance.SetChamberState(true);
+                AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
+                if (chamber != null) chamber.StartCoroutine(chamber.AnimateDevelopment(1.8f));
+            }
+
             return;
         }
 

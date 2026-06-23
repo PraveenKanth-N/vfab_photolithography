@@ -146,6 +146,14 @@ public class ExposureStationController : MonoBehaviour
                 // Callback 1: Instantly trigger physical UV lamp lighting/FX mesh
                 if (uvChamberLightSource != null) uvChamberLightSource.SetActive(true);
                 UpdateSystemWorkflowState("WARNING: UV Exposure Active. Lamp Stable.");
+
+                // Trigger atomic chemical wave animation on Microscope
+                if (MicroscopeInterfaceManager.Instance != null)
+                {
+                    MicroscopeInterfaceManager.Instance.SetChamberState(true);
+                    AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
+                    if (chamber != null) chamber.AnimateExposure(0.85f, null); // Provide conversion ratio
+                }
             },
             onModelCompute: () => 
             {

@@ -27,8 +27,15 @@ public class MainWindowController : MonoBehaviour
         Step10_FinalDualScreen,
         Step11_AdjustMicroscope,
         Step12_InsertSubstrate,
-        Step13_FinalAlignment
+        Step13_FinalAlignment,
+        Step14_EndOfProcess
     }
+
+    [Header("Schematic Placeholders")]
+    public Texture2D schm1;
+    public Texture2D schm2;
+    public Texture2D schm3;
+    public Texture2D schm4;
 
     private MachineState currentMachineState = MachineState.Step3_InsertMask;
 
@@ -337,7 +344,16 @@ public class MainWindowController : MonoBehaviour
 
                 Debug.Log("[UI FLOW] Invoking Execute sequence via direct method call!");
                 exposureController.TriggerUVLampIgnition();
+                
+                // Advance state internally so the NEXT time the UI opens, it will be at Step 14
+                currentMachineState++;
             }
+            return;
+        }
+
+        if (currentMachineState == MachineState.Step14_EndOfProcess)
+        {
+            CloseEntireInterface();
             return;
         }
 
@@ -390,6 +406,7 @@ public class MainWindowController : MonoBehaviour
                 statusText.text = "Configure Optics and press continue";
                 dualLayer.style.display = DisplayStyle.None;
                 schematicLayer.style.display = DisplayStyle.Flex;
+                if (schm1 != null) schematicLayer.style.backgroundImage = new StyleBackground(schm1);
                 break;
             case MachineState.Step5_InsertUVFilter:
                 statusText.text = "Insert UV filter [Default] and press continue";
@@ -400,6 +417,7 @@ public class MainWindowController : MonoBehaviour
                 statusText.text = "Insert maskholder and press continue";
                 dualLayer.style.display = DisplayStyle.None;
                 schematicLayer.style.display = DisplayStyle.Flex;
+                if (schm2 != null) schematicLayer.style.backgroundImage = new StyleBackground(schm2);
                 break;
             case MachineState.Step7_FixMaskholder:
                 statusText.text = "Fix Maskholder and press continue";
@@ -410,11 +428,13 @@ public class MainWindowController : MonoBehaviour
                 statusText.text = "Insert chuck, connect vacuum and press continue";
                 dualLayer.style.display = DisplayStyle.None;
                 schematicLayer.style.display = DisplayStyle.Flex;
+                if (schm3 != null) schematicLayer.style.backgroundImage = new StyleBackground(schm3);
                 break;
             case MachineState.Step9_InsertLoadframe:
                 statusText.text = "Insert loadframe and press continue";
                 dualLayer.style.display = DisplayStyle.None;
                 schematicLayer.style.display = DisplayStyle.Flex;
+                if (schm4 != null) schematicLayer.style.backgroundImage = new StyleBackground(schm4);
                 break;
             case MachineState.Step10_FinalDualScreen:
                 statusText.text = "Insert Mask And Press <Continue>";

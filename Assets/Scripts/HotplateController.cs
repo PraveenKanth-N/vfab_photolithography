@@ -162,6 +162,7 @@ public class HotplateController : MonoBehaviour
 
         if (MicroscopeInterfaceManager.Instance != null)
         {
+            MicroscopeInterfaceManager.Instance.SetChamberState(true);
             AtomicChamberController chamber = MicroscopeInterfaceManager.Instance.atomicChamberRoot.GetComponent<AtomicChamberController>();
             if (chamber != null)
             {

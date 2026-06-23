@@ -19,9 +19,10 @@ public class PlayerInteraction : MonoBehaviour
     private int originalLayer; 
     private int ignoreRaycastLayer;
 
-    // --- HARD COORDINATE RESISTANCE TRACKING MATRIX ---
-    private Transform originalBottleParent = null;
+    // --- HARD COORDINATE RESISTANCE TRACKING    // Memory for restoring rinse bottle
+    private Transform originalBottleParent;
     private Vector3 originalBottleLocalScale;
+    private Quaternion originalBottleRotation; // Prevent weird orientations
 
     void Start()
     {
@@ -160,9 +161,14 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // --- 3. RINSE BOTTLE PICKUP (HIERARCHY WRAPPER CONTEXT) ---
-            if (nameLower.Contains("bottle"))
+            if (nameLower.Contains("bottle") && !nameLower.Contains("dock") && !nameLower.Contains("station"))
             {
-                GameObject parentWrapper = target.transform.parent != null ? target.transform.parent.gameObject : target;
+                GameObject parentWrapper = target;
+                if (target.transform.parent != null && target.transform.parent.name.ToLower().Contains("bottle") && !target.transform.parent.name.ToLower().Contains("dock"))
+                {
+                    parentWrapper = target.transform.parent.gameObject;
+                }
+                
                 PickUpHeldObject(parentWrapper);
                 return;
             }
@@ -295,6 +301,7 @@ public class PlayerInteraction : MonoBehaviour
 
         originalBottleParent = heldObject.transform.parent;
         originalBottleLocalScale = heldObject.transform.localScale;
+        originalBottleRotation = heldObject.transform.rotation; // Capture exact world rotation
 
         Vector3 tableWorldScale = heldObject.transform.lossyScale;
         Quaternion tableWorldRotation = heldObject.transform.rotation;
@@ -380,29 +387,37 @@ public class PlayerInteraction : MonoBehaviour
                     RestoreHeldObjectLayer();
                     DetachHeldObject(); 
 
-                    GameObject mainStationObj = GameObject.Find("Station_developer");
-                    if (mainStationObj == null) mainStationObj = GameObject.Find("Station_Developer");
-
-                    if (mainStationObj != null)
+                    GameObject dockObj = null;
+                    foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
                     {
-                        heldObject.transform.SetParent(mainStationObj.transform, false);
-                        heldObject.transform.localRotation = Quaternion.identity;
-                        heldObject.transform.localScale = originalBottleLocalScale;
+                        if (isDI && t.name.Equals("DI_Water_Station_Dock", System.StringComparison.OrdinalIgnoreCase)) { dockObj = t.gameObject; break; }
+                        else if (!isDI && t.name.Equals("Dev_Bottle_Station_Dock", System.StringComparison.OrdinalIgnoreCase)) { dockObj = t.gameObject; break; }
+                    }
 
-                        if (isDI)
-                        {
-                            heldObject.transform.localPosition = new Vector3(778f, -280f, 290f);
-                        }
-                        else
-                        {
-                            heldObject.transform.localPosition = new Vector3(797f, -278.8f, 291f);
-                        }
-                        Debug.Log($"[Direct Return Success] Restored {heldObject.name} back to exact hand-tested workbench transforms.");
+                    if (dockObj != null)
+                    {
+                        heldObject.transform.SetParent(dockObj.transform, true); // Keep world transform during parent swap
+                        heldObject.transform.rotation = originalBottleRotation;  // Snap to exact original upright rotation
+                        heldObject.transform.localPosition = Vector3.zero;       // Snap exactly to the dock's center
+                        heldObject.transform.localScale = originalBottleLocalScale;
+                        
+                        // Stop physics engine from tipping the bottle over!
+                        Rigidbody rb = heldObject.GetComponent<Rigidbody>();
+                        if (rb == null) rb = heldObject.GetComponentInParent<Rigidbody>();
+                        if (rb != null) rb.isKinematic = true;
+
+                        Debug.Log($"[Direct Return Success] Restored {heldObject.name} back to {dockObj.name}.");
                     }
                     else
                     {
-                        heldObject.transform.SetParent(originalBottleParent, false);
+                        heldObject.transform.SetParent(originalBottleParent, true);
+                        heldObject.transform.rotation = originalBottleRotation;
+                        heldObject.transform.localPosition = Vector3.zero;
                         heldObject.transform.localScale = originalBottleLocalScale;
+                        
+                        Rigidbody rb = heldObject.GetComponent<Rigidbody>();
+                        if (rb == null) rb = heldObject.GetComponentInParent<Rigidbody>();
+                        if (rb != null) rb.isKinematic = true;
                     }
 
                     heldObject = null; 
