@@ -125,7 +125,7 @@
                                 </VisualElement>
                                 <VisualElement class="slider-container">
                                     <Label text="Numerical Aperture" class="slider-label"/>
-                                    <Slider name="naSlider" low-value="0.50" high-value="1.35" value="0.80" show-input-field="true"/>
+                                    <Slider name="naSlider" low-value="0.50" high-value="1.35" value="1.20" show-input-field="true"/>
                                 </VisualElement>
                                 <Button text="Sector Exposure Settings" class="disabled-btn"/>
                                 <Button text="Exposure Settings" class="active-btn border-btn"/>

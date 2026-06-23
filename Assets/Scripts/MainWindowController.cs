@@ -141,6 +141,15 @@ public class MainWindowController : MonoBehaviour
                 selectedNA = evt.newValue;
             });
             
+            // Pull default values from the AI Engine to ensure absolute consistency
+            var lithoEngine = UnityEngine.Object.FindAnyObjectByType<LithoInferenceEngine>();
+            if (lithoEngine != null)
+            {
+                doseSlider.value = lithoEngine.currentDose;
+                defocusSlider.value = lithoEngine.currentDefocus;
+                naSlider.value = lithoEngine.currentNA;
+            }
+
             // Sync initial state locally
             selectedDose = doseSlider.value;
             selectedDefocus = defocusSlider.value;

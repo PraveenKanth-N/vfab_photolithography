@@ -227,6 +227,29 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
+            // --- 7. WAFER CARRIER SEQUENCE ---
+            WaferCarrierController carrier = target.GetComponent<WaferCarrierController>();
+            if (carrier == null) carrier = target.GetComponentInParent<WaferCarrierController>();
+
+            if (carrier != null)
+            {
+                if (carrier.isAnimating) return; // Prevent spam clicking
+
+                if (carrier.hasWafer && carrier.isReadyForExtraction)
+                {
+                    // Sequence: Carrier was moved and placed down. Now we extract!
+                    carrier.ExtractWaferSequence((GameObject extracted) => {
+                        if (extracted != null) PickUpHeldObject(extracted);
+                    });
+                }
+                else
+                {
+                    // Sequence: Carrier is either empty, OR loaded but hasn't been transported yet.
+                    PickUpHeldObject(carrier.gameObject);
+                }
+                return;
+            }
+
             // --- 6. TOPLID PICKUP ---
             if (nameLower.Contains("toplid"))
             {
@@ -283,6 +306,19 @@ public class PlayerInteraction : MonoBehaviour
             heldObject.transform.localPosition = new Vector3(0.2f, -0.25f, 0.45f); 
             heldObject.transform.rotation = tableWorldRotation;
             
+            heldObject.transform.localScale = new Vector3(
+                tableWorldScale.x / waferHolderSocket.lossyScale.x,
+                tableWorldScale.y / waferHolderSocket.lossyScale.y,
+                tableWorldScale.z / waferHolderSocket.lossyScale.z
+            );
+        }
+        else if (heldObject.name.ToLower().Contains("carrier"))
+        {
+            // Do not aggressively flatten the carrier! Keep it proportional.
+            heldObject.transform.localPosition = new Vector3(0.3f, -0.2f, 0.5f);
+            heldObject.transform.localRotation = Quaternion.identity;
+            
+            // Reconstruct absolute world scale matching
             heldObject.transform.localScale = new Vector3(
                 tableWorldScale.x / waferHolderSocket.lossyScale.x,
                 tableWorldScale.y / waferHolderSocket.lossyScale.y,
@@ -439,6 +475,42 @@ public class PlayerInteraction : MonoBehaviour
                         return;
                     }
                 }
+            }
+
+            // --- ROUTE C: WAFER CARRIER SEQUENCE ---
+            WaferCarrierController carrier = target.GetComponent<WaferCarrierController>();
+            if (carrier == null) carrier = target.GetComponentInParent<WaferCarrierController>();
+
+            if (carrier != null && heldObject.name.ToLower().Contains("wafer"))
+            {
+                if (carrier.isAnimating || carrier.hasWafer) return;
+                
+                // Sequence 1: Holding wafer, click empty carrier -> Insert sequence
+                GameObject waferToInsert = heldObject;
+                RestoreHeldObjectLayer(); DetachHeldObject();
+                heldObject = null;
+                
+                carrier.InsertWaferSequence(waferToInsert);
+                return;
+            }
+
+            if (targetName.Contains("carrier_dock") && heldObject.name.ToLower().Contains("carrier"))
+            {
+                // Sequence: Place carrier onto dock
+                RestoreHeldObjectLayer(); DetachHeldObject();
+                heldObject.transform.SetParent(target.transform, false);
+                heldObject.transform.localPosition = Vector3.zero;
+                heldObject.transform.localRotation = Quaternion.identity;
+
+                // Advance the sequence state if it's loaded!
+                WaferCarrierController heldCarrier = heldObject.GetComponent<WaferCarrierController>();
+                if (heldCarrier != null && heldCarrier.hasWafer)
+                {
+                    heldCarrier.isReadyForExtraction = true;
+                }
+
+                heldObject = null;
+                return;
             }
 
             // --- ROUTE B: PHOTOMASK HOUSING RACKS ---

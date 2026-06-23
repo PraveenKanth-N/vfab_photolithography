@@ -45,6 +45,19 @@ public class LithoInferenceEngine : MonoBehaviour
 
     void Start()
     {
+        // Programmatically bind the slider so it updates texts instantly on drag
+        if (cdSlider != null)
+        {
+            cdSlider.onValueChanged.RemoveAllListeners();
+            cdSlider.onValueChanged.AddListener(delegate { OnCDSliderChanged(); });
+            
+            // Force an initial update
+            OnCDSliderChanged();
+        }
+    }
+
+    void OnEnable()
+    {
         if (onnxModelAsset == null || chemicalModelAsset == null)
         {
             Debug.LogError("[Inference Engine] Missing ONNX assignment references on inspector slots!");
