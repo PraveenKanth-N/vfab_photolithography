@@ -170,28 +170,22 @@ public class LithoDevelopmentEngine : MonoBehaviour
         {
             case 0: // Vertical Grating Array
             case 3: // Single Vertical Line
-                if (TryGetComponent<LithoLineMetrology>(out var vScanner))
-                {
-                    var report = vScanner.AnalyzeGratings(binaryWaferPattern, scanVertically: false);
-                    UpdateLineUI(activeLayoutType == 0 ? "Vertical Grating" : "Single Vertical Line", report);
-                }
+                if (!TryGetComponent<LithoLineMetrology>(out var vScanner)) vScanner = gameObject.AddComponent<LithoLineMetrology>();
+                var vReport = vScanner.AnalyzeGratings(binaryWaferPattern, scanVertically: false);
+                UpdateLineUI(activeLayoutType == 0 ? "Vertical Grating" : "Single Vertical Line", vReport);
                 break;
 
             case 1: // Horizontal Grating Array
-                if (TryGetComponent<LithoLineMetrology>(out var hScanner))
-                {
-                    var report = hScanner.AnalyzeGratings(binaryWaferPattern, scanVertically: true);
-                    UpdateLineUI("Horizontal Grating Array", report);
-                }
+                if (!TryGetComponent<LithoLineMetrology>(out var hScanner)) hScanner = gameObject.AddComponent<LithoLineMetrology>();
+                var hReport = hScanner.AnalyzeGratings(binaryWaferPattern, scanVertically: true);
+                UpdateLineUI("Horizontal Grating Array", hReport);
                 break;
 
             case 2: // 8x8 Contact Matrix Array
             case 4: // Isolated Contact Window
-                if (TryGetComponent<LithoContactMetrology>(out var cScanner))
-                {
-                    var report = cScanner.AnalyzeContacts(binaryWaferPattern);
-                    UpdateContactUI(activeLayoutType == 2 ? "Contact Hole Array" : "Isolated Via Window", report);
-                }
+                if (!TryGetComponent<LithoContactMetrology>(out var cScanner)) cScanner = gameObject.AddComponent<LithoContactMetrology>();
+                var cReport = cScanner.AnalyzeContacts(binaryWaferPattern);
+                UpdateContactUI(activeLayoutType == 2 ? "Contact Hole Array" : "Isolated Via Window", cReport);
                 break;
         }
     }

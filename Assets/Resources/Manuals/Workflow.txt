@@ -41,3 +41,62 @@
 [IMAGE: storageImg]
 
 Note: Top lid of the mask tray is interactable on the left of this table, the photomask is available in the middle (First item) and wafer carrier is interactable on the right.
+
+
+<size=36><b><u>Mask Aligner</u></b></size>
+
+[IMAGE: maskalignerImg]
+
+1. Approach the mask aligner, and click on the highlighted region of the Monitor to interact with its software
+2. Click on open recipe
+3. Select the default top options in general settings (Man. Top Side, Transparent, Constant dose, Vacuum Contact)
+4. Observe the exposure settings down the middle of the screen.
+5. Adjust the dose, defocus and Numerical Aperature of the lens if required
+6. Click on Run
+7. Click on continue to view all intermediate steps until Photomask must be loaded
+8. To exit, Click the X button located at the top right
+
+<size=36><b><u>To Insert Photomask</u></b></size>
+
+1. Click on the first Photomask from the Photomask tray on the storage bench
+2. Adjust the expected Critical dimension if required
+3. Click on preferred pattern to select Photomask
+4. Place the photomask on the Chuck of the mask tray by precisely clicking on it
+5. Click on the highlighted below the monitor to access a separate menu
+6. Toggle the masktray and head back to Mask Aligner software
+
+<size=36><b><u>To Insert Wafer</u></b></size>
+
+1. Toggle the mask tray out
+2. Click on the mask tray (not the chuck area) to grab the top lid
+3. Keep the toplid on the left side of the storage bench
+4. Click on the wafer carrier to grab the wafer
+5. place it onto the chuck by clicking on it precisely
+6. Toggle back the mask tray and continue the steps in the software
+7. Once exposure is complete, The exposed pattern can be observed in the other UI.
+8. toggle the mask tray out and place the wafer in the wafer carrier
+9. Bring it back to the hotplate bench
+
+
+<size=36><b><u>Post Exposure Bake</u></b></size>
+
+1. Place the wafer on the hotplate
+2. Click on Start Postbake from its UI
+3. Observe the post exposure bake pattern on the wafer
+4. Bring the wafer to the development station using the wafer carrier
+5. The wafer carrier can be placed roughly to the LEFT of both beakers
+
+
+<size=36><b><u>Development Station</u></b></size>
+
+[IMAGE: developerImg]
+
+1. Click on the big bottle containing the developer solution to grab it
+2. Click on the RIGHT beaker to pour the solution, wait for it to complete and place back the bottle in the same place
+3. On the LEFT beaker, repeat the same process with Distilled water bottle
+4. Place the wafer on the developer solution beaker
+5. Click on the highlighted region roughly on the right of the beakers to access the UI
+6. Adjust the time duration in which the wafer is immersed in the liquid
+7. Click on "Swerve Dev Beaker" to shake and swerve the liquid along the wafer
+8. Once the swerve time is complete, bring the wafer to LEFT beaker and repeat with "Swerve DI Beaker"
+9. The pattern will be visible after dip in Developer solution, with its final pattern after development
