@@ -39,9 +39,9 @@ public class MainWindowController : MonoBehaviour
 
     private MachineState currentMachineState = MachineState.Step3_InsertMask;
 
-    private float selectedDose = 20.0f;
+    private float selectedDose = 30.0f;
     private float selectedDefocus = 0.0f;
-    private float selectedNA = 0.8f;
+    private float selectedNA = 1.2f;
 
     private void Start()
     {
@@ -125,47 +125,37 @@ public class MainWindowController : MonoBehaviour
         var closeMaskPopupBtn = mainRoot.Q<Button>("closeMaskPopupBtn");
         BindButton(closeMaskPopupBtn, HideMaskPopup);
 
-        // --- NEW SLIDER HOOKUPS ---
-        var doseSlider = mainRoot.Q<Slider>("uiDoseSlider");
-        var defocusSlider = mainRoot.Q<Slider>("uiDefocusSlider");
-        var naSlider = mainRoot.Q<Slider>("uiNASlider");
-        var doseLabel = mainRoot.Q<Label>("uiDoseLabel");
-        var defocusLabel = mainRoot.Q<Label>("uiDefocusLabel");
-        var naLabel = mainRoot.Q<Label>("uiNALabel");
+        // --- RECIPE SLIDER HOOKUPS (SCREEN 2) ---
+        var doseSlider = mainRoot.Q<Slider>("doseSlider");
+        var defocusSlider = mainRoot.Q<Slider>("defocusSlider");
+        var naSlider = mainRoot.Q<Slider>("naSlider");
+
+        // --- SIDEBAR UI ELEMENTS (SCREEN 3) ---
+        var uiDoseLabel = mainRoot.Q<Label>("uiDoseLabel");
+        var uiDefocusLabel = mainRoot.Q<Label>("uiDefocusLabel");
+        var uiNALabel = mainRoot.Q<Label>("uiNALabel");
 
         if (doseSlider != null && defocusSlider != null && naSlider != null)
         {
-            doseSlider.RegisterValueChangedCallback(evt => {
-                doseLabel.text = evt.newValue.ToString("F1");
-                selectedDose = evt.newValue;
-            });
-            defocusSlider.RegisterValueChangedCallback(evt => {
-                defocusLabel.text = evt.newValue.ToString("F1");
-                selectedDefocus = evt.newValue;
-            });
-            naSlider.RegisterValueChangedCallback(evt => {
-                naLabel.text = evt.newValue.ToString("F2");
-                selectedNA = evt.newValue;
-            });
+            doseSlider.RegisterValueChangedCallback(evt => { selectedDose = evt.newValue; });
+            defocusSlider.RegisterValueChangedCallback(evt => { selectedDefocus = evt.newValue; });
+            naSlider.RegisterValueChangedCallback(evt => { selectedNA = evt.newValue; });
             
-            // Pull default values from the AI Engine to ensure absolute consistency
+            // Make the UI the master source of truth: push the UI's defaults (30, 0, 1.2) to the Engine
             var lithoEngine = UnityEngine.Object.FindAnyObjectByType<LithoInferenceEngine>();
             if (lithoEngine != null)
             {
-                doseSlider.value = lithoEngine.currentDose;
-                defocusSlider.value = lithoEngine.currentDefocus;
-                naSlider.value = lithoEngine.currentNA;
+                lithoEngine.currentDose = doseSlider.value;
+                lithoEngine.currentDefocus = defocusSlider.value;
+                lithoEngine.currentNA = naSlider.value;
             }
 
             // Sync initial state locally
             selectedDose = doseSlider.value;
             selectedDefocus = defocusSlider.value;
             selectedNA = naSlider.value;
-
-            doseLabel.text = doseSlider.value.ToString("F1");
-            defocusLabel.text = defocusSlider.value.ToString("F1");
-            naLabel.text = naSlider.value.ToString("F2");
         }
+
     }
 
     private void HideMaskPopup()
@@ -383,6 +373,15 @@ public class MainWindowController : MonoBehaviour
         // By default, ensure sidebar is in default mode
         if (sidebarDefault != null) sidebarDefault.style.display = DisplayStyle.Flex;
         if (sidebarOptics != null) sidebarOptics.style.display = DisplayStyle.None;
+
+        // SYNC locked recipe values over to the visual sidebar readouts!
+        var uiDoseLabel = mainRoot.Q<Label>("uiDoseLabel");
+        var uiDefocusLabel = mainRoot.Q<Label>("uiDefocusLabel");
+        var uiNALabel = mainRoot.Q<Label>("uiNALabel");
+
+        if (uiDoseLabel != null) uiDoseLabel.text = selectedDose.ToString("F1");
+        if (uiDefocusLabel != null) uiDefocusLabel.text = selectedDefocus.ToString("F1");
+        if (uiNALabel != null) uiNALabel.text = selectedNA.ToString("F2");
 
         var waferLeft = mainRoot.Q<VisualElement>("huge-crosshair-left");
         var waferRight = mainRoot.Q<VisualElement>("huge-crosshair-right");

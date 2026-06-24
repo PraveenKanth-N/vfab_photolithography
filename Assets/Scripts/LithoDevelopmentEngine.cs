@@ -36,7 +36,7 @@ public class LithoDevelopmentEngine : MonoBehaviour
     private float mackConstantA;
 
     // BETTER OPTION #1: Stationary Metrology Ruler (Fixed inspection plane at 15% of film height)
-    private const float METROLOGY_THRESHOLD_NM = 100f;
+    private const float METROLOGY_THRESHOLD_NM = 0f;
 
     void Awake()
     {

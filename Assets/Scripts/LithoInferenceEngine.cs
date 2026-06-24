@@ -22,9 +22,9 @@ public class LithoInferenceEngine : MonoBehaviour
     public TextMeshProUGUI nmValueText; // ADDED: True nanometer reading
 
     [Header("Process Parameters")]
-    public float currentDose = 20.0f;
+    public float currentDose = 30.0f;
     public float currentDefocus = 0.0f;
-    public float currentNA = 0.8f;
+    public float currentNA = 1.2f;
     
     [Header("Dynamic Mask Parameterization")]
     public int currentCD = 24; // ADDED: Tracks real-time grid cell allocations (equivalent to ~nm sizes)

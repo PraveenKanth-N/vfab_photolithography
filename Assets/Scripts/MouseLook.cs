@@ -60,8 +60,13 @@ public class MouseLook : MonoBehaviour
     {
         if (isCursorLocked)
         {
-            float targetMouseX = Input.GetAxisRaw("Mouse X") * mouseSensitivity;
-            float targetMouseY = Input.GetAxisRaw("Mouse Y") * mouseSensitivity;
+            float currentSensitivity = mouseSensitivity;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            currentSensitivity *= 0.15f; // WebGL raw delta scaling fix
+#endif
+
+            float targetMouseX = Input.GetAxisRaw("Mouse X") * currentSensitivity;
+            float targetMouseY = Input.GetAxisRaw("Mouse Y") * currentSensitivity;
 
             if (invertXLook) targetMouseX *= -1f;
             if (invertYLook) targetMouseY *= -1f;
