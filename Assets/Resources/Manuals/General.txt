@@ -1,0 +1,18 @@
+<size=150%><b>General Cleanroom Protocol</b></size>
+
+Welcome to the Virtual Fabrication facility. This manual covers the basic operating procedures.
+
+<b>1. Safety First</b>
+Always ensure that you are wearing the appropriate protective gear before interacting with any chemical stations. 
+
+[IMAGE: safety_gear_diagram]
+
+<b>2. Wafer Handling</b>
+Wafers are extremely delicate. Never pick them up with your bare hands. Always use the designated wafer carriers or vacuum wands when transferring them between machines.
+
+<b>3. Chemical Disposal</b>
+Do not pour used developer or DI water back into the main supply. Use the designated chemical disposal sinks located at the end of the workbench.
+
+<size=120%><b>Common Troubleshooting</b></size>
+- If the Spin Coater does not start, ensure the vacuum seal is active.
+- If the Mask Aligner is jammed, verify that the Top Lid has been removed before attempting to insert a new substrate.

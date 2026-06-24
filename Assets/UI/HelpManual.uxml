@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <Style src="project://database/Assets/UI/HelpManual.uss" />
+
+    <ui:VisualElement name="helpOverlay" class="help-overlay">
+        
+        <ui:VisualElement class="help-window">
+            
+            <!-- HEADER -->
+            <ui:VisualElement class="help-header">
+                <ui:Label text="OPERATING MANUAL" class="help-title" />
+                <ui:Button name="closeBtn" text="✕" class="help-close-btn" />
+            </ui:VisualElement>
+
+            <!-- TABS -->
+            <ui:VisualElement name="tabBar" class="help-tab-bar">
+                <!-- Tabs will be dynamically instantiated here or hardcoded -->
+            </ui:VisualElement>
+
+            <!-- SCROLLABLE CONTENT -->
+            <ui:ScrollView name="contentScroll" class="help-content-area">
+                <!-- Content will be dynamically generated here -->
+            </ui:ScrollView>
+            
+        </ui:VisualElement>
+        
+    </ui:VisualElement>
+</ui:UXML>

@@ -174,7 +174,7 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // --- 4. SPIN COATER GENUINE SUBSTRATE EXTRACTION ---
-            if (nameLower.Contains("wafer"))
+            if (nameLower.Contains("wafer") && !nameLower.Contains("carrier"))
             {
                 SpinCoaterController coater = Object.FindAnyObjectByType<SpinCoaterController>();
                 if (coater != null && coater.currentCoaterState != SpinCoaterController.CoaterState.Empty)
@@ -190,7 +190,7 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // --- 5. MASK ALIGNER SUBSTRATE/MASK HOVER PICKUP EXTRACTION ---
-            if (nameLower.Contains("wafer") || nameLower.Contains("mask") || nameLower.Contains("tray"))
+            if ((nameLower.Contains("wafer") && !nameLower.Contains("carrier")) || nameLower.Contains("mask") || nameLower.Contains("tray"))
             {
                 ExposureStationController alignerController = Object.FindAnyObjectByType<ExposureStationController>();
                 if (alignerController != null)
@@ -209,7 +209,7 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // --- 1. STANDALONE WAFER PICKUP ---
-            if (nameLower.Contains("wafer")) 
+            if (nameLower.Contains("wafer") && !nameLower.Contains("carrier")) 
             {
                 PickUpHeldObject(target);
                 return;
@@ -259,19 +259,39 @@ public class PlayerInteraction : MonoBehaviour
             // --- 6. TOPLID PICKUP ---
             if (nameLower.Contains("toplid"))
             {
-                // Only allow pickup if no photomask is currently sitting on top of it in the chuck
-                bool isBlockedByMask = false;
-                if (target.transform.parent != null)
+                GameObject lidToPickup = target;
+                
+                // If they clicked the storage furniture instead of the lid itself, find the lid!
+                if (nameLower.Contains("storage"))
                 {
-                    foreach (Transform sibling in target.transform.parent)
+                    lidToPickup = null;
+                    foreach (Transform child in target.transform)
                     {
-                        if (sibling.name.ToLower().Contains("mask")) isBlockedByMask = true;
+                        if (child.name.ToLower().Contains("toplid") && !child.name.ToLower().Contains("storage"))
+                        {
+                            lidToPickup = child.gameObject;
+                            break;
+                        }
                     }
                 }
-                
-                if (!isBlockedByMask)
+
+                if (lidToPickup != null)
                 {
-                    PickUpHeldObject(target);
+                    // Only allow pickup if no photomask is currently sitting on top of it in the chuck
+                    bool isBlockedByMask = false;
+                    if (lidToPickup.transform.parent != null && !lidToPickup.transform.parent.name.ToLower().Contains("storage"))
+                    {
+                        // We only care about mask blocking if it's in the Exposure Aligner Chuck!
+                        foreach (Transform sibling in lidToPickup.transform.parent)
+                        {
+                            if (sibling.name.ToLower().Contains("mask")) isBlockedByMask = true;
+                        }
+                    }
+                    
+                    if (!isBlockedByMask)
+                    {
+                        PickUpHeldObject(lidToPickup);
+                    }
                 }
                 return;
             }
@@ -280,9 +300,19 @@ public class PlayerInteraction : MonoBehaviour
 
     void PickUpHeldObject(GameObject targetAsset)
     {
+        if (heldObject == targetAsset) return;
+
         heldObject = targetAsset;
         heldRigidbody = heldObject.GetComponent<Rigidbody>();
-        if (heldRigidbody == null) heldRigidbody = heldObject.GetComponentInParent<Rigidbody>();
+        
+        if (heldRigidbody == null) 
+        {
+            Rigidbody parentRb = heldObject.GetComponentInParent<Rigidbody>();
+            if (parentRb != null && !parentRb.gameObject.name.ToLower().Contains("player") && !parentRb.gameObject.CompareTag("Player"))
+            {
+                heldRigidbody = parentRb;
+            }
+        }
 
         if (heldRigidbody != null) 
         {
@@ -290,13 +320,10 @@ public class PlayerInteraction : MonoBehaviour
             heldRigidbody.detectCollisions = false; 
         }
 
-        Collider objCollider = heldObject.GetComponent<Collider>();
-        if (objCollider == null) objCollider = heldObject.GetComponentInChildren<Collider>();
-        if (objCollider != null) objCollider.enabled = false;
-
-        foreach (Transform child in heldObject.transform) {
-            Collider childCol = child.GetComponent<Collider>();
-            if (childCol != null) childCol.enabled = false;
+        Collider[] allColliders = heldObject.GetComponentsInChildren<Collider>(true);
+        foreach (Collider col in allColliders) 
+        {
+            col.enabled = false;
         }
 
         originalBottleParent = heldObject.transform.parent;
@@ -434,12 +461,14 @@ public class PlayerInteraction : MonoBehaviour
             HotplateController targetHotplate = target.GetComponentInParent<HotplateController>();
 
             // Hotplate targeting fallback parser
-            if (targetHotplate == null && (targetName.Contains("hotplate") || targetName.Contains("top")))
+            if (targetHotplate == null && (targetName.Contains("hotplate") || (targetName.Contains("top") && !targetName.Contains("toplid"))))
             {
                 targetHotplate = Object.FindAnyObjectByType<HotplateController>();
             }
 
             if (targetName.Contains("spin") || targetName.Contains("coater")) targetAligner = null;
+
+            bool isHeldWafer = heldObject.name.ToLower().Contains("wafer") && !heldObject.name.ToLower().Contains("carrier");
 
             // --- ROUTE A: EXPOSURE ALIGNER STATION ---
             if (targetAligner != null)
@@ -465,7 +494,7 @@ public class PlayerInteraction : MonoBehaviour
                         return;
                     }
 
-                    if (heldObject.name.ToLower().Contains("wafer"))
+                    if (isHeldWafer)
                     {
                         if (hasTopLid) return; // Cannot place wafer until TopLid is removed!
 
@@ -496,7 +525,7 @@ public class PlayerInteraction : MonoBehaviour
             WaferCarrierController carrier = target.GetComponent<WaferCarrierController>();
             if (carrier == null) carrier = target.GetComponentInParent<WaferCarrierController>();
 
-            if (carrier != null && heldObject.name.ToLower().Contains("wafer"))
+            if (carrier != null && isHeldWafer)
             {
                 if (carrier.isAnimating || carrier.hasWafer) return;
                 
@@ -545,7 +574,7 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // --- ROUTE C: POLOS SPIN COATER ---
-            if (targetCoater != null && heldObject.name.ToLower().Contains("wafer"))
+            if (targetCoater != null && isHeldWafer)
             {
                 RestoreHeldObjectLayer();
                 GameObject objectToPlace = heldObject;
@@ -556,7 +585,7 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // --- ROUTE D: POLOS HOTPLATE UNIT ---
-            if (targetHotplate != null && heldObject.name.ToLower().Contains("wafer"))
+            if (targetHotplate != null && isHeldWafer)
             {
                 if (targetHotplate.currentState == HotplateController.HotplateState.Baking) return;
                 RestoreHeldObjectLayer(); DetachHeldObject();
@@ -566,7 +595,7 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             // --- ROUTE E: CHEMICAL DEVELOPMENT BEAKER DISPLACEMENT ---
-            bool isWafer = heldObject.name.ToLower().Contains("wafer") || (heldObject.name.ToLower().Contains("substrate") && !isBottle);
+            bool isWafer = isHeldWafer || (heldObject.name.ToLower().Contains("substrate") && !isBottle);
             
             if (isWafer)
             {
@@ -614,13 +643,10 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (heldObject == null) return;
         
-        Collider objCollider = heldObject.GetComponent<Collider>();
-        if (objCollider == null) objCollider = heldObject.GetComponentInChildren<Collider>();
-        if (objCollider != null) objCollider.enabled = true;
-
-        foreach (Transform child in heldObject.transform) {
-            Collider childCol = child.GetComponent<Collider>();
-            if (childCol != null) childCol.enabled = true;
+        Collider[] allColliders = heldObject.GetComponentsInChildren<Collider>(true);
+        foreach (Collider col in allColliders) 
+        {
+            col.enabled = true;
         }
 
         heldObject.transform.SetParent(null);

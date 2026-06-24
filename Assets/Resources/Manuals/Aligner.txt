@@ -1,0 +1,21 @@
+<size=150%><b>Mask Aligner Operations</b></size>
+
+The Mask Aligner is used to transfer patterns from a photomask onto your photoresist-coated wafer.
+
+<b>Step 1: Inserting the Mask</b>
+Carefully retrieve your photomask from the storage dock and place it face-down onto the upper chuck of the aligner.
+
+[IMAGE: mask_insertion_diagram]
+
+<b>Step 2: Substrate Loading</b>
+Ensure the Top Lid is completely removed. Place your coated wafer onto the lower vacuum chuck. The system will automatically secure it.
+
+<b>Step 3: Exposure Parameters</b>
+Set the following parameters carefully before running the exposure sequence:
+- <b>Dose:</b> Standard range is 25-35 mJ/cm²
+- <b>Defocus:</b> Keep at 0.0 unless performing advanced multi-layer alignment
+- <b>NA:</b> Numerical Aperture dictates resolution
+
+[IMAGE: exposure_settings_screenshot]
+
+Once parameters are locked, press RUN to begin the UV exposure sequence. Do not open the chamber during exposure!

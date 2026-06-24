@@ -1,0 +1,117 @@
+.help-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.help-window {
+    width: 60%;
+    height: 80%;
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: #3a3a3a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.help-header {
+    height: 50px;
+    background-color: #2a2a2a;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 20px;
+    padding-right: 10px;
+    border-bottom-width: 1px;
+    border-bottom-color: #3a3a3a;
+}
+
+.help-title {
+    color: white;
+    font-size: 18px;
+    -unity-font-style: bold;
+}
+
+.help-close-btn {
+    width: 30px;
+    height: 30px;
+    background-color: transparent;
+    border-width: 0;
+    color: #aaaaaa;
+    font-size: 20px;
+    -unity-font-style: bold;
+    cursor: pointer;
+    transition-duration: 0.2s;
+}
+
+.help-close-btn:hover {
+    color: white;
+    background-color: #e74c3c;
+    border-radius: 15px;
+}
+
+.help-tab-bar {
+    display: flex;
+    flex-direction: row;
+    background-color: #252525;
+    height: 45px;
+    border-bottom-width: 2px;
+    border-bottom-color: #111111;
+}
+
+.help-tab {
+    flex-grow: 1;
+    background-color: transparent;
+    border-width: 0;
+    border-right-width: 1px;
+    border-right-color: #333333;
+    color: #888888;
+    font-size: 16px;
+    -unity-font-style: bold;
+    cursor: pointer;
+    transition-duration: 0.2s;
+}
+
+.help-tab:hover {
+    background-color: #333333;
+    color: #dddddd;
+}
+
+.help-tab-active {
+    background-color: #3a5b8c;
+    color: white;
+}
+
+.help-content-area {
+    flex-grow: 1;
+    padding: 30px;
+    background-color: #1a1a1a;
+}
+
+.help-text-block {
+    color: #dcdcdc;
+    font-size: 28px;
+    white-space: normal;
+    margin-bottom: 10px;
+    line-height: 40px;
+}
+
+.help-image-block {
+    width: 250px;
+    height: 200px;
+    align-self: flex-start;
+    -unity-background-scale-mode: scale-to-fit;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}

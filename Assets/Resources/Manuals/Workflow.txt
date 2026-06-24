@@ -1,0 +1,43 @@
+<size=36><b><u>Spincoater</u></b></size>
+
+[IMAGE: spincoaterImg]
+
+1. Approach the spincoater machine, and use Left mouse click to click the highlighted portion on its right to open up its menu
+2. Toggle the spincoater to open its hatch
+3. Look over to the hotplate on the left and click the wafer to grab it
+4. Place the Wafer on the spincoater by clicking the spincoater region
+5. Toggle the spincoater to close its hatch
+6. Adjust the RPM and spin time values if required
+7. Dispense the Photoresist (PR) solution onto the wafer 
+8. Toggle the spincoater and start the spin operation
+9. Once complete, Thickness value of the PR will be visible
+10. Remove the wafer and bring it over to the hotplate on the left.
+
+
+<size=36><b><u>Hotplate</u></b></size>
+
+[IMAGE: hotplateImg]  
+
+1. Place the PR coated wafer on top of the Hotplate
+2. Click on the highlighted region on the knob to bring up its menu
+3. Adjust the hotplate’s set temperature and time if required 
+4. Start prebake/softbake 
+5. Observe metrics displayed on the ellipsometry visual at the top right of the menu
+ 
+       
+<size=36><b><u>Wafer Carrier</u></b></size>
+
+[IMAGE: wafercarrierImg]  
+
+1. Take the wafer from the hotplate
+2. Click on the wafer carrier once to open the Wafer Carrier and to store the wafer safely.
+3. After it is stored, click it again to move it around the cleanroom
+4. Bring the carrier to a storage bench in the next room.
+5. Place it on the right side of storage bench
+
+
+<size=36><b><u>Storage Bench</u></b></size>
+
+[IMAGE: storageImg]
+
+Note: Top lid of the mask tray is interactable on the left of this table, the photomask is available in the middle (First item) and wafer carrier is interactable on the right.

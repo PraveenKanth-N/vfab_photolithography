@@ -45,6 +45,11 @@ public class MouseLook : MonoBehaviour
                 return; 
             }
 
+            if (HelpManualController.Instance != null && HelpManualController.Instance.isOpen)
+            {
+                return;
+            }
+
             if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
             {
                 LockCursor();
