@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 6b8394ea2d0dd4948b38c4629dcd67a6
+guid: 74a59a41319354b8c99ea7bc30f7f2a2
 ScriptedImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -29,16 +29,16 @@ ScriptedImporter:
   - type: 2
     code: 20
     messages:
-    - KHR_materials_emissive_strength
-  - type: 2
-    code: 20
-    messages:
-    - KHR_materials_specular
-  - type: 2
-    code: 20
-    messages:
     - KHR_materials_anisotropy
   - type: 2
     code: 20
     messages:
+    - KHR_materials_emissive_strength
+  - type: 2
+    code: 20
+    messages:
     - KHR_materials_ior
+  - type: 2
+    code: 20
+    messages:
+    - KHR_materials_specular
