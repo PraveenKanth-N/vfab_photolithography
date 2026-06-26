@@ -31,6 +31,10 @@ public class HelpManualController : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        if (uiDocument != null)
+        {
+            uiDocument.sortingOrder = 999;
+        }
     }
 
     private void Start()

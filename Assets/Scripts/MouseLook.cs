@@ -121,6 +121,11 @@ public class MouseLook : MonoBehaviour
 
     public void ForceLockFromUI()
     {
+        // Safegaurd: Do not lock if any other UI is currently demanding the cursor
+        if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen) return;
+        if (HelpManualController.Instance != null && HelpManualController.Instance.isOpen) return;
+        if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.IsAnyPanelOpen()) return;
+
         isCursorLocked = true;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
