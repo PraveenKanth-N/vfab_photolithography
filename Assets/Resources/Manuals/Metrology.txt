@@ -1,0 +1,14 @@
+<size=130%><b>Critical Dimension (CD) & Line Edge Roughness (LER) Metrology</b></size>
+
+<b>CD and LER Defined:</b> Critical Dimension (CD) is the measured width of printed lines or spaces. Line Edge Roughness (LER) measures how jagged or wavy a printed wall edge is compared to a perfectly straight reference line.
+
+<b>Fabs vs. Digital Twin:</b> Physical cleanrooms use expensive, high-voltage CD-SEM tools to track line edges via electron-beam shadow detection. This simulator replaces those rigid tools with pixel-based metrology that scans binary development images.
+
+<b>CD Extraction:</b> The engine counts continuous pixel runs along a cross-sectional track and multiplies them by the physical grid pitch ( per pixel) to output Mean trench CD (average feature width) and Mean line CD (average gap width).
+
+<b>Roughness Extraction:</b> The engine calculates the standard deviation (sigma) of the first transition coordinate along parallel tracks. It multiplies this value by 3 (3*sigma) to output standard cleanroom Line Edge Roughness (LER) and evaluates total run width variance directly for Line Width Roughness (LWR).
+
+<b>Automated Dual-Axis Scanning:</b> The system reads the loaded mask index to dynamically toggle its measurement routing:
+
+<b>Dense Gratings:</b> Uses orthogonal single-axis slicing to capture continuous line/space width stability and edge roughness.
+<b>Contact Arrays:</b> Uses dual-axis centerline profiling (and  center cuts) to capture square contact diameters and identify corner-rounding asymmetry.

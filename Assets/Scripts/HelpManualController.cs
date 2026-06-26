@@ -146,12 +146,21 @@ public class HelpManualController : MonoBehaviour
                     currentTextBuffer = "";
                 }
 
-                // Extract image name
-                string imageName = trimmed.Substring(7, trimmed.Length - 8).Trim();
+                // Extract image name and optional size (e.g., [IMAGE: aerialDiagramImg|600])
+                string tagContent = trimmed.Substring(7, trimmed.Length - 8).Trim();
+                string[] parts = tagContent.Split('|');
+                string imageName = parts[0].Trim();
                 
                 // Spawn Image block
                 VisualElement imageBlock = new VisualElement();
                 imageBlock.AddToClassList("help-image-block");
+                
+                // Apply custom size if provided
+                if (parts.Length > 1 && float.TryParse(parts[1], out float customSize))
+                {
+                    imageBlock.style.width = customSize;
+                    imageBlock.style.height = customSize; // scale-to-fit will maintain aspect ratio inside this box
+                }
                 
                 Texture2D loadedTex = Resources.Load<Texture2D>("Images/" + imageName);
                 if (loadedTex != null)

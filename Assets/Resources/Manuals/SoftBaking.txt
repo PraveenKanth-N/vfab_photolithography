@@ -1,0 +1,16 @@
+<size=130%><b>Soft-Baking (Post-Apply Bake)</b></size>
+
+<b>Process Baseline Configuration:</b> The soft-bake process uses an optimized industry-standard thermal profile, evaluating standard baking windows like 95.0°C for 40.0 seconds to safely dry the thin film.
+
+<b>Machine learning framework:</b> Split neural network architecture
+
+<b>The Mass-Transport Kinetics of Solvent Evaporation:</b> Soft-baking drives out volatile casting solvents (specifically PGMEA) from the wet, spin-coated polymer matrix. The remaining solvent concentration decreases exponentially over bake time under the twin physical influences of bulk molecular diffusion inside the layer and vaporization at the open surface.
+
+<b>Geometric Volume-to-Thickness Shrinkage Mechanics:</b> As the solvent content evaporates from its initial post-spin layout (roughly 21% volume down to the 2% floor), the film loses physical mass. Because the resist is strongly pinned to the wafer floor, it cannot shrink horizontally; instead, it undergoes a volume compaction restricted exclusively along the vertical Z-axis, defining the final pre-exposure film thickness.
+
+<b>The Equivalence of Final Solvent Distribution:</b> According to foundational lithography principles established by Chris Mack, the final vertical distribution of solvents inside the resist depends directly on its final thickness. Any variable combination of starting wet thickness and initial bake temperature that results in the exact same final thickness would yield an identical solvent distribution profile throughout the depth of the film.
+
+<b>The Manufacturing Percent Non-Uniformity Metric:</b> The direct consequence of this uneven hotplate heating is that the hotter center core drives out solvents faster and shrinks more than the outer margins. We can track this using the Percent Non-Uniformity metric, which compares the peak thickness extremes against the overall average film height:
+Under-baking (low temperatures/short times) leaves the photoresist film thick and uncompressed, rendering the monitor display as a broad, uniform field of <b>deep purple and blue</b>.
+
+Conversely, aggressive baking creates a strong radial heat gradient where the hot center dries and shrinks rapidly into a <b>red/orange core</b>, while the cooler perimeter lags as a <b>purple/blue outer ring</b><b>.</b>

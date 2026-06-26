@@ -1,0 +1,19 @@
+<size=130%><b>Spin Coating</b></size>
+
+<b>The Modeled Photoresist Matrix:</b> The system models a high-performance 193 nm Deep Ultraviolet (DUV) Chemically Amplified Resist (CAR) designed for printing advanced sub-micron features.
+
+<b>Machine learning framework:</b><b> </b>MLP regression deployed via ONNX.
+
+<b>Chemical Composition Profile:</b> At the molecular level, this wet polymer matrix consists of an organic resin base, an acrylic-based copolymer structure, pre-mixed with sensitive Photoacid Generator (PAG) molecules, base quencher compounds, and volatile casting solvents such as Propylene Glycol Monomethyl Ether Acetate (PGMEA).
+
+<b>The Hydrodynamic Basis of Thin-Film Deposition</b><b>: </b>The physical process progresses through distinct structural phases: an initial liquid dispense phase, a spin-up acceleration phase where radial spreading begins, a hydrodynamic thinning phase dominated by centrifugal forces.
+
+<b>Limitations of Pure Analytical Physics Solver Models:</b> While historically significant for establishing hydrodynamic principles, purely analytical physics solvers like the Emslie model create limitations because it assumes a constant fluid state and completely neglects non-Newtonian polymer physics.
+
+<b>Industrial Empirical Scaling Paradigms:</b> To bypass the computational limitations of full multi-physics solvers, modern semiconductor fabs and resist vendors characterize recipes using empirical spin curves validated by ellipsometry metrology. The process maps <b>the final stabilized thickness (h) </b> inversely against the spin speed (RPM) via an empirical parameter channel:
+
+<b>h = K * RPM^-n</b>
+
+<b>The Empirical Material Parameter </b><b>:</b> A common point of confusion is interpreting the parameter  as a simple math scalar. In advanced lithography,  is a comprehensive physical constant that indirectly captures the complete chemical state of the resist, including its base polymer viscosity, solvent concentration, fluid density, surface tension, and systemic evaporation dynamics.
+
+<b>The Spin Exponent Component </b><b>:</b> The spin exponent parameter  dictates the steepness of the thickness-vs-RPM response curve and typically trends near a value of  across industry recipes. For our specific Deep Ultraviolet (DUV) 193 nm lithography window, targeted at a thin-film process range between <b> 120 nm and 350 nm</b>

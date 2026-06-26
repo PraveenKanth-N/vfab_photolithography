@@ -1,0 +1,16 @@
+<size=130%><b>Chemical Development & Topography Formation</b></size>
+
+<b>The Micro-to-Macro Scale Comparison:</b> The final printed circuit features occupy an ultra-localized  pixel grid representing a real-world canvas footprint of just 2.0 μm by 2.0 μm, a microscopic dot compared to the massive 300 mm bulk silicon wafer surface.
+
+<b>The Final Input Progress Operator:</b> The dynamic progression of this vertical fluid etching and erosion profile is governed directly by your final dashboard slider parameter, the <b>Development Wash Time</b>, configured to track standard cleanroom chemical immersion cycles over an operator range of 10.0 to 45.0 seconds.
+
+<b>The Invisible Latent Image Stage:</b> Right after the post-exposure bake, the chemical transformation is complete, meaning you have sections of hard wax and soft soap side-by-side (analogy). However, if you look at the silicon wafer under a microscope at this point, it looks like a completely flat, smooth mirror. The circuit patterns are entirely invisible because the “soap” and the “wax” are still mixed together in a flat film. This hidden chemical map is known as the latent image.
+
+<b>The Developer Pass Breakthrough:</b> True 3D topography only forms when immersed in an alkaline chemical developer (usually TMAH). This liquid dissolve and washes away the soft soap regions down to the silicon floor while leaving the hard wax sections completely untouched.
+
+<b>The Mack Dissolution Paradigm:</b> This model relates the local deprotection state of the polymer to its vertical etching velocity. The fastest possible rate at which fully unprotected, highly exposed photoresist resin can dissolve in the developer fluid is bounded by a maximum speed parameter (Rmax).
+
+Conversely, the tiny background leakage rate at which completely unexposed, fully protected photoresist slowly dissolves is controlled by a minimum baseline parameter (Rmin).
+
+<b>Topography Slicing Over Time:</b> The final remaining height map of the resist is calculated by integrating these local dissolution velocities over the total wash time. 
+The final pattern is printed on the microscopic area of the wafer. <b>Black region: washed away (Trench CD) and white region: intact</b>

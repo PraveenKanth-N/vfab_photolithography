@@ -1,0 +1,21 @@
+<size=130%><b>Optical Aerial Image Formation</b></size>
+
+<b>Photonic Action Inside the Resist:</b> During exposure, incoming 193 nm deep ultraviolet photons slice through the transparent film stack to interact exclusively with embedded Photoacid Generator (PAG) molecules, breaking them to generate photoacids (H+) without altering the bulk polymer structure.
+
+<b>Exposure Dose (E):</b> Continuous energy delivery spanning from 22.0 to 38.0 mJ/cm².
+
+<b>Lens Defocus (W)</b> Vertical displacement tracking optical phase shifts from -45.0 to 45.0 nm.
+
+<b>Numerical Aperture (NA)</b> Lens light-gathering power, fixed in our model at a value of 1.2 (this directly affects the contrast of the image).
+
+<b>Machine learning framework</b><b>:</b> Residual U-Net CNN architecture.
+
+<b>Hopkins-Abbe Partial Coherence Formulation:</b> Our implementation uses the U-Net surrogate trained on Hopkins-Abbe model data. This method splits the extended, <b>partially coherent light source</b> into a grid of individual, mutually incoherent point sources, allowing the system to handle complex diffraction calculations efficiently in frequency space via Fast Fourier Transforms. It finally sums up their intensities to construct the aerial image.
+
+<b>The Spatial Frequency Cutoff Boundary:</b> The objective lens system acts as a strict physical low-pass frequency filter. It can only capture diffracted light rays up to a specific maximum angle defined by its numerical aperture (NA) and the light wavelength, creating an absolute physical boundary called the spatial frequency cutoff.
+
+[IMAGE: aerialDiagramImg|800]
+
+<b>The Physical Mechanism of Feature Blurring:</b> When mask features or line spacings become smaller than the lens cutoff, the diffracted light rays bend at an angle so steep that they propagate beyond the collection angle. The objective lens blocks these higher frequencies, preventing them from recombining at the wafer plane, which causes the <b>final aerial image to lose all sharp contrast</b> and flatten into a uniform blur.
+
+<b>The Complex Pupil Operator with Defocus Aberrations:</b> When the scanner lens moves away from the ideal focus plane, the traveling light waves experience phase deformation. The engine combines the physical circular boundary of the lens with a quadratic defocus aberration function to build a complex pupil operator that captures both low-pass filtering and focus blur simultaneously.
