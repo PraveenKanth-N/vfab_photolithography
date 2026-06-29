@@ -52,7 +52,7 @@ public class SpinCoaterController : MonoBehaviour
     public bool debugSpeedUp = true;
 
     private float centerThicknessSample = 0f;
-    private ClamshellLidController lidController;
+    public ClamshellLidController lidController;
     // private GameObject hostedWaferObjectRef = null;
 
     void Start()

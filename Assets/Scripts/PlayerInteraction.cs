@@ -13,7 +13,7 @@ public class PlayerInteraction : MonoBehaviour
     public Camera playerCamera;
     public Transform waferHolderSocket; 
 
-    private GameObject heldObject = null;
+    public GameObject heldObject = null;
     private Rigidbody heldRigidbody = null;
     
     private int originalLayer; 
@@ -182,6 +182,8 @@ public class PlayerInteraction : MonoBehaviour
                     Transform searchRoot = coater.coaterWaferAnchor != null ? coater.coaterWaferAnchor : coater.rotorSpindleChuck;
                     if (searchRoot != null && target.transform.IsChildOf(searchRoot))
                     {
+                        if (coater.lidController != null && !coater.lidController.isOpen) return; // REJECT if lid closed
+
                         GameObject extractedWafer = coater.RemoveWafer();
                         if (extractedWafer != null) PickUpHeldObject(extractedWafer);
                         return;
@@ -208,10 +210,34 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
+            // --- 4b. HOTPLATE SUBSTRATE EXTRACTION (clicking the hotplate top) ---
+            if (nameLower.Contains("hotplate") || (nameLower.Contains("top") && !nameLower.Contains("toplid")))
+            {
+                HotplateController hp = target.GetComponentInParent<HotplateController>();
+                if (hp == null) hp = Object.FindAnyObjectByType<HotplateController>();
+                
+                if (hp != null && (hp.currentState == HotplateController.HotplateState.Complete || hp.currentState == HotplateController.HotplateState.WaferLoaded))
+                {
+                    Transform anchor = hp.hotplateWaferAnchor;
+                    if (anchor != null && anchor.childCount > 0)
+                    {
+                        GameObject wafer = anchor.GetChild(0).gameObject;
+                        PickUpHeldObject(wafer);
+                        hp.currentState = HotplateController.HotplateState.Idle; // Reset state so workflow advances
+                        return;
+                    }
+                }
+            }
+
             // --- 1. STANDALONE WAFER PICKUP ---
             if (nameLower.Contains("wafer") && !nameLower.Contains("carrier")) 
             {
                 PickUpHeldObject(target);
+                
+                // If it was on a hotplate, reset the hotplate
+                HotplateController hp = target.GetComponentInParent<HotplateController>();
+                if (hp != null) hp.currentState = HotplateController.HotplateState.Idle;
+                
                 return;
             }
             

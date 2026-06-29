@@ -33,7 +33,8 @@ public class HelpManualController : MonoBehaviour
         Instance = this;
         if (uiDocument != null)
         {
-            uiDocument.sortingOrder = 999;
+            // Max sorting order to ensure it draws over ScreenSpaceOverlay Canvases (like HUD)
+            uiDocument.sortingOrder = 32767;
         }
     }
 

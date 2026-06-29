@@ -16,6 +16,16 @@ public class PlacementPulseIndicator : MonoBehaviour
     private bool isPulsing = false;
     private float pulseSpeed = 3f;
 
+    private void Awake()
+    {
+        // Dynamically inject wafer compatibility into any existing carrier dock!
+        // This ensures the table docks automatically pulse when the player holds a wafer, guiding them to the carrier.
+        if (requiredKeyword.ToLower().Contains("carrier") && !requiredKeyword.ToLower().Contains("wafer"))
+        {
+            requiredKeyword += ",wafer,substrate";
+        }
+    }
+
     private void Start()
     {
         // Programmatically generate the Quad primitive
@@ -65,14 +75,22 @@ public class PlacementPulseIndicator : MonoBehaviour
             return;
         }
 
-        if (heldItemName.ToLower().Contains(requiredKeyword.ToLower()))
+        // Support multiple keywords separated by commas (e.g. "carrier,wafer,substrate")
+        bool matchFound = false;
+        string[] keywords = requiredKeyword.Split(',');
+        
+        foreach (string kw in keywords)
         {
-            SetPulseActive(true);
+            if (string.IsNullOrWhiteSpace(kw)) continue;
+            
+            if (heldItemName.ToLower().Contains(kw.Trim().ToLower()))
+            {
+                matchFound = true;
+                break;
+            }
         }
-        else
-        {
-            SetPulseActive(false);
-        }
+
+        SetPulseActive(matchFound);
     }
 
     private void SetPulseActive(bool active)
