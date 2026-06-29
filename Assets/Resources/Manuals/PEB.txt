@@ -10,10 +10,10 @@
 
 <b> H0(x,y) = 1.0 - exp(-C * I(x,y) * E) </b>
 
-Where  represents Dill’s activation parameter calibrated to , which measures the photolysis rate constant and chemical conversion efficiency. The term  represents the local normalized optical intensity map delivered by the aerial image, and  is the absolute exposure energy dose set by the user.
+Where C represents Dill’s activation parameter calibrated to 0.042 cm^2/mJ, which measures the photolysis rate constant and chemical conversion efficiency. The term I(x,y) represents the local normalized optical intensity map delivered by the aerial image, and E is the absolute exposure energy dose set by the user.
 
 <b>The Hotplate as a Chemical Amplifier:</b> The primary function of PEB is to use controlled baking temperatures and durations to enhance and drive the chemical reactions initiated during exposure. The thermal energy from the hotplate forces the generated acid molecules to diffuse through the film and act as catalysts for subsequent reactions.
 
 <b>Catalytic Resin Deprotection:</b> As the photoacid diffuses horizontally through the resist, it catalyzes the deprotection of the bulky ester groups attached to the polymer backbone. This process increases the solubility contrast between the exposed and unexposed areas, rendering the deprotected resin hydrophilic and soluble in an alkaline developer solution, which is crucial for achieving high-resolution patterns.
 
-<b>Emergence of the Final Resist Profile (M)</b> At the conclusion of the PEB step, first-order reaction kinetics yield the finalized concentration of the remaining protected polymer matrix fraction (M). The local value of  represents the remaining chemical fraction (ranging between  and ) that determines the local solubility contrast.
+<b>Emergence of the Final Resist Profile (M)</b> At the conclusion of the PEB step, first-order reaction kinetics yield the finalized concentration of the remaining protected polymer matrix fraction (M). The local value of  represents the remaining chemical fraction (ranging between 0 and 1) that determines the local solubility contrast.

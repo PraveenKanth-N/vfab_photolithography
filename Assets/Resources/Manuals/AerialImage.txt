@@ -4,9 +4,9 @@
 
 <b>Exposure Dose (E):</b> Continuous energy delivery spanning from 22.0 to 38.0 mJ/cm².
 
-<b>Lens Defocus (W)</b> Vertical displacement tracking optical phase shifts from -45.0 to 45.0 nm.
+<b>Lens Defocus (W):</b> Vertical displacement tracking optical phase shifts from -45.0 to 45.0 nm.
 
-<b>Numerical Aperture (NA)</b> Lens light-gathering power, fixed in our model at a value of 1.2 (this directly affects the contrast of the image).
+<b>Numerical Aperture (NA):</b> Lens light-gathering power, fixed in our model at a value of 1.2 (this directly affects the contrast of the image).
 
 <b>Machine learning framework</b><b>:</b> Residual U-Net CNN architecture.
 

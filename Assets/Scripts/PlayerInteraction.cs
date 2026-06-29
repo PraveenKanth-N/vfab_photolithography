@@ -365,6 +365,13 @@ public class PlayerInteraction : MonoBehaviour
             heldObject.transform.localRotation = Quaternion.identity;
             heldObject.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
         }
+
+        // Notify all placement indicators in the scene to check if they should pulse
+        PlacementPulseIndicator[] indicators = Object.FindObjectsByType<PlacementPulseIndicator>(FindObjectsSortMode.None);
+        foreach (var indicator in indicators)
+        {
+            indicator.CheckAndTogglePulse(heldObject.name);
+        }
     }
 
     void TryPlaceObject()
@@ -579,8 +586,11 @@ public class PlayerInteraction : MonoBehaviour
                 RestoreHeldObjectLayer();
                 GameObject objectToPlace = heldObject;
                 DetachHeldObject(); 
-                if (targetCoater.RegisterWaferPlacement(objectToPlace)) heldObject = null;
-                else PickUpHeldObject(objectToPlace);
+                heldObject = null; // Clear the reference so PickUpHeldObject doesn't abort early
+                if (!targetCoater.RegisterWaferPlacement(objectToPlace)) 
+                {
+                    PickUpHeldObject(objectToPlace); // Recover the wafer back to the player's hand
+                }
                 return;
             }
 
@@ -654,6 +664,13 @@ public class PlayerInteraction : MonoBehaviour
         {
             heldRigidbody.isKinematic = false;
             heldRigidbody.detectCollisions = true; 
+        }
+
+        // Turn off all placement indicators when item is dropped
+        PlacementPulseIndicator[] indicators = Object.FindObjectsByType<PlacementPulseIndicator>(FindObjectsSortMode.None);
+        foreach (var indicator in indicators)
+        {
+            indicator.CheckAndTogglePulse(null);
         }
     }
 

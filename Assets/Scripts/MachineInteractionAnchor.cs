@@ -12,6 +12,9 @@ public class MachineInteractionAnchor : MonoBehaviour
     [Header("Glow Customization")]
     [ColorUsage(true, true)] // This enables the HDR color picker for intensive glowing looks
     public Color hoverGlowColor = new Color(1.0f, 0.6f, 0.0f, 1.0f); // Default Amber
+    
+    [Tooltip("Speed of the pulse animation")]
+    public float pulseSpeed = 4f;
 
     void Start()
     {
@@ -27,24 +30,29 @@ public class MachineInteractionAnchor : MonoBehaviour
         }
     }
 
-    // Triggers automatically when the player's mouse cursor moves over the Box Collider
-    void OnMouseEnter()
+    void Update()
     {
         if (meshRenderer != null)
         {
-            // Inject the HDR color into the shader, turning visibility on
-            meshRenderer.material.SetColor("_EmissionColor", hoverGlowColor);
+            // Calculate a pulsing multiplier between 0.2 and 1.0 for a continuous breathing effect
+            float pulseMultiplier = (Mathf.Sin(Time.time * pulseSpeed) + 1f) * 0.5f; 
+            pulseMultiplier = Mathf.Clamp(pulseMultiplier, 0.2f, 1.0f);
+            
+            Color currentPulse = hoverGlowColor * pulseMultiplier;
+            meshRenderer.material.SetColor("_EmissionColor", currentPulse);
         }
+    }
+
+    // Triggers automatically when the player's mouse cursor moves over the Box Collider
+    void OnMouseEnter()
+    {
+        // Removed: Pulse is now infinite
     }
 
     // Triggers automatically when the player's mouse cursor leaves the Box Collider bounds
     void OnMouseExit()
     {
-        if (meshRenderer != null)
-        {
-            // Reset back to black/zero emission, making the shader invisible again
-            meshRenderer.material.SetColor("_EmissionColor", originalColor);
-        }
+        // Removed: Pulse is now infinite
     }
 
     // Triggers automatically when clicking directly on the cube anchor zone

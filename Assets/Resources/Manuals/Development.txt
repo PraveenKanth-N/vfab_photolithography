@@ -13,4 +13,4 @@
 Conversely, the tiny background leakage rate at which completely unexposed, fully protected photoresist slowly dissolves is controlled by a minimum baseline parameter (Rmin).
 
 <b>Topography Slicing Over Time:</b> The final remaining height map of the resist is calculated by integrating these local dissolution velocities over the total wash time. 
-The final pattern is printed on the microscopic area of the wafer. <b>Black region: washed away (Trench CD) and white region: intact</b>
+The final pattern is printed on the microscopic area of the wafer. <b>Black region: washed away (Trench CD) and white region: intact (line CD)</b>

@@ -406,6 +406,12 @@ public class SpinCoaterController : MonoBehaviour
             wafer.transform.localPosition = new Vector3(0.006f, 0.02f, 0.015f); // Keeps your custom offset positioning
             wafer.transform.localRotation = Quaternion.identity;
         }
+        else if (rotorSpindleChuck != null)
+        {
+            wafer.transform.SetParent(rotorSpindleChuck, false);
+            wafer.transform.localPosition = new Vector3(0f, 0.015f, 0f);
+            wafer.transform.localRotation = Quaternion.identity;
+        }
         else
         {
             wafer.transform.SetParent(transform, false);

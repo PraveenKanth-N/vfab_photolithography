@@ -11,4 +11,4 @@
 <b>Automated Dual-Axis Scanning:</b> The system reads the loaded mask index to dynamically toggle its measurement routing:
 
 <b>Dense Gratings:</b> Uses orthogonal single-axis slicing to capture continuous line/space width stability and edge roughness.
-<b>Contact Arrays:</b> Uses dual-axis centerline profiling (and  center cuts) to capture square contact diameters and identify corner-rounding asymmetry.
+<b>Contact Arrays:</b> Uses dual-axis centerline profiling (X and Y center cuts) to capture square contact diameters and identify corner-rounding asymmetry.

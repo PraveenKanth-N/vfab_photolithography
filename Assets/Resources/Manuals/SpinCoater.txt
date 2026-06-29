@@ -14,6 +14,6 @@
 
 <b>h = K * RPM^-n</b>
 
-<b>The Empirical Material Parameter </b><b>:</b> A common point of confusion is interpreting the parameter  as a simple math scalar. In advanced lithography,  is a comprehensive physical constant that indirectly captures the complete chemical state of the resist, including its base polymer viscosity, solvent concentration, fluid density, surface tension, and systemic evaporation dynamics.
+<b>The Empirical Material Parameter </b><b>:</b> A common point of confusion is interpreting the parameter  as a simple math scalar. In advanced lithography, K is a comprehensive physical constant that indirectly captures the complete chemical state of the resist, including its base polymer viscosity, solvent concentration, fluid density, surface tension, and systemic evaporation dynamics.
 
 <b>The Spin Exponent Component </b><b>:</b> The spin exponent parameter  dictates the steepness of the thickness-vs-RPM response curve and typically trends near a value of  across industry recipes. For our specific Deep Ultraviolet (DUV) 193 nm lithography window, targeted at a thin-film process range between <b> 120 nm and 350 nm</b>
