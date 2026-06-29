@@ -75,22 +75,31 @@ public class PlacementPulseIndicator : MonoBehaviour
             return;
         }
 
-        // Support multiple keywords separated by commas (e.g. "carrier,wafer,substrate")
-        bool matchFound = false;
-        string[] keywords = requiredKeyword.Split(',');
+        string nameLower = heldItemName.ToLower();
+        bool shouldPulse = false;
         
-        foreach (string kw in keywords)
+        string[] keywords = requiredKeyword.ToLower().Split(',');
+        foreach (var keyword in keywords)
         {
-            if (string.IsNullOrWhiteSpace(kw)) continue;
-            
-            if (heldItemName.ToLower().Contains(kw.Trim().ToLower()))
+            if (nameLower.Contains(keyword.Trim()))
             {
-                matchFound = true;
+                shouldPulse = true;
                 break;
             }
         }
 
-        SetPulseActive(matchFound);
+        // WORKFLOW RESTRICTIONS:
+        WorkflowManager wm = Object.FindAnyObjectByType<WorkflowManager>();
+        if (wm != null && nameLower.Contains("carrier"))
+        {
+            // Only docks 1 and 2 should highlight during the first transport (Step 21)
+            if (wm.currentStep <= 22 && gameObject.name.ToLower().Contains("dock3"))
+            {
+                shouldPulse = false;
+            }
+        }
+
+        SetPulseActive(shouldPulse);
     }
 
     private void SetPulseActive(bool active)

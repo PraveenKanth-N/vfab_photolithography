@@ -49,6 +49,7 @@ public class FluidInteractionController : MonoBehaviour
     private Quaternion originalBeakerLocalRot;
 
     [HideInInspector] public float uiSwerveDuration = 30.0f; 
+    public bool hasPoured = false;
 
     void Start()
     {
@@ -261,5 +262,6 @@ public class FluidInteractionController : MonoBehaviour
 
         isSwerving = false;
         Debug.Log($"[Cleanroom Sequence] Pour animation complete. Bottle retained in player custody.");
+        hasPoured = true;
     }
 }

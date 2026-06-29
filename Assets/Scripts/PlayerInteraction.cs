@@ -31,6 +31,8 @@ public class PlayerInteraction : MonoBehaviour
         ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
     }
 
+    public string lastDockPlacedName = "";
+
     void Update()
     {
         Debug.DrawRay(playerCamera.transform.position, playerCamera.transform.forward * interactionDistance, Color.red);
@@ -573,7 +575,16 @@ public class PlayerInteraction : MonoBehaviour
 
             if (targetName.Contains("carrier_dock") && heldObject.name.ToLower().Contains("carrier"))
             {
+                lastDockPlacedName = target.name;
+                
                 // Sequence: Place carrier onto dock
+                Transform hinge = heldObject.transform.Find("Hinge");
+                if (hinge != null)
+                {
+                    hinge.localRotation = Quaternion.Euler(Vector3.zero); // Close lid
+                }
+
+                // Snap into position
                 RestoreHeldObjectLayer(); DetachHeldObject();
                 heldObject.transform.SetParent(target.transform, false);
                 heldObject.transform.localPosition = Vector3.zero;

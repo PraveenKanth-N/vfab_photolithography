@@ -11,6 +11,8 @@ public class DeveloperUIManager : MonoBehaviour
 
     [Header("Time Display (Drag your TMP_Text here)")]
     public TMP_Text swerveTimeText;
+    
+    public bool hasStartedSwerving = false;
 
     [Header("Pattern Rendering")]
     [Tooltip("Drag the Assets/Materials/StaticPhotomaskMat.mat here!")]
@@ -20,7 +22,8 @@ public class DeveloperUIManager : MonoBehaviour
     private float targetEndTime = 0f;
     private float swerveStartTime = 0f;
     private bool decalSpawned = false;
-    private bool isCountingDown = false;
+    public bool isCountingDown = false;
+    public bool isSwervingDI = false; // Tracks if the CURRENT active swerve is DI water
     private bool pendingRestore = false;
     private float restoreTime = 0f;
 
@@ -44,7 +47,7 @@ public class DeveloperUIManager : MonoBehaviour
         if (isCountingDown)
         {
             // Spawn pattern after exactly 5 seconds of swerving
-            if (!decalSpawned && (Time.time - swerveStartTime) >= 5.0f)
+            if (Time.time - swerveStartTime >= 5f && !decalSpawned && !isSwervingDI)
             {
                 SpawnWaferDecal();
                 decalSpawned = true;
@@ -62,7 +65,7 @@ public class DeveloperUIManager : MonoBehaviour
                 
                 // The timer has naturally hit zero! Now we push the calculation to the AI model.
                 PushTimeToDevelopmentEngine(cachedSwerveTime);
-                if (!decalSpawned)
+                if (!decalSpawned && !isSwervingDI)
                 {
                     SpawnWaferDecal(); // Failsafe if time was less than 5s
                     decalSpawned = true;
@@ -94,7 +97,7 @@ public class DeveloperUIManager : MonoBehaviour
 
             // Push the calculation immediately
             PushTimeToDevelopmentEngine(cachedSwerveTime);
-            if (!decalSpawned) SpawnWaferDecal();
+            if (!decalSpawned && !isSwervingDI) SpawnWaferDecal();
 
             pendingRestore = true;
             restoreTime = Time.time + 1.5f;
@@ -164,15 +167,22 @@ public class DeveloperUIManager : MonoBehaviour
 
         if (physicalWafer == null)
         {
-            Debug.LogError("[DeveloperUI] Could not find the wafer inside the developerFluid! It might be parented somewhere else.");
+            Debug.LogWarning("[DeveloperUI] Could not find the wafer inside the developerFluid! Falling back to global search...");
             
             // Fallback: search the whole scene
             WaferPatternAnimator[] anims = Object.FindObjectsByType<WaferPatternAnimator>(FindObjectsSortMode.None);
             if (anims.Length > 0) return; // already spawned
 
-            GameObject fallback = GameObject.Find("PR_Wafer");
-            if (fallback == null) fallback = GameObject.Find("Substrate");
-            if (fallback != null) physicalWafer = fallback.transform;
+            // Global search for any object with "wafer" or "substrate" in the name
+            Renderer[] allRenderers = Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+            foreach (var r in allRenderers)
+            {
+                if (r.gameObject.name.ToLower().Contains("wafer") || r.gameObject.name.ToLower().Contains("substrate"))
+                {
+                    physicalWafer = r.transform;
+                    break;
+                }
+            }
             
             if (physicalWafer == null)
             {
@@ -216,6 +226,8 @@ public class DeveloperUIManager : MonoBehaviour
 
     public void OnClick_SwerveDeveloper()
     {
+        hasStartedSwerving = true;
+        isSwervingDI = false;
         float time = SyncTime();
         if (developerFluid != null)
         {
@@ -233,9 +245,12 @@ public class DeveloperUIManager : MonoBehaviour
             Debug.LogWarning("Developer Fluid Controller is not assigned in DeveloperUIManager!");
         }
     }
+    public bool hasStartedSwervingDI = false;
 
     public void OnClick_SwerveDI()
     {
+        hasStartedSwervingDI = true;
+        isSwervingDI = true;
         float time = SyncTime();
         if (diFluid != null)
         {

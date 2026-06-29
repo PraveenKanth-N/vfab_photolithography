@@ -15,6 +15,10 @@ public class MainWindowController : MonoBehaviour
     // We track whether the UI logic is supposed to be active or not
     public bool isUiActivelyVisible = false;
 
+    // Public helpers for external workflow tracking
+    public bool IsOnRecipeScreen => screen2 != null && !screen2.ClassListContains("hidden");
+    public bool IsOnMachineScreen => screen3 != null && !screen3.ClassListContains("hidden");
+
     public enum MachineState
     {
         Step3_InsertMask,
@@ -37,7 +41,7 @@ public class MainWindowController : MonoBehaviour
     public Texture2D schm3;
     public Texture2D schm4;
 
-    private MachineState currentMachineState = MachineState.Step3_InsertMask;
+    public MachineState currentMachineState = MachineState.Step3_InsertMask;
 
     private float selectedDose = 30.0f;
     private float selectedDefocus = 0.0f;

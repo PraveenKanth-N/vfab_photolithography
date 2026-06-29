@@ -11,6 +11,9 @@ public class PostBakeButtonTrigger : MonoBehaviour
     public TMP_Text PB_time;
     public GameObject PB_image;
 
+    public bool postBakeStarted = false;
+    public bool postBakeComplete = false;
+
     void Start()
     {
         physicalButton = GetComponent<Button>();
@@ -30,6 +33,8 @@ public class PostBakeButtonTrigger : MonoBehaviour
 
     void StartCountdown()
     {
+        if (postBakeStarted) return;
+        postBakeStarted = true;
         StartCoroutine(FastCountdownSequence());
     }
 
@@ -68,6 +73,7 @@ public class PostBakeButtonTrigger : MonoBehaviour
 
         // Show the PEB image only after baking and AI inference is complete
         if (PB_image != null) PB_image.SetActive(true);
+        postBakeComplete = true;
         if (physicalButton != null) physicalButton.interactable = true;
     }
 }
