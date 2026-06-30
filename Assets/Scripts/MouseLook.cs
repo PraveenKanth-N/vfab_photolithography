@@ -50,6 +50,12 @@ public class MouseLook : MonoBehaviour
                 return;
             }
 
+            WorkflowManager wm = Object.FindAnyObjectByType<WorkflowManager>();
+            if (wm != null && wm.contextImgObj != null && wm.contextImgObj.activeInHierarchy)
+            {
+                return;
+            }
+
             if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
             {
                 LockCursor();
@@ -125,6 +131,9 @@ public class MouseLook : MonoBehaviour
         if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen) return;
         if (HelpManualController.Instance != null && HelpManualController.Instance.isOpen) return;
         if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.IsAnyPanelOpen()) return;
+
+        WorkflowManager wm = Object.FindAnyObjectByType<WorkflowManager>();
+        if (wm != null && wm.contextImgObj != null && wm.contextImgObj.activeInHierarchy) return;
 
         isCursorLocked = true;
         Cursor.lockState = CursorLockMode.Locked;

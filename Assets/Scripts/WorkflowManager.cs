@@ -13,6 +13,15 @@ public class WorkflowManager : MonoBehaviour
     [Header("UI Customization")]
     [Tooltip("Tweak this to align the background box perfectly behind the text")]
     public Vector2 backgroundOffset = new Vector2(0f, -10f);
+    
+    [Header("Context Image")]
+    [Tooltip("Drag the ContextImg (RawImage or Image) GameObject here")]
+    public GameObject contextImgObj;
+    [Tooltip("Optional: Drag your 'I understand' button here to auto-hide/disable it")]
+    public UnityEngine.UI.Button contextAcknowledgeButton;
+    [Tooltip("Optional: Drag the Title Text GameObject here to sync its visibility")]
+    public GameObject contextImgTitle;
+    private bool hasShownChuckContext = false;
 
     // Cached References
     private SpinCoaterController spinCoater;
@@ -67,6 +76,19 @@ public class WorkflowManager : MonoBehaviour
         {
             Debug.LogWarning("[WorkflowManager] HUD Text is not assigned! Please drag your TMPro text element into the Inspector slot.");
         }
+        
+        if (contextImgObj != null)
+        {
+            contextImgObj.SetActive(false);
+        }
+        if (contextAcknowledgeButton != null)
+        {
+            contextAcknowledgeButton.gameObject.SetActive(false);
+        }
+        if (contextImgTitle != null)
+        {
+            contextImgTitle.SetActive(false);
+        }
     }
 
     // Helper method to set text without mark tags
@@ -77,6 +99,7 @@ public class WorkflowManager : MonoBehaviour
 
     private void Update()
     {
+
         if (hudText == null) return;
         
         if (bgRect != null) bgRect.gameObject.SetActive(true);
@@ -381,7 +404,14 @@ public class WorkflowManager : MonoBehaviour
                 break;
 
             case 25:
-                SetText("Place the photomask EXACTLY on the chuck of Mask Tray on the right");
+                SetText("Place the photomask EXACTLY on the Chuck of Mask Tray to the right");
+                
+                if (!hasShownChuckContext)
+                {
+                    hasShownChuckContext = true;
+                    TriggerContextImage("Images/MAcontextImg");
+                }
+
                 if (exposureStation != null)
                 {
                     Transform chuck = exposureStation.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
@@ -495,7 +525,7 @@ public class WorkflowManager : MonoBehaviour
                 break;
 
             case 37:
-                SetText("Place the top lid on the highlighted region of the table");
+                SetText("Place the top lid on the highlighted region of the table to the left");
                 if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
                     currentStep = 38;
@@ -694,7 +724,7 @@ public class WorkflowManager : MonoBehaviour
                 break;
 
             case 59:
-                SetText("Click on the developer solution bottle on the right to hold it");
+                SetText("Click on the developer solution bottle on the right (2nd bottle) to hold it");
                 if (playerInteraction != null && playerInteraction.heldObject != null)
                 {
                     string objName = playerInteraction.heldObject.name.ToLower();
@@ -896,6 +926,76 @@ public class WorkflowManager : MonoBehaviour
             case 77:
                 SetText("<color=#008800><b>Photolithography complete, observe pattern on top of the wafer!</b></color>");
                 break;
+        }
+    }
+    
+    // Call this from your "I understand" UI Button's OnClick event
+    public void AcknowledgeContextImage()
+    {
+        if (contextImgObj != null)
+        {
+            contextImgObj.SetActive(false);
+            
+            if (contextAcknowledgeButton != null) 
+            {
+                contextAcknowledgeButton.gameObject.SetActive(false);
+            }
+            if (contextImgTitle != null)
+            {
+                contextImgTitle.SetActive(false);
+            }
+            
+            // Re-lock the camera and hide the mouse so the player can return to normal gameplay
+            MouseLook mouseLook = Object.FindAnyObjectByType<MouseLook>();
+            if (mouseLook != null) mouseLook.ForceLockFromUI();
+        }
+    }
+
+    private void TriggerContextImage(string resourcePath)
+    {
+        if (contextImgObj == null) return;
+        
+        Texture2D tex = Resources.Load<Texture2D>(resourcePath);
+        if (tex != null)
+        {
+            UnityEngine.UI.RawImage raw = contextImgObj.GetComponent<UnityEngine.UI.RawImage>();
+            if (raw != null) raw.texture = tex;
+            else
+            {
+                UnityEngine.UI.Image img = contextImgObj.GetComponent<UnityEngine.UI.Image>();
+                if (img != null)
+                {
+                    img.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+                }
+            }
+            
+            // Add a simple black border if missing
+            UnityEngine.UI.Outline outline = contextImgObj.GetComponent<UnityEngine.UI.Outline>();
+            if (outline == null)
+            {
+                outline = contextImgObj.AddComponent<UnityEngine.UI.Outline>();
+                outline.effectColor = Color.black;
+                outline.effectDistance = new Vector2(4f, -4f);
+            }
+            
+            contextImgObj.SetActive(true);
+            
+            if (contextAcknowledgeButton != null)
+            {
+                contextAcknowledgeButton.gameObject.SetActive(true);
+            }
+            if (contextImgTitle != null)
+            {
+                contextImgTitle.SetActive(true);
+            }
+            
+            // Unlock the cursor so the player can physically click the button
+            MouseLook mouseLook = Object.FindAnyObjectByType<MouseLook>();
+            if (mouseLook != null) mouseLook.ForceUnlockForUI();
+        }
+        else
+        {
+            Debug.LogWarning($"[WorkflowManager] Could not find Context Image at Resources/{resourcePath}");
         }
     }
 }
