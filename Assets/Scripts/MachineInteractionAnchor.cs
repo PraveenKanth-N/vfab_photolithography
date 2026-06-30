@@ -61,6 +61,9 @@ public class MachineInteractionAnchor : MonoBehaviour
         var mainWindow = Object.FindAnyObjectByType<MainWindowController>();
         if (mainWindow != null && mainWindow.IsPanelCurrentlyOpen()) return;
 
+        WelcomeScreenController wsc = Object.FindAnyObjectByType<WelcomeScreenController>();
+        if (wsc != null && wsc.gameObject.activeInHierarchy) return;
+
         if (CleanroomUIManager.Instance != null)
         {
             // Open up the screen space cockpit overlay panel

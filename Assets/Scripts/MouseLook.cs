@@ -56,6 +56,12 @@ public class MouseLook : MonoBehaviour
                 return;
             }
 
+            WelcomeScreenController wsc = Object.FindAnyObjectByType<WelcomeScreenController>();
+            if (wsc != null && wsc.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
             if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
             {
                 LockCursor();
@@ -95,13 +101,15 @@ public class MouseLook : MonoBehaviour
 
             verticalRotation -= currentMouseY;
             verticalRotation = Mathf.Clamp(verticalRotation, -90f, 90f); 
-            transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
 
             if (playerBody != null)
             {
                 playerBody.Rotate(Vector3.up * currentMouseX); 
             }
         }
+        
+        // ALWAYS apply vertical rotation so it never stays arbitrarily stuck at Editor angles when the game loads!
+        transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
     }
 
     void LockCursor()
@@ -134,6 +142,9 @@ public class MouseLook : MonoBehaviour
 
         WorkflowManager wm = Object.FindAnyObjectByType<WorkflowManager>();
         if (wm != null && wm.contextImgObj != null && wm.contextImgObj.activeInHierarchy) return;
+
+        WelcomeScreenController wsc = Object.FindAnyObjectByType<WelcomeScreenController>();
+        if (wsc != null && wsc.gameObject.activeInHierarchy) return;
 
         isCursorLocked = true;
         Cursor.lockState = CursorLockMode.Locked;

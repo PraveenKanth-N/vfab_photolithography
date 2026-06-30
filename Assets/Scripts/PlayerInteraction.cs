@@ -42,6 +42,9 @@ public class PlayerInteraction : MonoBehaviour
         
         var mainWindow = Object.FindAnyObjectByType<MainWindowController>();
         if (mainWindow != null && mainWindow.IsPanelCurrentlyOpen()) return;
+        
+        WelcomeScreenController wsc = Object.FindAnyObjectByType<WelcomeScreenController>();
+        if (wsc != null && wsc.gameObject.activeInHierarchy) return;
 
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 

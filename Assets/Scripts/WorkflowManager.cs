@@ -13,6 +13,7 @@ public class WorkflowManager : MonoBehaviour
     [Header("UI Customization")]
     [Tooltip("Tweak this to align the background box perfectly behind the text")]
     public Vector2 backgroundOffset = new Vector2(0f, -10f);
+    public bool workflowActive = false; // Controlled by the WelcomeScreenController
     
     [Header("Context Image")]
     [Tooltip("Drag the ContextImg (RawImage or Image) GameObject here")]
@@ -99,10 +100,18 @@ public class WorkflowManager : MonoBehaviour
 
     private void Update()
     {
-
         if (hudText == null) return;
         
-        if (bgRect != null) bgRect.gameObject.SetActive(true);
+        if (!workflowActive)
+        {
+            if (bgRect != null) bgRect.gameObject.SetActive(false);
+            SetText("");
+            return;
+        }
+        else
+        {
+            if (bgRect != null) bgRect.gameObject.SetActive(true);
+        }
 
         // Dynamically shrink/grow the background box based on the EXACT width of the letters
         if (bgRect != null && textRect != null)
@@ -120,52 +129,7 @@ public class WorkflowManager : MonoBehaviour
 
         switch (currentStep)
         {
-            case 0:
-                SetText("Press W, A, S, D to move around");
-                if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D))
-                {
-                    currentStep = 1;
-                }
-                break;
-
-            case 1:
-                SetText("Use the mouse to hover around");
-                if (Input.GetAxis("Mouse X") != 0f || Input.GetAxis("Mouse Y") != 0f)
-                {
-                    currentStep = 901;
-                    stepTimer = 3f;
-                }
-                break;
-
-            case 901:
-                SetText("Use the LEFT MOUSE CLICK to interact with most items");
-                stepTimer -= Time.deltaTime;
-                if (stepTimer <= 0f)
-                {
-                    currentStep = 902;
-                    stepTimer = 3f;
-                }
-                break;
-
-            case 902:
-                SetText("<color=#cc0000><b>Please do not press ESC (Escape)</b></color>");
-                stepTimer -= Time.deltaTime;
-                if (stepTimer <= 0f)
-                {
-                    currentStep = 903;
-                    stepTimer = 3f;
-                }
-                break;
-
-            case 903:
-                SetText("<color=#cc0000><b>Please do not spam click any button</b></color>");
-                stepTimer -= Time.deltaTime;
-                if (stepTimer <= 0f)
-                {
-                    currentStep = 3; // Jump back to original start of sequence
-                }
-                break;
-
+            // The WelcomeScreenController instantly sets currentStep = 2 when 'I Acknowledge' is clicked.
             case 2:
                 SetText("Approach the spincoater machine, and click the highlighted portion on its right to open up its menu");
                 if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.spinCoaterUIPanel != null)
@@ -385,10 +349,15 @@ public class WorkflowManager : MonoBehaviour
                 {
                     currentStep = 23;
                 }
+                // FAST PLAY: Jump ahead if they immediately interact with the photomask tray
+                if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen)
+                {
+                    currentStep = 24;
+                }
                 break;
 
             case 23:
-                SetText("Click on the Photomask tray");
+                SetText("Click on the Photomask tray to the left (the first item)");
                 if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen)
                 {
                     currentStep = 24;
@@ -434,7 +403,7 @@ public class WorkflowManager : MonoBehaviour
                 break;
 
             case 26:
-                SetText("Click on the highlighted region to the right to open the Aligner's Hardware controls");
+                SetText("Click on the highlighted region to the RIGHT to open the Aligner's Hardware controls");
                 bool isExposureOpen = false;
                 if (CleanroomUIManager.Instance != null)
                 {
@@ -525,7 +494,7 @@ public class WorkflowManager : MonoBehaviour
                 break;
 
             case 37:
-                SetText("Place the top lid on the highlighted region of the table to the left");
+                SetText("Place the top lid on the highlighted region of the table to the very left");
                 if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
                     currentStep = 38;
@@ -541,7 +510,7 @@ public class WorkflowManager : MonoBehaviour
                 break;
 
             case 39:
-                SetText("Place the wafer on the mask tray");
+                SetText("Place the wafer on the mask tray of the Mask Aligner machine");
                 if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
                     currentStep = 40;
@@ -603,6 +572,11 @@ public class WorkflowManager : MonoBehaviour
                 if (stepTimer <= 0f)
                 {
                     currentStep = 47;
+                }
+                // FAST PLAY: Jump ahead if they immediately pick up the carrier
+                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("carrier"))
+                {
+                    currentStep = 48;
                 }
                 break;
 
@@ -672,8 +646,8 @@ public class WorkflowManager : MonoBehaviour
                     SetText("Close the menu");
                 }
 
-                // Force them to wait for the 4 second observation period before it progresses, so the text definitely updates
-                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen() && stepTimer <= 0f)
+                // FAST PLAY: As soon as they close the panel, proceed instantly rather than making them wait for the timer
+                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
                 {
                     currentStep = 54;
                 }
@@ -701,6 +675,11 @@ public class WorkflowManager : MonoBehaviour
                 if (stepTimer <= 0f)
                 {
                     currentStep = 57;
+                }
+                // FAST PLAY: Jump ahead if they immediately pick up the carrier
+                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("carrier"))
+                {
+                    currentStep = 58;
                 }
                 break;
 
@@ -846,7 +825,8 @@ public class WorkflowManager : MonoBehaviour
                     SetText("Close the menu");
                 }
 
-                if (developerUI != null && !developerUI.gameObject.activeInHierarchy && stepTimer <= 0f)
+                // FAST PLAY: Instantly advance if they manually close the UI
+                if (developerUI != null && !developerUI.gameObject.activeInHierarchy)
                 {
                     currentStep = 71;
                 }
@@ -917,7 +897,8 @@ public class WorkflowManager : MonoBehaviour
                     SetText("Close the menu");
                 }
 
-                if (developerUI != null && !developerUI.gameObject.activeInHierarchy && stepTimer <= 0f)
+                // FAST PLAY: Instantly advance if they manually close the UI
+                if (developerUI != null && !developerUI.gameObject.activeInHierarchy)
                 {
                     currentStep = 77;
                 }
