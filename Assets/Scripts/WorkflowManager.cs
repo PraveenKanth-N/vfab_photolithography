@@ -510,7 +510,7 @@ public class WorkflowManager : MonoBehaviour
                 break;
 
             case 39:
-                SetText("Place the wafer on the mask tray of the Mask Aligner machine");
+                SetText("Place the wafer on the Chuck of the Mask Aligner machine");
                 if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
                     currentStep = 40;
@@ -584,8 +584,8 @@ public class WorkflowManager : MonoBehaviour
                 SetText("Bring the wafer carrier to the previous station in the other room");
                 if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
-                    // Ensure they placed it back on dock 1 (or at least not dock 2 anymore)
-                    if (!playerInteraction.lastDockPlacedName.ToLower().Contains("dock2"))
+                    // Ensure they placed it back on dock 1 specifically
+                    if (playerInteraction.lastDockPlacedName.ToLower().Contains("dock1"))
                     {
                         currentStep = 48;
                     }
@@ -695,7 +695,8 @@ public class WorkflowManager : MonoBehaviour
                 SetText("Bring the wafer carrier to the developer station just opposite to this station");
                 if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
-                    if (playerInteraction.lastDockPlacedName.ToLower().Contains("dock1") || playerInteraction.lastDockPlacedName.ToLower().Contains("dock3"))
+                    // Strict check: Must be placed on dock 3 (Developer Station), NOT put back on dock 1!
+                    if (playerInteraction.lastDockPlacedName.ToLower().Contains("dock3"))
                     {
                         currentStep = 59;
                     }
@@ -731,7 +732,7 @@ public class WorkflowManager : MonoBehaviour
                 break;
 
             case 62:
-                SetText("Click on the DI water solution on the left to hold it");
+                SetText("Click on the DI water bottle on the left to hold it");
                 if (playerInteraction != null && playerInteraction.heldObject != null)
                 {
                     string objName = playerInteraction.heldObject.name.ToLower();

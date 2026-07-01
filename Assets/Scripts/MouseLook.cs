@@ -62,6 +62,18 @@ public class MouseLook : MonoBehaviour
                 return;
             }
 
+            DeveloperUIManager devUI = Object.FindAnyObjectByType<DeveloperUIManager>();
+            if (devUI != null && devUI.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
+            var mainWindow = Object.FindAnyObjectByType<MainWindowController>();
+            if (mainWindow != null && mainWindow.IsPanelCurrentlyOpen())
+            {
+                return;
+            }
+
             if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
             {
                 LockCursor();

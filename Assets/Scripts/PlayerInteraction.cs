@@ -39,12 +39,19 @@ public class PlayerInteraction : MonoBehaviour
 
         if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.IsAnyPanelOpen()) return;
         if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen) return;
+        if (HelpManualController.Instance != null && HelpManualController.Instance.isOpen) return;
         
         var mainWindow = Object.FindAnyObjectByType<MainWindowController>();
         if (mainWindow != null && mainWindow.IsPanelCurrentlyOpen()) return;
         
         WelcomeScreenController wsc = Object.FindAnyObjectByType<WelcomeScreenController>();
         if (wsc != null && wsc.gameObject.activeInHierarchy) return;
+
+        WorkflowManager wm = Object.FindAnyObjectByType<WorkflowManager>();
+        if (wm != null && wm.contextImgObj != null && wm.contextImgObj.activeInHierarchy) return;
+
+        DeveloperUIManager devUI = Object.FindAnyObjectByType<DeveloperUIManager>();
+        if (devUI != null && devUI.gameObject.activeInHierarchy) return;
 
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 

@@ -21,10 +21,23 @@ public class ProgrammaticTutorialAnimator : MonoBehaviour
     public float mousePanDistance = 30f;
     public float mousePanSpeed = 1f;
 
+    private Vector3[] originalKeyScales;
+    private Vector3 originalMouseScale;
+
     private void Start()
     {
+        originalKeyScales = new Vector3[4];
+        if (wKey != null) originalKeyScales[0] = wKey.localScale;
+        if (aKey != null) originalKeyScales[1] = aKey.localScale;
+        if (sKey != null) originalKeyScales[2] = sKey.localScale;
+        if (dKey != null) originalKeyScales[3] = dKey.localScale;
+
+        if (mouseGraphic != null)
+        {
+            originalMouseScale = mouseGraphic.localScale;
+            StartCoroutine(AnimateMouse());
+        }
         if (wKey != null) StartCoroutine(AnimateWASD());
-        if (mouseGraphic != null) StartCoroutine(AnimateMouse());
     }
 
     private IEnumerator AnimateWASD()
@@ -33,18 +46,19 @@ public class ProgrammaticTutorialAnimator : MonoBehaviour
         
         while (true)
         {
-            foreach (var key in keys)
+            for (int i = 0; i < keys.Length; i++)
             {
+                var key = keys[i];
                 if (key == null) continue;
                 
                 Image img = key.GetComponent<Image>();
                 if (img != null) img.color = activeKeyColor;
-                key.localScale = new Vector3(1.1f, 1.1f, 1f);
+                key.localScale = originalKeyScales[i] * 1.1f;
 
                 yield return new WaitForSeconds(wasdSpeed);
 
                 if (img != null) img.color = defaultKeyColor;
-                key.localScale = Vector3.one;
+                key.localScale = originalKeyScales[i];
             }
             // Small pause before looping
             yield return new WaitForSeconds(0.5f);
@@ -86,7 +100,7 @@ public class ProgrammaticTutorialAnimator : MonoBehaviour
             }
 
             // 4. Click (Scale down slightly, emit pulse)
-            mouseGraphic.localScale = new Vector3(0.9f, 0.9f, 1f);
+            mouseGraphic.localScale = originalMouseScale * 0.9f;
             
             if (leftClickIndicator != null)
             {
@@ -122,7 +136,7 @@ public class ProgrammaticTutorialAnimator : MonoBehaviour
                 yield return new WaitForSeconds(0.3f);
             }
 
-            mouseGraphic.localScale = Vector3.one;
+            mouseGraphic.localScale = originalMouseScale;
 
             // Pause before next loop
             yield return new WaitForSeconds(0.5f);
