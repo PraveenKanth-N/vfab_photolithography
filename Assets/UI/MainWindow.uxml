@@ -428,7 +428,7 @@
 
                 <!-- S3 BOTTOM BAR -->
                 <VisualElement class="s3-global-bottom">
-                    <Button name="continueButton" class="s3-action-btn" style="width: 100px;"><VisualElement class="s3-small-play"/> <Label text="Continue"/></Button>
+                    <Button name="continueButton" class="s3-action-btn" style="width: 160px; height: 36px;"><VisualElement class="s3-small-play"/> <Label text="Continue" style="font-size: 16px; -unity-font-style: bold;"/></Button>
                     <Button text="Undo" class="s3-action-btn s3-disabled-btn"/>
                     <VisualElement style="flex-grow:1;"/>
                     <Button name="btnL" text="[L]" class="s3-action-btn"/>

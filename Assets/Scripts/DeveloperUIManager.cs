@@ -14,14 +14,9 @@ public class DeveloperUIManager : MonoBehaviour
     
     public bool hasStartedSwerving = false;
 
-    [Header("Pattern Rendering")]
-    [Tooltip("Drag the Assets/Materials/StaticPhotomaskMat.mat here!")]
-    public Material developedPatternMaterial;
-
     private float cachedSwerveTime = 30f;
     private float targetEndTime = 0f;
     private float swerveStartTime = 0f;
-    private bool decalSpawned = false;
     public bool isCountingDown = false;
     public bool isSwervingDI = false; // Tracks if the CURRENT active swerve is DI water
     private bool pendingRestore = false;
@@ -46,13 +41,6 @@ public class DeveloperUIManager : MonoBehaviour
     {
         if (isCountingDown)
         {
-            // Spawn pattern after exactly 5 seconds of swerving
-            if (Time.time - swerveStartTime >= 5f && !decalSpawned && !isSwervingDI)
-            {
-                SpawnWaferDecal();
-                decalSpawned = true;
-            }
-
             float remaining = targetEndTime - Time.time;
             if (remaining > 0f)
             {
@@ -65,11 +53,6 @@ public class DeveloperUIManager : MonoBehaviour
                 
                 // The timer has naturally hit zero! Now we push the calculation to the AI model.
                 PushTimeToDevelopmentEngine(cachedSwerveTime);
-                if (!decalSpawned && !isSwervingDI)
-                {
-                    SpawnWaferDecal(); // Failsafe if time was less than 5s
-                    decalSpawned = true;
-                }
 
                 pendingRestore = true;
                 restoreTime = Time.time + 1.5f;
@@ -97,7 +80,6 @@ public class DeveloperUIManager : MonoBehaviour
 
             // Push the calculation immediately
             PushTimeToDevelopmentEngine(cachedSwerveTime);
-            if (!decalSpawned && !isSwervingDI) SpawnWaferDecal();
 
             pendingRestore = true;
             restoreTime = Time.time + 1.5f;
@@ -146,84 +128,6 @@ public class DeveloperUIManager : MonoBehaviour
         }
     }
 
-    private void SpawnWaferDecal()
-    {
-        if (developerFluid == null) 
-        {
-            Debug.LogError("[DeveloperUI] developerFluid is NULL! Cannot spawn pattern.");
-            return;
-        }
-        
-        // Locate the physical wafer sitting in the developer basin
-        Transform physicalWafer = null;
-        foreach (Transform child in developerFluid.transform)
-        {
-            if (child.name.ToLower().Contains("wafer") || child.name.ToLower().Contains("substrate"))
-            {
-                physicalWafer = child;
-                break;
-            }
-        }
-
-        if (physicalWafer == null)
-        {
-            Debug.LogWarning("[DeveloperUI] Could not find the wafer inside the developerFluid! Falling back to global search...");
-            
-            // Fallback: search the whole scene
-            WaferPatternAnimator[] anims = Object.FindObjectsByType<WaferPatternAnimator>(FindObjectsSortMode.None);
-            if (anims.Length > 0) return; // already spawned
-
-            // Global search for any object with "wafer" or "substrate" in the name
-            Renderer[] allRenderers = Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
-            foreach (var r in allRenderers)
-            {
-                if (r.gameObject.name.ToLower().Contains("wafer") || r.gameObject.name.ToLower().Contains("substrate"))
-                {
-                    physicalWafer = r.transform;
-                    break;
-                }
-            }
-            
-            if (physicalWafer == null)
-            {
-                Debug.LogError("[DeveloperUI] FALLBACK FAILED. No wafer found in the entire scene.");
-                return;
-            }
-        }
-
-        Debug.Log($"[DeveloperUI] Spawning pattern decal exactly on {physicalWafer.name}");
-            // Create a microscopic 3D cylinder to act as a 2D circle decal mask
-            GameObject decal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            decal.name = "Developed_Pattern_Decal";
-            
-            // Destroy physical collider to prevent interaction glitches
-            Destroy(decal.GetComponent<Collider>());
-            
-            // Snap the decal exactly to the wafer's local coordinate space
-            decal.transform.SetParent(physicalWafer, false);
-            
-            // Position it exactly on the top surface of the wafer. 
-            decal.transform.localPosition = new Vector3(0f, 1.02f, 0f);
-            decal.transform.localRotation = Quaternion.identity;
-            
-            // Scale the cylinder to match the wafer diameter. 
-            // We use 0.05f for thickness because the parent wafer is already scaled down to 0.01f.
-            // Using 0.0001f caused the world Y scale to drop to 0.000001f, which Unity culls entirely!
-            decal.transform.localScale = new Vector3(1.0f, 0.05f, 1.0f);
-            
-            if (developedPatternMaterial != null)
-            {
-                decal.GetComponent<MeshRenderer>().material = developedPatternMaterial;
-            }
-            else
-            {
-                Debug.LogWarning("[Developer UI] No material assigned for the pattern decal!");
-            }
-            
-            // Attach the animator script to smoothly fade it in over 2 seconds
-            decal.AddComponent<WaferPatternAnimator>();
-    }
-
     public void OnClick_SwerveDeveloper()
     {
         hasStartedSwerving = true;
@@ -236,7 +140,6 @@ public class DeveloperUIManager : MonoBehaviour
             
             targetEndTime = Time.time + time;
             swerveStartTime = Time.time;
-            decalSpawned = false;
             isCountingDown = true;
             pendingRestore = false;
         }
@@ -259,7 +162,6 @@ public class DeveloperUIManager : MonoBehaviour
             
             targetEndTime = Time.time + time;
             swerveStartTime = Time.time;
-            decalSpawned = false;
             isCountingDown = true;
             pendingRestore = false;
         }

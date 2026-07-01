@@ -142,7 +142,7 @@ public class HotplateController : MonoBehaviour
 
         // Apply your exact standardized scale
         wafer.transform.localScale = new Vector3(0.5f, 0.01f, 0.5f);
-        UpdateHotplateUI("Substrate registered on heating element. Press Start.");
+        UpdateHotplateUI("Substrate is placed on the heating element. Press Start.");
     }
 
     public void BeginThermalBakeCycle()

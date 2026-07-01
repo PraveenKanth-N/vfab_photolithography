@@ -448,6 +448,20 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     if (pourEngine != null)
                     {
+                        DeveloperUIManager devUI = Object.FindAnyObjectByType<DeveloperUIManager>();
+                        if (devUI != null)
+                        {
+                            if (isDI && (pourEngine == devUI.developerFluid || pourEngine.name.ToLower().Contains("dev") || targetName.Contains("dev") || targetName.Contains("right")))
+                            {
+                                Debug.LogWarning("[Chemical Interlock] Cannot pour DI water into Developer beaker!");
+                                return;
+                            }
+                            if (!isDI && (pourEngine == devUI.diFluid || pourEngine.name.ToLower().Contains("di") || targetName.Contains("di") || targetName.Contains("left")))
+                            {
+                                Debug.LogWarning("[Chemical Interlock] Cannot pour Developer solution into DI water beaker!");
+                                return;
+                            }
+                        }
                         pourEngine.ExecuteChemicalPour(heldObject);
                     }
                     return;

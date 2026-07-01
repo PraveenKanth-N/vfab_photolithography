@@ -190,8 +190,6 @@ public class SpinCoaterController : MonoBehaviour
             }
         }
 
-        if (dropEmitterParticles != null) dropEmitterParticles.Play();
-
         yield return new WaitForSeconds(0.2f);
 
         float progressMultiplier = 0f;
@@ -261,7 +259,7 @@ public class SpinCoaterController : MonoBehaviour
         // --- STAGE 2: AUTOMATED CASTING PHASE (Inference Engine Driven) ---
         currentPhaseName = "CASTING";
         recipeTimer = 0f;
-        if (fluidSplatterParticles != null) fluidSplatterParticles.Play();
+        // if (fluidSplatterParticles != null) fluidSplatterParticles.Play(); // Removed PR sprinkle/splatter emitter
         
         if (MicroscopeInterfaceManager.Instance != null)
         {
@@ -283,7 +281,6 @@ public class SpinCoaterController : MonoBehaviour
             yield return null;
         }
 
-        if (fluidSplatterParticles != null) fluidSplatterParticles.Stop();
         CompleteSpinCycle();
     }
 
@@ -376,7 +373,7 @@ public class SpinCoaterController : MonoBehaviour
             Debug.LogError("[Data Bridge Error] Hotplate Controller reference is MISSING on the Spin Coater script component!");
         }
 
-        UpdateCoaterUI("Spin cycle complete. Uniform film thickness achieved via neural inference model.");
+        UpdateCoaterUI("Spin cycle complete.");
     }
 
     // --- RESTORED ORIGINAL PLACEMENT METHOD ---

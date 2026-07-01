@@ -60,7 +60,7 @@ public class MachineInteractionAnchor : MonoBehaviour
 
         if (lowerName.Contains("spin"))
         {
-            return step == 1 || step == 2 || step == 7;
+            return step == 1 || step == 2 || step == 3 || step == 7 || step == 12;
         }
         if (lowerName.Contains("hot"))
         {

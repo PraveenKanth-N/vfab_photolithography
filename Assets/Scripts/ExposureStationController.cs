@@ -47,8 +47,6 @@ public class ExposureStationController : MonoBehaviour
             executeExposureButton.onClick.AddListener(TriggerUVLampIgnition);
         }
 
-        if (uvChamberLightSource != null) uvChamberLightSource.SetActive(false);
-
         // Run an initialization check to grey out buttons correctly on boot
         UpdateSystemWorkflowState("System initialized. Substrate accessible.");
     }
@@ -144,7 +142,6 @@ public class ExposureStationController : MonoBehaviour
             onUVTrigger: () => 
             {
                 // Callback 1: Instantly trigger physical UV lamp lighting/FX mesh
-                if (uvChamberLightSource != null) uvChamberLightSource.SetActive(true);
                 UpdateSystemWorkflowState("WARNING: UV Exposure Active. Lamp Stable.");
 
                 // Trigger atomic chemical wave animation on Microscope
@@ -175,15 +172,12 @@ public class ExposureStationController : MonoBehaviour
         // Extended to 3.5s so it covers the entire return animation of the slider/microscope!
         yield return new WaitForSeconds(3.5f);
 
-        if (uvChamberLightSource != null) uvChamberLightSource.SetActive(false);
 
         isExposingNow = false;
         UpdateSystemWorkflowState("Exposure complete! Latent diffraction image stabilized.");
     }
 
-    // =====================================================================
     // STRICT INTERLOCK HARDWARE ENGINE (Locks down unready buttons)
-    // =====================================================================
     private void UpdateSystemWorkflowState(string message)
     {
         // Status text string readouts

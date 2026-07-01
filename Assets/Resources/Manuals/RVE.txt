@@ -1,0 +1,17 @@
+<size=130%><b>Representative Volume Element (RVE)</b></size>
+
+[IMAGE: RVEImg|600]
+
+<b>The Representative Volume Element (RVE):</b> The RVE is a microscopic 3D simulation cube used to inspect and visualize the chemical and physical transformations occurring inside the photoresist (PR) layer at the atomic and molecular scale.
+
+<b>Four Dynamic Process Animations:</b> Throughout the cleanroom workflow, the RVE cube plays four distinct structural animations that correspond to the core photolithography steps: Spin Coating, Soft Baking, Exposure, and Chemical Development.
+
+<b>Initial State & Dispense Phase:</b> Initially, the RVE cube is completely empty because no photoresist (PR) has been deposited onto the substrate. Once the liquid PR is dispensed onto the wafer, the cube fills up with two kinds of molecular particles representing the polymer resin matrix and volatile solvent molecules.
+
+<b>Spin Coating Phase:</b> During high-speed centrifugal rotation on the spin coater, hydrodynamic thinning and rapid evaporation occur, causing most of the volatile solvent molecules to leave the matrix.
+
+<b>Soft Baking Phase:</b> As thermal energy is applied on the hotplate, the remaining trapped solvent molecules evaporate completely. This thermal densification causes the overall photoresist volume inside the RVE cube to visibly shrink and compact.
+
+<b>Optical Exposure Phase:</b> When irradiated with UV light during the exposure stage, photosensitive particles within the illuminated zones absorb photons and glow brightly to show they have been chemically activated.
+
+<b>Chemical Development Phase:</b> When the wafer is immersed in the alkaline developer solution, the chemically activated photoresist undergoes rapid dissolution. Once development is complete, everything is washed away and gone from the RVE volume, revealing the final cleared structure.
