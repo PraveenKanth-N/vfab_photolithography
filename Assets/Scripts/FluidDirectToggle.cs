@@ -172,6 +172,21 @@ public class FluidInteractionController : MonoBehaviour
     public void SetSwerveDurationFromSlider(float value) { uiSwerveDuration = value; }
     public void ExecuteUISwerve() { StartSwerveSequence(uiSwerveDuration); }
     
+    public void StopSwerve()
+    {
+        isSwerving = false;
+        swerveDurationTimer = 0f;
+        currentEnergy = 1.0f;
+        spikeDirX = 0f;
+        spikeDirZ = 0f;
+        if (beakerParentTransform != null)
+        {
+            beakerParentTransform.localPosition = originalBeakerLocalPos;
+            beakerParentTransform.localRotation = originalBeakerLocalRot;
+        }
+        StopAllCoroutines();
+    }
+    
     public void TriggerWaferInteractionSpike() 
     { 
         currentEnergy += waferSpikeAmount; 

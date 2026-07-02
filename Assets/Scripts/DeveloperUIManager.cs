@@ -84,15 +84,17 @@ public class DeveloperUIManager : MonoBehaviour
             pendingRestore = true;
             restoreTime = Time.time + 1.5f;
 
-            // Optional: If you want to skip the fluid animations too, you could stop them here.
-            if (developerFluid != null) developerFluid.StopAllCoroutines();
-            if (diFluid != null) diFluid.StopAllCoroutines();
+            // Stop the fluid animations and mesh swerve immediately
+            if (developerFluid != null) developerFluid.StopSwerve();
+            if (diFluid != null) diFluid.StopSwerve();
         }
         else
         {
             // If not counting down, but user clicks skip, just compute right away
             SyncTime(); // ensure cached time is up to date
             PushTimeToDevelopmentEngine(cachedSwerveTime);
+            if (developerFluid != null) developerFluid.StopSwerve();
+            if (diFluid != null) diFluid.StopSwerve();
         }
     }
 

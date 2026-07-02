@@ -264,12 +264,12 @@ public class MainWindowController : MonoBehaviour
             {
                 if (exposureController.waferDockPosition != null)
                 {
-                    foreach (Transform t in exposureController.waferDockPosition) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("wafer")) hasWafer = true;
+                    foreach (Transform t in exposureController.waferDockPosition) if (t.gameObject.activeInHierarchy && ((t.name.ToLower().Contains("wafer") && !t.name.ToLower().Contains("carrier") && !t.name.ToLower().Contains("dock")) || t.name.ToLower().Contains("substrate"))) hasWafer = true;
                 }
                 if (!hasWafer)
                 {
                     Transform chuck = exposureController.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
-                    if (chuck != null) foreach (Transform t in chuck) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("wafer")) hasWafer = true;
+                    if (chuck != null) foreach (Transform t in chuck) if (t.gameObject.activeInHierarchy && ((t.name.ToLower().Contains("wafer") && !t.name.ToLower().Contains("carrier") && !t.name.ToLower().Contains("dock")) || t.name.ToLower().Contains("substrate"))) hasWafer = true;
                 }
             }
 

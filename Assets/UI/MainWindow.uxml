@@ -90,6 +90,7 @@
                                         </VisualElement>
                                     </VisualElement>
                                 </VisualElement>
+                                <Label text="For more info go to Help &gt; Aerial Image" style="color: #44bbff; -unity-font-style: bold; font-size: 20px; margin-top: 10px; margin-left: 5px; white-space: normal;"/>
                             </VisualElement>
                         </VisualElement>
 

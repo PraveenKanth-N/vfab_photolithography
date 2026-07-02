@@ -19,3 +19,12 @@
 <b>The Physical Mechanism of Feature Blurring:</b> When mask features or line spacings become smaller than the lens cutoff, the diffracted light rays bend at an angle so steep that they propagate beyond the collection angle. The objective lens blocks these higher frequencies, preventing them from recombining at the wafer plane, which causes the <b>final aerial image to lose all sharp contrast</b> and flatten into a uniform blur.
 
 <b>The Complex Pupil Operator with Defocus Aberrations:</b> When the scanner lens moves away from the ideal focus plane, the traveling light waves experience phase deformation. The engine combines the physical circular boundary of the lens with a quadratic defocus aberration function to build a complex pupil operator that captures both low-pass filtering and focus blur simultaneously.
+
+<b>Reading the Aerial image intensity map:</b>
+
+<b>Black/Dark Regions:</b> Represent unexposed areas (intensity near 0.0). No photons have struck, and no acid has been generated. 
+
+<b>Bright Orange/White Peaks:</b> Represent maximum constructive interference (high intensity). This shows where the highest concentration of Photoacid Generator (PAG) molecules have been shattered to create acidic catalysts. 
+
+<b>The "Halos":</b> You will notice faint red rings around the bright peaks. These are secondary diffraction sidelobes caused by the optical low-pass filtering of the lens. 
+If the dose is set too high, these halos generate enough acid to accidentally print false shapes on the wafer.

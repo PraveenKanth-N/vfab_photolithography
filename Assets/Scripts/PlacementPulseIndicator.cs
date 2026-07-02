@@ -59,6 +59,35 @@ public class PlacementPulseIndicator : MonoBehaviour
 
     private void Update()
     {
+        // For wafer carrier docks, during active workflow, pulsing is continuously evaluated against workflow steps!
+        WorkflowManager wm = Object.FindAnyObjectByType<WorkflowManager>();
+        bool isCarrierDock = gameObject.name.ToLower().Contains("dock") || requiredKeyword.ToLower().Contains("carrier");
+        
+        if (wm != null && wm.workflowActive && isCarrierDock)
+        {
+            bool targetPulse = false;
+            string dockName = gameObject.name.ToLower();
+            int s = wm.currentStep;
+
+            if (dockName.Contains("dock1"))
+            {
+                targetPulse = (s == 21 || s == 22 || s == 52 || s == 53 || s == 60 || s == 62);
+            }
+            else if (dockName.Contains("dock2"))
+            {
+                targetPulse = (s == 23 || s == 39 || s == 41 || s == 50);
+            }
+            else if (dockName.Contains("dock3"))
+            {
+                targetPulse = (s == 63 || s == 70);
+            }
+
+            if (isPulsing != targetPulse)
+            {
+                SetPulseActive(targetPulse);
+            }
+        }
+
         if (isPulsing && pulseMaterial != null)
         {
             // Smoothly pulse the alpha channel
@@ -69,6 +98,15 @@ public class PlacementPulseIndicator : MonoBehaviour
 
     public void CheckAndTogglePulse(string heldItemName)
     {
+        WorkflowManager wm = Object.FindAnyObjectByType<WorkflowManager>();
+        bool isCarrierDock = gameObject.name.ToLower().Contains("dock") || requiredKeyword.ToLower().Contains("carrier");
+        
+        // During active workflow, carrier dock pulsing is handled completely by Update() matching workflow steps!
+        if (wm != null && wm.workflowActive && isCarrierDock)
+        {
+            return;
+        }
+
         if (string.IsNullOrEmpty(heldItemName))
         {
             SetPulseActive(false);
@@ -85,17 +123,6 @@ public class PlacementPulseIndicator : MonoBehaviour
             {
                 shouldPulse = true;
                 break;
-            }
-        }
-
-        // WORKFLOW RESTRICTIONS:
-        WorkflowManager wm = Object.FindAnyObjectByType<WorkflowManager>();
-        if (wm != null && nameLower.Contains("carrier"))
-        {
-            // Only docks 1 and 2 should highlight during the first transport (Step 21)
-            if (wm.currentStep <= 22 && gameObject.name.ToLower().Contains("dock3"))
-            {
-                shouldPulse = false;
             }
         }
 

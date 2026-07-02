@@ -17,3 +17,11 @@ Where C represents Dill’s activation parameter calibrated to 0.042 cm^2/mJ, wh
 <b>Catalytic Resin Deprotection:</b> As the photoacid diffuses horizontally through the resist, it catalyzes the deprotection of the bulky ester groups attached to the polymer backbone. This process increases the solubility contrast between the exposed and unexposed areas, rendering the deprotected resin hydrophilic and soluble in an alkaline developer solution, which is crucial for achieving high-resolution patterns.
 
 <b>Emergence of the Final Resist Profile (M)</b> At the conclusion of the PEB step, first-order reaction kinetics yield the finalized concentration of the remaining protected polymer matrix fraction (M). The local value of  represents the remaining chemical fraction (ranging between 0 and 1) that determines the local solubility contrast.
+
+<b>Reading the Latent Polymer Matrix (M):</b>
+
+<b>Yellow/Bright Regions (M = 1.0):</b> Represent fully protected, insoluble photoresist. The polymer backbone is completely intact.
+
+<b>Dark Blue/Purple Regions (M = 0.0):</b> Represent areas where the diffused acid has successfully catalyzed the deprotection reaction. These dark zones are highly soluble and will become the physical trenches during development. 
+
+<b>The Gradient Edge:</b> The blur between the yellow and blue regions represents the diffusion length of the acid. A wider blur indicates a longer bake time or higher temperature, which smooths out stochastic noise but worsens Critical Dimension (CD) resolution.

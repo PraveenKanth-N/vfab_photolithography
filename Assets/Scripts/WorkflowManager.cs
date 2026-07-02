@@ -159,13 +159,9 @@ public class WorkflowManager : MonoBehaviour
 
             case 5:
                 SetText("Look over to the hotplate on the left and click on the wafer to grab it");
-                if (playerInteraction != null && playerInteraction.heldObject != null)
+                if (IsHoldingWaferOrSubstrate())
                 {
-                    string objName = playerInteraction.heldObject.name.ToLower();
-                    if (objName.Contains("wafer") || objName.Contains("substrate"))
-                    {
-                        currentStep = 6;
-                    }
+                    currentStep = 6;
                 }
                 break;
 
@@ -239,7 +235,7 @@ public class WorkflowManager : MonoBehaviour
                 // Allow INSTANT skipping if they physically removed the wafer already
                 if (spinCoater != null && spinCoater.currentCoaterState == SpinCoaterController.CoaterState.Empty)
                 {
-                    currentStep = 14;
+                    currentStep = 15;
                 }
                 break;
 
@@ -247,61 +243,61 @@ public class WorkflowManager : MonoBehaviour
                 SetText("Close the Spin Coater menu");
                 if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
                 {
-                    currentStep = 135;
-                }
-                if (spinCoater != null && spinCoater.currentCoaterState == SpinCoaterController.CoaterState.Empty)
-                {
                     currentStep = 14;
                 }
-                break;
-
-            case 135:
-                SetText("Remove the wafer from the Spin Coater");
                 if (spinCoater != null && spinCoater.currentCoaterState == SpinCoaterController.CoaterState.Empty)
-                {
-                    currentStep = 14;
-                }
-                break;
-
-            // ========================= HOTPLATE WORKFLOW =========================
-
-            case 14:
-                SetText("Place the PR coated wafer on top of the Hotplate to your left");
-                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.WaferLoaded)
                 {
                     currentStep = 15;
                 }
                 break;
 
+            case 14:
+                SetText("Remove the wafer from the Spin Coater");
+                if (spinCoater != null && spinCoater.currentCoaterState == SpinCoaterController.CoaterState.Empty)
+                {
+                    currentStep = 15;
+                }
+                break;
+
+            // ========================= HOTPLATE WORKFLOW =========================
+
             case 15:
+                SetText("Place the PR coated wafer on top of the Hotplate to your left");
+                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.WaferLoaded)
+                {
+                    currentStep = 16;
+                }
+                break;
+
+            case 16:
                 SetText("Click on the highlighted region on the hotplate's knob to bring up its menu");
                 if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.hotplateUIPanel != null)
                 {
                     if (CleanroomUIManager.Instance.hotplateUIPanel.activeSelf)
                     {
-                        currentStep = 16;
+                        currentStep = 17;
                     }
                 }
                 break;
 
-            case 16:
+            case 17:
                 SetText("Adjust the hotplate's set temperature and time if required, then start PREBAKE");
                 if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.Baking)
                 {
-                    currentStep = 17;
-                }
-                break;
-
-            case 17:
-                SetText("Observe metrics displayed on the ellipsometry visual at the top right of the menu");
-                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.Complete)
-                {
-                    stepTimer = 4f; 
                     currentStep = 18;
                 }
                 break;
 
             case 18:
+                SetText("Observe metrics displayed on the ellipsometry visual at the top right of the menu");
+                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.Complete)
+                {
+                    stepTimer = 4f; 
+                    currentStep = 19;
+                }
+                break;
+
+            case 19:
                 // Non-blocking timer: Shows metrics text briefly, then asks to close menu
                 if (stepTimer > 0f)
                 {
@@ -315,56 +311,48 @@ public class WorkflowManager : MonoBehaviour
 
                 if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
                 {
-                    currentStep = 185;
+                    currentStep = 20;
                 }
 
                 // Instantly advance if they physically grab the wafer off the hotplate
-                if (playerInteraction != null && playerInteraction.heldObject != null)
+                if (IsHoldingWaferOrSubstrate())
                 {
-                    string objName = playerInteraction.heldObject.name.ToLower();
-                    if (objName.Contains("wafer") || objName.Contains("substrate"))
-                    {
-                        if (hotplate != null) hotplate.currentState = HotplateController.HotplateState.Idle; // Fallback safety
-                        currentStep = 19;
-                    }
-                }
-                break;
-
-            case 185:
-                SetText("Take the wafer from the hotplate");
-                if (playerInteraction != null && playerInteraction.heldObject != null)
-                {
-                    string objName = playerInteraction.heldObject.name.ToLower();
-                    if (objName.Contains("wafer") || objName.Contains("substrate"))
-                    {
-                        if (hotplate != null) hotplate.currentState = HotplateController.HotplateState.Idle;
-                        currentStep = 19;
-                    }
-                }
-                break;
-
-            case 19:
-                SetText("Click on the wafer carrier on your right (its top lid) to place the wafer (Blue region)");
-                // When placed, heldObject becomes null
-                if (playerInteraction != null && playerInteraction.heldObject == null)
-                {
-                    currentStep = 20;
+                    if (hotplate != null) hotplate.currentState = HotplateController.HotplateState.Idle; // Fallback safety
+                    currentStep = 21;
                 }
                 break;
 
             case 20:
+                SetText("Take the wafer from the hotplate");
+                if (IsHoldingWaferOrSubstrate())
+                {
+                    if (hotplate != null) hotplate.currentState = HotplateController.HotplateState.Idle;
+                    currentStep = 21;
+                }
+                break;
+
+            case 21:
+                SetText("Click on the wafer carrier on your right (its top lid) to place the wafer (Blue region)");
+                // When placed, heldObject becomes null
+                if (playerInteraction != null && playerInteraction.heldObject == null)
+                {
+                    currentStep = 22;
+                }
+                break;
+
+            case 22:
                 SetText("Click the Wafer carrier to pick it up securely");
                 if (playerInteraction != null && playerInteraction.heldObject != null)
                 {
                     string objName = playerInteraction.heldObject.name.ToLower();
                     if (objName.Contains("carrier"))
                     {
-                        currentStep = 21;
+                        currentStep = 23;
                     }
                 }
                 break;
 
-            case 21:
+            case 23:
                 SetText("Carry it over to the next room and place the Wafer carrier down onto the highlighted spot");
                 
                 // Advance when the carrier is successfully placed on dock2 (heldObject becomes null)
@@ -373,42 +361,42 @@ public class WorkflowManager : MonoBehaviour
                     // ANTI-EXPLOIT: Ensure it was placed on dock 2, not dropped on the floor or placed back on dock 1!
                     if (playerInteraction.lastDockPlacedName.ToLower().Contains("dock2"))
                     {
-                        currentStep = 22;
+                        currentStep = 24;
                     }
                 }
                 break;
 
-            case 22:
+            case 24:
                 SetText("<color=#008800><b>Wafer Transport Complete!</b></color>");
                 stepTimer -= Time.deltaTime;
                 if (stepTimer <= 0f)
                 {
-                    currentStep = 23;
+                    currentStep = 25;
                 }
                 // FAST PLAY: Jump ahead if they immediately interact with the photomask tray
                 if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen)
                 {
-                    currentStep = 24;
-                }
-                break;
-
-            case 23:
-                SetText("Click on the Photomask tray to the left (the first item)");
-                if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen)
-                {
-                    currentStep = 24;
-                }
-                break;
-
-            case 24:
-                SetText("Adjust the critical dimension if required and click the preferred pattern");
-                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("mask"))
-                {
-                    currentStep = 25;
+                    currentStep = 26;
                 }
                 break;
 
             case 25:
+                SetText("Click on the Photomask tray to the left (the first item)");
+                if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen)
+                {
+                    currentStep = 26;
+                }
+                break;
+
+            case 26:
+                SetText("Adjust the critical dimension if required and click the preferred pattern");
+                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("mask"))
+                {
+                    currentStep = 27;
+                }
+                break;
+
+            case 27:
                 SetText("Place the photomask EXACTLY on the Chuck of Mask Tray to the right");
                 
                 if (!hasShownChuckContext)
@@ -433,12 +421,12 @@ public class WorkflowManager : MonoBehaviour
                                 break;
                             }
                         }
-                        if (maskFound) currentStep = 26;
+                        if (maskFound) currentStep = 28;
                     }
                 }
                 break;
 
-            case 26:
+            case 28:
                 SetText("Click on the highlighted region to the RIGHT to open the Aligner's Hardware controls");
                 bool isExposureOpen = false;
                 if (CleanroomUIManager.Instance != null)
@@ -446,83 +434,59 @@ public class WorkflowManager : MonoBehaviour
                     if (CleanroomUIManager.Instance.oldExposureUIPanel != null && CleanroomUIManager.Instance.oldExposureUIPanel.activeSelf) isExposureOpen = true;
                     if (CleanroomUIManager.Instance.exposureUIController != null && CleanroomUIManager.Instance.exposureUIController.IsPanelCurrentlyOpen()) isExposureOpen = true;
                 }
-                if (isExposureOpen) currentStep = 27;
-                break;
-
-            case 27:
-                SetText("Toggle the mask tray inside");
-                if (exposureStation != null && exposureStation.isMaskTrayInserted)
-                {
-                    currentStep = 28;
-                }
-                break;
-
-            case 28:
-                SetText("Close this menu");
-                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
-                {
-                    currentStep = 29;
-                }
+                if (isExposureOpen) currentStep = 29;
                 break;
 
             case 29:
-                SetText("Click on the highlighted region on the monitor to open the control panel");
-                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.exposureUIController != null)
+                SetText("Toggle the mask tray inside");
+                if (exposureStation != null && exposureStation.isMaskTrayInserted)
                 {
-                    if (CleanroomUIManager.Instance.exposureUIController.IsPanelCurrentlyOpen()) currentStep = 30;
+                    currentStep = 30;
                 }
                 break;
 
             case 30:
-                SetText("Click on 'Open Recipe'");
-                if (mainWindowController != null && (mainWindowController.IsOnRecipeScreen || mainWindowController.IsOnMachineScreen))
+                SetText("Close this menu");
+                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
                 {
                     currentStep = 31;
                 }
                 break;
 
             case 31:
-                SetText("Adjust the dose, defocus and NA if required, then click on Run");
-                if (mainWindowController != null && mainWindowController.IsOnMachineScreen)
+                SetText("Click on the highlighted region on the monitor to open the control panel");
+                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.exposureUIController != null)
                 {
-                    currentStep = 32;
+                    if (CleanroomUIManager.Instance.exposureUIController.IsPanelCurrentlyOpen()) currentStep = 32;
                 }
                 break;
 
             case 32:
-                SetText("Click continue");
-                if (mainWindowController != null && mainWindowController.currentMachineState == MainWindowController.MachineState.Step12_InsertSubstrate)
+                SetText("Click on 'Open Recipe'");
+                if (mainWindowController != null && (mainWindowController.IsOnRecipeScreen || mainWindowController.IsOnMachineScreen))
                 {
                     currentStep = 33;
                 }
                 break;
 
             case 33:
-                SetText("Close the menu by clicking X on the top right corner");
-                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
+                SetText("Adjust the dose, defocus and NA if required, then click on Run");
+                if (mainWindowController != null && mainWindowController.IsOnMachineScreen)
                 {
                     currentStep = 34;
                 }
                 break;
 
             case 34:
-                SetText("Open the Hardware Controls UI below");
-                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.oldExposureUIPanel != null && CleanroomUIManager.Instance.oldExposureUIPanel.activeSelf)
+                SetText("Click continue");
+                if (mainWindowController != null && mainWindowController.currentMachineState == MainWindowController.MachineState.Step12_InsertSubstrate)
                 {
                     currentStep = 35;
                 }
                 break;
 
             case 35:
-                SetText("Toggle the mask tray out");
-                if (exposureStation != null && !exposureStation.isMaskTrayInserted)
-                {
-                    currentStep = 355;
-                }
-                break;
-
-            case 355:
-                SetText("Close this menu");
+                SetText("Close the menu by clicking X on the top right corner");
                 if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
                 {
                     currentStep = 36;
@@ -530,26 +494,50 @@ public class WorkflowManager : MonoBehaviour
                 break;
 
             case 36:
-                SetText("Click the area AROUND Chuck to get top lid");
-                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("toplid"))
+                SetText("Open the Hardware Controls UI below");
+                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.oldExposureUIPanel != null && CleanroomUIManager.Instance.oldExposureUIPanel.activeSelf)
                 {
                     currentStep = 37;
                 }
                 break;
 
             case 37:
-                SetText("Place the top lid on the highlighted region of the table to the very left");
-                if (playerInteraction != null && playerInteraction.heldObject == null)
+                SetText("Toggle the mask tray out");
+                if (exposureStation != null && !exposureStation.isMaskTrayInserted)
                 {
                     currentStep = 38;
                 }
                 break;
 
             case 38:
-                SetText("Click the wafer carrier to get the wafer");
-                if (playerInteraction != null && playerInteraction.heldObject != null && (playerInteraction.heldObject.name.ToLower().Contains("wafer") || playerInteraction.heldObject.name.ToLower().Contains("substrate")))
+                SetText("Close this menu");
+                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
                 {
                     currentStep = 39;
+                }
+                break;
+
+            case 39:
+                SetText("Click the area AROUND the Chuck to get top lid");
+                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("toplid"))
+                {
+                    currentStep = 40;
+                }
+                break;
+
+            case 40:
+                SetText("Place the top lid on the highlighted region of the table to the very left");
+                if (playerInteraction != null && playerInteraction.heldObject == null)
+                {
+                    currentStep = 41;
+                }
+                break;
+
+            case 41:
+                SetText("Click the wafer carrier to get the wafer");
+                if (IsHoldingWaferOrSubstrate())
+                {
+                    currentStep = 42;
                 }
                 // Fast-forward if they already placed the wafer on the chuck
                 if (exposureStation != null)
@@ -557,174 +545,174 @@ public class WorkflowManager : MonoBehaviour
                     bool hasWafer = false;
                     if (exposureStation.waferDockPosition != null)
                     {
-                        foreach (Transform t in exposureStation.waferDockPosition) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("wafer")) hasWafer = true;
+                        foreach (Transform t in exposureStation.waferDockPosition) if (t.gameObject.activeInHierarchy && IsWaferOrSubstrateName(t.name.ToLower())) hasWafer = true;
                     }
                     if (!hasWafer)
                     {
                         Transform chuck = exposureStation.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
-                        if (chuck != null) foreach (Transform t in chuck) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("wafer")) hasWafer = true;
+                        if (chuck != null) foreach (Transform t in chuck) if (t.gameObject.activeInHierarchy && IsWaferOrSubstrateName(t.name.ToLower())) hasWafer = true;
                     }
-                    if (hasWafer) currentStep = 40;
+                    if (hasWafer) currentStep = 43;
                 }
                 break;
 
-            case 39:
+            case 42:
                 SetText("Place the wafer on the Chuck of the Mask Aligner machine");
                 if (exposureStation != null)
                 {
                     bool hasWafer = false;
                     if (exposureStation.waferDockPosition != null)
                     {
-                        foreach (Transform t in exposureStation.waferDockPosition) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("wafer")) hasWafer = true;
+                        foreach (Transform t in exposureStation.waferDockPosition) if (t.gameObject.activeInHierarchy && IsWaferOrSubstrateName(t.name.ToLower())) hasWafer = true;
                     }
                     if (!hasWafer)
                     {
                         Transform chuck = exposureStation.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
-                        if (chuck != null) foreach (Transform t in chuck) if (t.gameObject.activeInHierarchy && t.name.ToLower().Contains("wafer")) hasWafer = true;
+                        if (chuck != null) foreach (Transform t in chuck) if (t.gameObject.activeInHierarchy && IsWaferOrSubstrateName(t.name.ToLower())) hasWafer = true;
                     }
-                    if (hasWafer) currentStep = 40;
-                }
-                break;
-
-            case 40:
-                SetText("Toggle the mask tray in");
-                if (exposureStation != null && exposureStation.isMaskTrayInserted)
-                {
-                    currentStep = 405;
-                }
-                break;
-
-            case 405:
-                SetText("Close this menu");
-                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
-                {
-                    currentStep = 41;
-                }
-                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.exposureUIController != null && CleanroomUIManager.Instance.exposureUIController.IsPanelCurrentlyOpen())
-                {
-                    currentStep = 41;
-                }
-                break;
-
-            case 41:
-                SetText("Go back to the menu on the monitor");
-                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.exposureUIController != null && CleanroomUIManager.Instance.exposureUIController.IsPanelCurrentlyOpen())
-                {
-                    currentStep = 42;
-                }
-                break;
-
-            case 42:
-                SetText("Click continue until the process finishes completely");
-                if (mainWindowController != null && mainWindowController.currentMachineState == MainWindowController.MachineState.Step14_EndOfProcess)
-                {
-                    currentStep = 43;
+                    if (hasWafer) currentStep = 43;
                 }
                 break;
 
             case 43:
-                SetText("Toggle the mask tray out");
-                if (exposureStation != null && !exposureStation.isMaskTrayInserted)
-                {
-                    currentStep = 435;
-                }
-                break;
-
-            case 435:
-                SetText("Close this menu");
-                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
+                SetText("Toggle the mask tray in");
+                if (exposureStation != null && exposureStation.isMaskTrayInserted)
                 {
                     currentStep = 44;
                 }
                 break;
 
             case 44:
-                SetText("Take the wafer from the mask tray");
-                if (playerInteraction != null && playerInteraction.heldObject != null && (playerInteraction.heldObject.name.ToLower().Contains("wafer") || playerInteraction.heldObject.name.ToLower().Contains("substrate")))
+                SetText("Close this menu");
+                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
+                {
+                    currentStep = 45;
+                }
+                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.exposureUIController != null && CleanroomUIManager.Instance.exposureUIController.IsPanelCurrentlyOpen())
                 {
                     currentStep = 45;
                 }
                 break;
 
             case 45:
-                SetText("Place the wafer onto the wafer carrier (Click its top lid)");
-                if (playerInteraction != null && playerInteraction.heldObject == null)
+                SetText("Go back to the menu on the monitor");
+                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.exposureUIController != null && CleanroomUIManager.Instance.exposureUIController.IsPanelCurrentlyOpen())
                 {
                     currentStep = 46;
                 }
                 break;
 
             case 46:
-                SetText("<color=#008800><b>Lithography Complete!</b></color>");
-                stepTimer -= Time.deltaTime;
-                if (stepTimer <= 0f)
+                SetText("Click continue until the process finishes completely");
+                if (mainWindowController != null && mainWindowController.currentMachineState == MainWindowController.MachineState.Step14_EndOfProcess)
                 {
                     currentStep = 47;
                 }
-                // FAST PLAY: Jump ahead if they immediately pick up the carrier
-                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("carrier"))
+                break;
+
+            case 47:
+                SetText("Toggle the mask tray out");
+                if (exposureStation != null && !exposureStation.isMaskTrayInserted)
                 {
                     currentStep = 48;
                 }
                 break;
 
-            case 47:
-                SetText("Bring the wafer carrier to the previous station in the other room (Blue region)");
-                if (playerInteraction != null && playerInteraction.heldObject == null)
-                {
-                    // Ensure they placed it back on dock 1 specifically
-                    if (playerInteraction.lastDockPlacedName.ToLower().Contains("dock1"))
-                    {
-                        currentStep = 48;
-                    }
-                }
-                break;
-
             case 48:
-                SetText("Click on the wafer carrier to obtain the wafer");
-                if (playerInteraction != null && playerInteraction.heldObject != null && (playerInteraction.heldObject.name.ToLower().Contains("wafer") || playerInteraction.heldObject.name.ToLower().Contains("substrate")))
+                SetText("Close this menu");
+                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
                 {
                     currentStep = 49;
                 }
                 break;
 
             case 49:
-                SetText("Click on top of the hotplate to place it");
-                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.WaferLoaded)
+                SetText("Take the wafer from the mask tray");
+                if (IsHoldingWaferOrSubstrate())
                 {
                     currentStep = 50;
                 }
                 break;
 
             case 50:
-                SetText("Click on the highlighted knob to bring up its menu");
-                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.hotplateUIPanel != null && CleanroomUIManager.Instance.hotplateUIPanel.activeSelf)
+                SetText("Place the wafer onto the wafer carrier (Click its top lid)");
+                if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
                     currentStep = 51;
                 }
                 break;
 
             case 51:
-                SetText("Click on start POSTBAKE and observe the post exposure bake results");
-                PostBakeButtonTrigger pbTrigger = Object.FindAnyObjectByType<PostBakeButtonTrigger>();
-                if (pbTrigger != null && pbTrigger.postBakeStarted)
+                SetText("<color=#008800><b>Lithography Complete!</b></color>");
+                stepTimer -= Time.deltaTime;
+                if (stepTimer <= 0f)
                 {
                     currentStep = 52;
+                }
+                // FAST PLAY: Jump ahead if they immediately pick up the carrier
+                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("carrier"))
+                {
+                    currentStep = 53;
                 }
                 break;
 
             case 52:
+                SetText("Bring the wafer carrier to the previous station in the other room (Blue region)");
+                if (playerInteraction != null && playerInteraction.heldObject == null)
+                {
+                    // Ensure they placed it back on dock 1 specifically
+                    if (playerInteraction.lastDockPlacedName.ToLower().Contains("dock1"))
+                    {
+                        currentStep = 53;
+                    }
+                }
+                break;
+
+            case 53:
+                SetText("Click on the wafer carrier to obtain the wafer");
+                if (IsHoldingWaferOrSubstrate())
+                {
+                    currentStep = 54;
+                }
+                break;
+
+            case 54:
+                SetText("Click on top of the hotplate to place it");
+                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.WaferLoaded)
+                {
+                    currentStep = 55;
+                }
+                break;
+
+            case 55:
+                SetText("Click on the highlighted knob to bring up its menu");
+                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.hotplateUIPanel != null && CleanroomUIManager.Instance.hotplateUIPanel.activeSelf)
+                {
+                    currentStep = 56;
+                }
+                break;
+
+            case 56:
+                SetText("Click on start POSTBAKE and observe the post exposure bake results");
+                PostBakeButtonTrigger pbTrigger = Object.FindAnyObjectByType<PostBakeButtonTrigger>();
+                if (pbTrigger != null && pbTrigger.postBakeStarted)
+                {
+                    currentStep = 57;
+                }
+                break;
+
+            case 57:
                 SetText("Observing post exposure bake results...");
                 // Non-blocking timer: Shows metrics text while baking completes
                 PostBakeButtonTrigger pbTriggerComplete = Object.FindAnyObjectByType<PostBakeButtonTrigger>();
                 if (pbTriggerComplete != null && pbTriggerComplete.postBakeComplete)
                 {
                     stepTimer = 4f;
-                    currentStep = 53;
+                    currentStep = 58;
                 }
                 break;
 
-            case 53:
+            case 58:
                 if (stepTimer > 0f)
                 {
                     stepTimer -= Time.deltaTime;
@@ -738,125 +726,125 @@ public class WorkflowManager : MonoBehaviour
                 // FAST PLAY: As soon as they close the panel, proceed instantly rather than making them wait for the timer
                 if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
                 {
-                    currentStep = 54;
-                }
-                break;
-
-            case 54:
-                SetText("Click on the wafer to pick it up");
-                if (playerInteraction != null && playerInteraction.heldObject != null && (playerInteraction.heldObject.name.ToLower().Contains("wafer") || playerInteraction.heldObject.name.ToLower().Contains("substrate")))
-                {
-                    currentStep = 55;
-                }
-                break;
-
-            case 55:
-                SetText("Place it in the wafer carrier (Click its toplid)");
-                if (playerInteraction != null && playerInteraction.heldObject == null)
-                {
-                    currentStep = 56;
-                }
-                break;
-
-            case 56:
-                SetText("<color=#008800><b>Post-Exposure Bake Complete!</b></color>");
-                stepTimer -= Time.deltaTime;
-                if (stepTimer <= 0f)
-                {
-                    currentStep = 57;
-                }
-                // FAST PLAY: Jump ahead if they immediately pick up the carrier
-                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("carrier"))
-                {
-                    currentStep = 58;
-                }
-                break;
-
-            case 57:
-                SetText("Click the wafer carrier to pick it up");
-                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("carrier"))
-                {
-                    currentStep = 58;
-                }
-                break;
-
-            case 58:
-                SetText("Bring the wafer carrier to the developer station just opposite to this station");
-                if (playerInteraction != null && playerInteraction.heldObject == null)
-                {
-                    // Strict check: Must be placed on dock 3 (Developer Station), NOT put back on dock 1!
-                    if (playerInteraction.lastDockPlacedName.ToLower().Contains("dock3"))
-                    {
-                        currentStep = 59;
-                    }
+                    currentStep = 59;
                 }
                 break;
 
             case 59:
-                SetText("Click on the developer solution bottle on the right (2nd bottle) to hold it");
-                if (playerInteraction != null && playerInteraction.heldObject != null)
+                SetText("Click on the wafer to pick it up");
+                if (IsHoldingWaferOrSubstrate())
                 {
-                    string objName = playerInteraction.heldObject.name.ToLower();
-                    if (objName.Contains("bottle") && (objName.Contains("dev") || objName.Contains("developer")))
-                    {
-                        currentStep = 60;
-                    }
+                    currentStep = 60;
                 }
                 break;
 
             case 60:
-                SetText("Click the right beaker to pour the solution");
-                if (developerUI != null && developerUI.developerFluid != null && developerUI.developerFluid.hasPoured)
+                SetText("Place it in the wafer carrier (Click its toplid)");
+                if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
                     currentStep = 61;
                 }
                 break;
 
             case 61:
-                SetText("Place the bottle back");
-                if (playerInteraction != null && playerInteraction.heldObject == null)
+                SetText("<color=#008800><b>Post-Exposure Bake Complete!</b></color>");
+                stepTimer -= Time.deltaTime;
+                if (stepTimer <= 0f)
                 {
                     currentStep = 62;
+                }
+                // FAST PLAY: Jump ahead if they immediately pick up the carrier
+                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("carrier"))
+                {
+                    currentStep = 63;
                 }
                 break;
 
             case 62:
-                SetText("Click on the DI water bottle on the left to hold it");
-                if (playerInteraction != null && playerInteraction.heldObject != null)
+                SetText("Click the wafer carrier to pick it up");
+                if (playerInteraction != null && playerInteraction.heldObject != null && playerInteraction.heldObject.name.ToLower().Contains("carrier"))
                 {
-                    string objName = playerInteraction.heldObject.name.ToLower();
-                    if (objName.Contains("bottle") && objName.Contains("di"))
-                    {
-                        currentStep = 63;
-                    }
+                    currentStep = 63;
                 }
                 break;
 
             case 63:
-                SetText("Click on the left beaker to pour the solution");
-                if (developerUI != null && developerUI.diFluid != null && developerUI.diFluid.hasPoured)
+                SetText("Bring the wafer carrier to the developer station just opposite to this station");
+                if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
-                    currentStep = 64;
+                    // Strict check: Must be placed on dock 3 (Developer Station), NOT put back on dock 1!
+                    if (playerInteraction.lastDockPlacedName.ToLower().Contains("dock3"))
+                    {
+                        currentStep = 64;
+                    }
                 }
                 break;
 
             case 64:
-                SetText("Place the bottle back");
-                if (playerInteraction != null && playerInteraction.heldObject == null)
+                SetText("Click on the developer solution bottle on the right (2nd bottle) to hold it");
+                if (playerInteraction != null && playerInteraction.heldObject != null)
                 {
-                    currentStep = 65;
+                    string objName = playerInteraction.heldObject.name.ToLower();
+                    if (objName.Contains("bottle") && (objName.Contains("dev") || objName.Contains("developer")))
+                    {
+                        currentStep = 65;
+                    }
                 }
                 break;
 
             case 65:
-                SetText("Click on the wafer carrier to obtain wafer");
-                if (playerInteraction != null && playerInteraction.heldObject != null && (playerInteraction.heldObject.name.ToLower().Contains("wafer") || playerInteraction.heldObject.name.ToLower().Contains("substrate")))
+                SetText("Click on the RIGHT beaker to pour the solution");
+                if (developerUI != null && developerUI.developerFluid != null && developerUI.developerFluid.hasPoured)
                 {
                     currentStep = 66;
                 }
                 break;
 
             case 66:
+                SetText("Place the bottle back");
+                if (playerInteraction != null && playerInteraction.heldObject == null)
+                {
+                    currentStep = 67;
+                }
+                break;
+
+            case 67:
+                SetText("Click on the DI water bottle on the left to hold it");
+                if (playerInteraction != null && playerInteraction.heldObject != null)
+                {
+                    string objName = playerInteraction.heldObject.name.ToLower();
+                    if (objName.Contains("bottle") && objName.Contains("di"))
+                    {
+                        currentStep = 68;
+                    }
+                }
+                break;
+
+            case 68:
+                SetText("Click on the left beaker to pour the solution");
+                if (developerUI != null && developerUI.diFluid != null && developerUI.diFluid.hasPoured)
+                {
+                    currentStep = 69;
+                }
+                break;
+
+            case 69:
+                SetText("Place the bottle back");
+                if (playerInteraction != null && playerInteraction.heldObject == null)
+                {
+                    currentStep = 70;
+                }
+                break;
+
+            case 70:
+                SetText("Click on the wafer carrier to obtain wafer");
+                if (IsHoldingWaferOrSubstrate())
+                {
+                    currentStep = 71;
+                }
+                break;
+
+            case 71:
                 SetText("Click the right beaker to immerse the wafer in developer solution");
                 // ENFORCEMENT: Make sure BOTH beakers are filled before allowing immersion!
                 if (developerUI != null && (developerUI.developerFluid == null || !developerUI.developerFluid.hasPoured || developerUI.diFluid == null || !developerUI.diFluid.hasPoured))
@@ -870,7 +858,7 @@ public class WorkflowManager : MonoBehaviour
                     {
                         foreach (Transform child in developerUI.developerFluid.transform)
                         {
-                            if (child.name.ToLower().Contains("wafer") || child.name.ToLower().Contains("substrate"))
+                            if (IsWaferOrSubstrateName(child.name.ToLower()))
                             {
                                 isImmersed = true;
                                 break;
@@ -879,42 +867,42 @@ public class WorkflowManager : MonoBehaviour
                     }
                     if (isImmersed)
                     {
-                        currentStep = 67;
+                        currentStep = 72;
                     }
                 }
                 break;
 
-            case 67:
+            case 72:
                 SetText("Click on the highlighted region on the right for controls");
                 if (developerUI != null && (developerUI.developerFluid == null || !developerUI.developerFluid.hasPoured || developerUI.diFluid == null || !developerUI.diFluid.hasPoured))
                 {
-                    currentStep = 66; // Fallback if reached without filling both beakers
+                    currentStep = 71; // Fallback if reached without filling both beakers
                     break;
                 }
                 if (developerUI != null && developerUI.gameObject.activeInHierarchy)
                 {
-                    currentStep = 68;
+                    currentStep = 73;
                 }
                 break;
 
-            case 68:
+            case 73:
                 SetText("Adjust the immersion/sweving time if required, and press swerve developer beaker");
                 if (developerUI != null && developerUI.hasStartedSwerving)
                 {
-                    currentStep = 69;
+                    currentStep = 74;
                 }
                 break;
 
-            case 69:
+            case 74:
                 // Non-blocking wait for swerving to finish
                 if (developerUI != null && !developerUI.isCountingDown && developerUI.hasStartedSwerving)
                 {
                     stepTimer = 4f;
-                    currentStep = 70;
+                    currentStep = 75;
                 }
                 break;
 
-            case 70:
+            case 75:
                 if (stepTimer > 0f)
                 {
                     stepTimer -= Time.deltaTime;
@@ -928,19 +916,19 @@ public class WorkflowManager : MonoBehaviour
                 // FAST PLAY: Instantly advance if they manually close the UI
                 if (developerUI != null && !developerUI.gameObject.activeInHierarchy)
                 {
-                    currentStep = 71;
+                    currentStep = 76;
                 }
                 break;
 
-            case 71:
+            case 76:
                 SetText("Click on the wafer in the developer beaker to pick it up");
-                if (playerInteraction != null && playerInteraction.heldObject != null && (playerInteraction.heldObject.name.ToLower().Contains("wafer") || playerInteraction.heldObject.name.ToLower().Contains("substrate")))
+                if (IsHoldingWaferOrSubstrate())
                 {
-                    currentStep = 72;
+                    currentStep = 77;
                 }
                 break;
 
-            case 72:
+            case 77:
                 SetText("Click the left beaker to immerse the wafer in DI water");
                 if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
@@ -949,7 +937,7 @@ public class WorkflowManager : MonoBehaviour
                     {
                         foreach (Transform child in developerUI.diFluid.transform)
                         {
-                            if (child.name.ToLower().Contains("wafer") || child.name.ToLower().Contains("substrate"))
+                            if (IsWaferOrSubstrateName(child.name.ToLower()))
                             {
                                 isImmersed = true;
                                 break;
@@ -958,46 +946,36 @@ public class WorkflowManager : MonoBehaviour
                     }
                     if (isImmersed)
                     {
-                        currentStep = 73;
+                        currentStep = 78;
                     }
                 }
                 break;
 
-            case 73:
+            case 78:
                 SetText("Click on the highlighted region on the right for controls again");
                 if (developerUI != null && developerUI.gameObject.activeInHierarchy)
                 {
-                    currentStep = 74;
+                    currentStep = 79;
                 }
                 break;
 
-            case 74:
+            case 79:
                 SetText("Adjust the immersion/sweving time if required, and press swerve DI beaker");
                 if (developerUI != null && developerUI.hasStartedSwervingDI)
                 {
-                    currentStep = 75;
+                    currentStep = 80;
                 }
                 break;
 
-            case 75:
+            case 80:
                 if (developerUI != null && !developerUI.isCountingDown && developerUI.hasStartedSwervingDI)
                 {
-                    if (developerUI.gameObject.activeInHierarchy)
-                    {
-                        developerUI.gameObject.SetActive(false);
-                    }
-                    if (CleanroomUIManager.Instance != null)
-                    {
-                        if (CleanroomUIManager.Instance.dispenserUIPanel != null)
-                            CleanroomUIManager.Instance.dispenserUIPanel.SetActive(false);
-                        CleanroomUIManager.Instance.CloseActivePanel();
-                    }
                     stepTimer = 10f;
-                    currentStep = 77;
+                    currentStep = 81;
                 }
                 break;
 
-            case 77:
+            case 81:
                 if (stepTimer > 0f)
                 {
                     stepTimer -= Time.deltaTime;
@@ -1079,5 +1057,17 @@ public class WorkflowManager : MonoBehaviour
         {
             Debug.LogWarning($"[WorkflowManager] Could not find Context Image at Resources/{resourcePath}");
         }
+    }
+
+    private bool IsWaferOrSubstrateName(string lowerName)
+    {
+        if (string.IsNullOrEmpty(lowerName)) return false;
+        return (lowerName.Contains("wafer") && !lowerName.Contains("carrier") && !lowerName.Contains("dock")) || lowerName.Contains("substrate");
+    }
+
+    private bool IsHoldingWaferOrSubstrate()
+    {
+        if (playerInteraction == null || playerInteraction.heldObject == null) return false;
+        return IsWaferOrSubstrateName(playerInteraction.heldObject.name.ToLower());
     }
 }

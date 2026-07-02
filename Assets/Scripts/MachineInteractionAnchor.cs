@@ -64,19 +64,19 @@ public class MachineInteractionAnchor : MonoBehaviour
         }
         if (lowerName.Contains("hot"))
         {
-            return step == 15 || step == 50;
+            return step == 16 || step == 55;
         }
         if (lowerName.Contains("control") || lowerName.Contains("hardware")) // Aligner Hardware Controls
         {
-            return step == 26 || step == 27 || step == 34 || step == 35 || step == 40 || step == 43;
+            return step == 28 || step == 29 || step == 36 || step == 37 || step == 43 || step == 47;
         }
         if (lowerName.Contains("exposure") || lowerName.Contains("aligner") || lowerName.Contains("monitor") || lowerName.Contains("machine"))
         {
-            return step == 29 || step == 41;
+            return step == 31 || step == 45;
         }
         if (lowerName.Contains("dev") || lowerName.Contains("dispenser")) // Developer Station controls (interaction_dispenser)
         {
-            return step == 67 || step == 73;
+            return step == 72 || step == 78;
         }
 
         return false;

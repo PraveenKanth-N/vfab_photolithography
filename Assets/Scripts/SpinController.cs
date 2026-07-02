@@ -447,7 +447,7 @@ public class SpinCoaterController : MonoBehaviour
         {
             foreach (Transform child in searchRoot)
             {
-                if (child.name.ToLower().Contains("wafer"))
+                if ((child.name.ToLower().Contains("wafer") && !child.name.ToLower().Contains("carrier") && !child.name.ToLower().Contains("dock")) || child.name.ToLower().Contains("substrate"))
                 {
                     waferToReturn = child.gameObject;
                     break;

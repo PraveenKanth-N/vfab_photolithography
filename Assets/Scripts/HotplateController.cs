@@ -181,7 +181,7 @@ public class HotplateController : MonoBehaviour
         Collider[] hits = Physics.OverlapSphere(scanCenter + new Vector3(0f, 0.1f, 0f), 0.4f);
         foreach (Collider hit in hits)
         {
-            if (hit.gameObject.name.ToLower().Contains("wafer"))
+            if ((hit.gameObject.name.ToLower().Contains("wafer") && !hit.gameObject.name.ToLower().Contains("carrier") && !hit.gameObject.name.ToLower().Contains("dock")) || hit.gameObject.name.ToLower().Contains("substrate"))
             {
                 Renderer waferRen = hit.gameObject.GetComponent<Renderer>();
                 if (waferRen != null && bakedAmberMaterial != null) waferRen.material = bakedAmberMaterial;
