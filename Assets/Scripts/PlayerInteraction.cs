@@ -347,6 +347,30 @@ public class PlayerInteraction : MonoBehaviour
                 }
                 return;
             }
+
+            // --- 8. DEHYDRATION OVEN INTERACTION ---
+            DehydrationOvenController oven = target.GetComponent<DehydrationOvenController>();
+            if (oven == null) oven = target.GetComponentInParent<DehydrationOvenController>();
+            if (oven == null && target.transform.parent != null) oven = target.transform.parent.GetComponentInParent<DehydrationOvenController>();
+            if ((oven != null || nameLower.Contains("oven") || nameLower.Contains("dehydrat")) && !nameLower.Contains("interaction") && target.GetComponent<MachineInteractionAnchor>() == null)
+            {
+                if (oven == null) oven = Object.FindAnyObjectByType<DehydrationOvenController>();
+                if (oven != null && !nameLower.Contains("wafer") && !nameLower.Contains("substrate") && !nameLower.Contains("bottle") && !nameLower.Contains("beaker") && !nameLower.Contains("interaction"))
+                {
+                    if (oven.isAnimating) return;
+                    if (oven.hasWafer)
+                    {
+                        oven.ExtractWaferSequence((GameObject extracted) => {
+                            if (extracted != null) PickUpHeldObject(extracted);
+                        });
+                    }
+                    else
+                    {
+                        oven.ToggleOvenDoors();
+                    }
+                    return;
+                }
+            }
         }
     }
 
@@ -692,6 +716,32 @@ public class PlayerInteraction : MonoBehaviour
                 targetHotplate.RegisterWaferPlacement(heldObject);
                 heldObject = null;
                 return;
+            }
+
+            // --- ROUTE D2: DEHYDRATION OVEN INTERACTION ---
+            DehydrationOvenController targetOven = target.GetComponentInParent<DehydrationOvenController>();
+            if (targetOven == null && (targetName.Contains("oven") || targetName.Contains("dehydrat")) && !targetName.Contains("interaction") && target.GetComponent<MachineInteractionAnchor>() == null)
+            {
+                targetOven = Object.FindAnyObjectByType<DehydrationOvenController>();
+            }
+
+            if (targetOven != null && !targetName.Contains("interaction") && target.GetComponent<MachineInteractionAnchor>() == null)
+            {
+                if (targetOven.isAnimating) return;
+                if (isHeldWafer && !targetOven.hasWafer)
+                {
+                    RestoreHeldObjectLayer();
+                    GameObject waferToInsert = heldObject;
+                    DetachHeldObject();
+                    heldObject = null;
+                    targetOven.InsertWaferSequence(waferToInsert);
+                    return;
+                }
+                else if (!targetOven.isOpen)
+                {
+                    targetOven.ToggleOvenDoors();
+                    return;
+                }
             }
 
             // --- ROUTE E: CHEMICAL DEVELOPMENT BEAKER DISPLACEMENT ---

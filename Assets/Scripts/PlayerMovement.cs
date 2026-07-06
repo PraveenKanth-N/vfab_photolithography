@@ -23,15 +23,27 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // 1. Capture keyboard layout inputs cleanly every rendered frame
-        moveX = Input.GetAxis("Horizontal"); // A (-1), D (1)
-        moveZ = Input.GetAxis("Vertical");   // S (-1), W (1)
+        // Use GetAxisRaw instead of GetAxis to eliminate Unity's built-in input smoothing/acceleration.
+        // This makes WASD respond instantly with zero lag on startup and zero momentum when keys are released!
+        moveX = Input.GetAxisRaw("Horizontal"); // A (-1), D (1), or 0
+        moveZ = Input.GetAxisRaw("Vertical");   // S (-1), W (1), or 0
     }
 
     void FixedUpdate()
     {
-        Vector3 moveDirection = (transform.forward * moveZ + transform.right * moveX).normalized;
-        moveDirection.y = 0f; 
+        // Calculate forward and right vectors purely on the horizontal XZ plane
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        forward.Normalize();
+
+        Vector3 right = transform.right;
+        right.y = 0f;
+        right.Normalize();
+
+        Vector3 moveDirection = (forward * moveZ + right * moveX).normalized;
+        
+        // Apply crisp velocity directly without vertical drift
         rb.linearVelocity = moveDirection * moveSpeed;
+        rb.angularVelocity = Vector3.zero;
     }
 }

@@ -12,6 +12,8 @@ public class CleanroomUIManager : MonoBehaviour
     public GameObject spinCoaterUIPanel;
     public GameObject dispenserUIPanel;
     public GameObject oldExposureUIPanel; // 🚨 Drag your old Canvas Exposure_UI here!
+    public GameObject sc1CleanerUIPanel;  // 🚨 Drag your SC1 Cleaner UI Panel here!
+    public GameObject dehydrationOvenUIPanel; // 🚨 Drag your Dehydration Oven UI Panel here!
     
     [Header("UI Toolkit Integration")]
     public MainWindowController exposureUIController; // 🚨 Drag the component here!
@@ -51,6 +53,17 @@ public class CleanroomUIManager : MonoBehaviour
             case "Dispenser":
                 if (dispenserUIPanel != null) { dispenserUIPanel.SetActive(true); activeGameObjectPanel = dispenserUIPanel; }
                 break;
+            case "Cleaner_hotplate":
+            case "Cleaner":
+            case "SC1":
+                if (sc1CleanerUIPanel != null) { sc1CleanerUIPanel.SetActive(true); activeGameObjectPanel = sc1CleanerUIPanel; }
+                break;
+            case "Oven":
+            case "DehydrationOven":
+            case "dehydration_oven":
+            case "Dehydration_Oven":
+                if (dehydrationOvenUIPanel != null) { dehydrationOvenUIPanel.SetActive(true); activeGameObjectPanel = dehydrationOvenUIPanel; }
+                break;
             case "ExposureControls": // The old Canvas UI
                 if (oldExposureUIPanel != null) { oldExposureUIPanel.SetActive(true); activeGameObjectPanel = oldExposureUIPanel; }
                 break;
@@ -86,6 +99,8 @@ public class CleanroomUIManager : MonoBehaviour
         if (spinCoaterUIPanel != null) spinCoaterUIPanel.SetActive(false);
         if (dispenserUIPanel != null) dispenserUIPanel.SetActive(false);
         if (oldExposureUIPanel != null) oldExposureUIPanel.SetActive(false);
+        if (sc1CleanerUIPanel != null) sc1CleanerUIPanel.SetActive(false);
+        if (dehydrationOvenUIPanel != null) dehydrationOvenUIPanel.SetActive(false);
         
         if (exposureUIController != null)
         {

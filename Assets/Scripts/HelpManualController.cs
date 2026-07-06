@@ -156,11 +156,36 @@ public class HelpManualController : MonoBehaviour
                 VisualElement imageBlock = new VisualElement();
                 imageBlock.AddToClassList("help-image-block");
                 
-                // Apply custom size if provided
-                if (parts.Length > 1 && float.TryParse(parts[1], out float customSize))
+                // Apply custom size if provided (supports |width, |width|height, or |widthxheight)
+                if (parts.Length > 1)
                 {
-                    imageBlock.style.width = customSize;
-                    imageBlock.style.height = customSize; // scale-to-fit will maintain aspect ratio inside this box
+                    float widthVal = 0f;
+                    float heightVal = 0f;
+
+                    if (parts[1].Contains("x") || parts[1].Contains("X"))
+                    {
+                        string[] dims = parts[1].Split('x', 'X');
+                        if (dims.Length >= 2)
+                        {
+                            float.TryParse(dims[0], out widthVal);
+                            float.TryParse(dims[1], out heightVal);
+                        }
+                    }
+                    else
+                    {
+                        float.TryParse(parts[1], out widthVal);
+                        if (parts.Length > 2)
+                        {
+                            float.TryParse(parts[2], out heightVal);
+                        }
+                        else
+                        {
+                            heightVal = widthVal; // Fallback to square if only width is provided
+                        }
+                    }
+
+                    if (widthVal > 0) imageBlock.style.width = widthVal;
+                    if (heightVal > 0) imageBlock.style.height = heightVal;
                 }
                 
                 Texture2D loadedTex = Resources.Load<Texture2D>("Images/" + imageName);

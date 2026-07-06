@@ -16,6 +16,8 @@ public class MachineInteractionAnchor : MonoBehaviour
     [Tooltip("Speed of the pulse animation")]
     public float pulseSpeed = 4f;
 
+    private bool isHovered = false;
+
     void Start()
     {
         meshRenderer = GetComponent<Renderer>();
@@ -32,20 +34,50 @@ public class MachineInteractionAnchor : MonoBehaviour
 
     void Update()
     {
+        if (Camera.main != null)
+        {
+            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            RaycastHit[] hits = Physics.RaycastAll(ray, 7.0f);
+            bool aimedAtCube = false;
+            foreach (var h in hits)
+            {
+                if (h.collider != null && (h.collider.gameObject == gameObject || h.collider.transform.IsChildOf(transform)))
+                {
+                    aimedAtCube = true;
+                    break;
+                }
+            }
+            if (aimedAtCube) isHovered = true;
+            else if (!aimedAtCube && isHovered && !Input.GetMouseButton(0)) isHovered = false;
+
+            if (aimedAtCube && Input.GetMouseButtonDown(0))
+            {
+                TriggerPanelOpen();
+            }
+        }
+
         if (meshRenderer != null)
         {
-            if (!ShouldGlow())
+            bool activeStep = ShouldGlow();
+            if (!activeStep && !isHovered)
             {
                 meshRenderer.material.SetColor("_EmissionColor", originalColor);
                 return;
             }
 
-            // Calculate a pulsing multiplier between 0.2 and 1.0 for a continuous breathing effect
-            float pulseMultiplier = (Mathf.Sin(Time.time * pulseSpeed) + 1f) * 0.5f; 
-            pulseMultiplier = Mathf.Clamp(pulseMultiplier, 0.2f, 1.0f);
-            
-            Color currentPulse = hoverGlowColor * pulseMultiplier;
-            meshRenderer.material.SetColor("_EmissionColor", currentPulse);
+            if (activeStep)
+            {
+                // Calculate a pulsing multiplier between 0.2 and 1.0 for a continuous breathing effect
+                float pulseMultiplier = (Mathf.Sin(Time.time * pulseSpeed) + 1f) * 0.5f; 
+                pulseMultiplier = Mathf.Clamp(pulseMultiplier, 0.2f, 1.0f);
+                Color currentPulse = hoverGlowColor * pulseMultiplier;
+                meshRenderer.material.SetColor("_EmissionColor", currentPulse);
+            }
+            else if (isHovered)
+            {
+                // Steady glow when hovered by default!
+                meshRenderer.material.SetColor("_EmissionColor", hoverGlowColor * 0.85f);
+            }
         }
     }
 
@@ -56,11 +88,22 @@ public class MachineInteractionAnchor : MonoBehaviour
         if (!wm.workflowActive) return false;
 
         int step = wm.currentStep;
+        if (step < 2) return false; // Do not pulse during startup or welcome screen (steps 0 and 1)
+
         string lowerName = (machineName + " " + gameObject.name).ToLower();
 
+        if (lowerName.Contains("clean") || lowerName.Contains("sc1") || lowerName.Contains("rca"))
+        {
+            // Only pulse if we are in a designated cleaning sequence step (to be assigned in WorkflowManager)
+            return step >= 100 && step <= 120;
+        }
+        if (lowerName.Contains("oven") || lowerName.Contains("dehydrat"))
+        {
+            return step >= 100 && step <= 140;
+        }
         if (lowerName.Contains("spin"))
         {
-            return step == 1 || step == 2 || step == 3 || step == 7 || step == 12;
+            return step == 2 || step == 3 || step == 7 || step == 12;
         }
         if (lowerName.Contains("hot"))
         {
@@ -85,17 +128,21 @@ public class MachineInteractionAnchor : MonoBehaviour
     // Triggers automatically when the player's mouse cursor moves over the Box Collider
     void OnMouseEnter()
     {
-        // Removed: Pulse is now infinite
+        isHovered = true;
     }
 
     // Triggers automatically when the player's mouse cursor leaves the Box Collider bounds
     void OnMouseExit()
     {
-        // Removed: Pulse is now infinite
+        isHovered = false;
     }
 
-    // Triggers automatically when clicking directly on the cube anchor zone
     void OnMouseDown()
+    {
+        TriggerPanelOpen();
+    }
+
+    void TriggerPanelOpen()
     {
         if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.IsAnyPanelOpen()) return;
         if (PhotomaskGalleryUI.Instance != null && PhotomaskGalleryUI.Instance.isGalleryOpen) return;

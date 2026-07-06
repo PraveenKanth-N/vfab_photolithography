@@ -1,0 +1,47 @@
+<size=130%><b>Pre-Lithography Wafer Cleaning (RCA SC 1 + HMDS Vapor priming)</b></size>
+
+<b>Why Cleaning Is Needed Before Spin Coating</b>
+
+<b>What state is the wafer in at this point? </b> The wafer arriving at the cleaning station has already undergone earlier fabrication step called oxide deposition (SiO2). These steps leave the wafer surface covered in residue: organic contamination from handling, particulate matter from thin molecular films from process chemicals, and leftover deposition byproducts sitting on the oxide surface. The wafer is not clean in any useful sense when it arrives here.
+
+<b>What two problems need to be solved? </b> Problem 1: Remove all surface contamination (particles, organic residue, molecular films). Problem 2: Convert the surface from hydrophilic to hydrophobic so the photoresist sticks. These are solved by two separate sequential steps the SC1 wet clean and the HMDS vapor prime.
+
+<b>Stage 1 - RCA SC1 Wet Clean</b>
+
+<b>What is SC1? </b> SC1 stands for Standard Clean 1, the first step in the RCA cleaning sequence developed at RCA Laboratories. The bath is a mixture of ammonium hydroxide (NH4OH), hydrogen peroxide (H2O2), and deionized water in a 1:1:5 volume ratio, also called APM (Ammonia Peroxide Mixture).
+<b>What types of contamination does SC1 remove?</b> SC1 is specifically effective against three categories of surface contamination:
+Organic particulates: fragments of polymer, resist residue from previous steps, organic films from handling
+Surface-adsorbed molecular films: thin organic monolayers that attach to the SiO2 oxide surface during prior process steps
+Loosely bound particles: any particulate matter sitting on the oxide surface
+SC1 does NOT remove metal ion contamination (that requires SC2, a separate step not in this pipeline) or strongly bonded inorganic deposits.
+
+<b>How does SC1 remove contamination: </b> SC1 does not dissolve organic contamination chemically the way a strong acid would. Instead, it exploits a physical mechanism called undercut lift-off. The NH₄OH very slowly etches the native silicon oxide (SiO2) surface at approximately 4 A per minute. As this etch front moves forward, it travels laterally underneath the base of any contamination particle or organic patch sitting at the oxide surface, progressively cutting away its contact area. Once the etch has undercut enough of the particle's footprint, adhesion fails and the particle simply detaches and disperses into the bath liquid. This is why dip time controls removal, more time means more etch depth, more undercut, more lift-off.
+
+<b>The self-protection mechanism: </b> While NH4OH etches the oxide, H2O2 simultaneously re-oxidizes any bare silicon exposed by that etch, maintaining a thin self-replenishing chemical oxide layer of approximately 6–10 A throughout the entire dip. This oxide layer protects the underlying silicon from bulk attack by NH₄OH.
+
+<b>What does the wafer surface look like after SC1? </b> The SiO2 chemical oxide left behind by SC1 is densely covered in silicon hydroxyl groups - Si–OH (silanol groups). These Si–OH groups attract water strongly, making the surface maximally hydrophilic. A water droplet placed on the surface spreads completely flat, giving a contact angle of approximately 5–6 deg.
+
+<b>What is contact angle and why does it matter here? </b> Contact angle is the angle a water droplet makes with a solid surface at the point of contact. A low angle ( < 30 deg.) means the surface is hydrophilic; water spreads flat and the surface has high surface energy. A high angle ( > 60 deg.) means the surface is hydrophobic; water beads up. Photoresist is a hydrophobic polymer: it bonds well to hydrophobic surfaces and poorly to hydrophilic ones. After SC1, the contact angle is 5–6 deg. For reliable DUV photoresist adhesion, angle needs to exceed 65 deg. HMDS priming bridges this gap.
+
+<b>What happens after the SC1 dip - DI water rinse and N₂ blow dry: </b> Immediately after the SC1 dip, the wafer is transferred into a deionized (DI) water rinse bath. This quenches the SC1 reaction instantly, prevents continued chemical etching after the target dip time, and removes all dissolved chemical residue and detached particles from the surface. Following the DI rinse, the wafer is dried using a high-purity nitrogen (N2) gas blow, ensuring the surface is dry without re-introducing any organic contamination from air.
+
+<b>Stage 2 - HMDS Vapor Prime (Prime Oven) </b>
+<b>Why is HMDS priming needed at all? </b> After SC1 cleaning and drying, the wafer surface is chemically clean but the Si-OH groups that make it hydrophilic are still present and that makes spin coating of photoresist poorly adhering. HMDS priming solves this by chemically reacting with those Si–OH groups and replacing them with groups that are compatible with the photoresist polymer, effectively converting the surface from water-attracting to resist-attracting.
+
+<b>What is HMDS? </b> HMDS stands for Hexamethyldisilazane. It is a silane coupling agent that reacts specifically with surface hydroxyl groups. It is applied as a vapor in a sealed oven rather than as a liquid, because vapor-phase priming gives more uniform coverage across the wafer surface.
+
+<b>What is dehydration bake and where does it happen?</b> Before HMDS vapor can react with Si-OH groups, any water molecules that have physically adsorbed onto those groups must be removed using dehydration bake (150-200 degrees). The oven first pumps down to vacuum and heats the wafer (dehydration), then floods the chamber with HMDS vapor in nitrogen carrier gas (priming) all without opening the chamber between phases.
+
+<b>What chemical reaction does HMDS perform on the surface? </b> HMDS reacts with the Si-OH hydroxyl groups on the SiO₂ surface, replacing each –OH group with a trimethylsilyl group –O–Si(CH3)3 and releasing ammonia (NH3) as a gaseous byproduct that is swept away by the nitrogen carrier:
+
+[IMAGE: equationImg|800|250]
+
+The trimethylsilyl groups –Si(CH₃)₃ that now cover the surface consist of three methyl (–CH3) groups pointing outward. Methyl groups repel water - they are hydrophobic. This conversion is essentially irreversible under normal conditions, which is why it persists through subsequent processing steps.
+
+<b>What contact angle is achieved after HMDS priming? </b> At the standard recipe (150 deg.C, 300 seconds), the contact angle rises from approximately 5–6 deg.C (post-SC1) to approximately 77 deg.C. The target window for DUV photoresist adhesion is 65–80 deg.C Once this is completely done, move ahead with the spin coating of Photoresist to get a correctly adhered coat.
+
+<b>References:</b>
+Kern, W. & Puotinen, D.A. (1970). Cleaning solutions based on hydrogen peroxide for use in silicon semiconductor technology. RCA Review, 31(2), 187–206.
+Watanabe, M. et al. (1983). SC1 etch rate measurement (4.0 Å/min at 80 deg.C). Cited in: University of Illinois ECE444 Fab Process Training Documentation.
+
+https://cores.research.utdallas.edu/manuals/hmds-process/

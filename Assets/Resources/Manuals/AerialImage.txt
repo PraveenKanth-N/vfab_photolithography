@@ -14,7 +14,7 @@
 
 <b>The Spatial Frequency Cutoff Boundary:</b> The objective lens system acts as a strict physical low-pass frequency filter. It can only capture diffracted light rays up to a specific maximum angle defined by its numerical aperture (NA) and the light wavelength, creating an absolute physical boundary called the spatial frequency cutoff.
 
-[IMAGE: aerialDiagramImg|800]
+[IMAGE: aerialDiagramImg|800|350]
 
 <b>The Physical Mechanism of Feature Blurring:</b> When mask features or line spacings become smaller than the lens cutoff, the diffracted light rays bend at an angle so steep that they propagate beyond the collection angle. The objective lens blocks these higher frequencies, preventing them from recombining at the wafer plane, which causes the <b>final aerial image to lose all sharp contrast</b> and flatten into a uniform blur.
 
