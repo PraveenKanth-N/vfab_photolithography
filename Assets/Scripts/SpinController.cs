@@ -43,6 +43,7 @@ public class SpinCoaterController : MonoBehaviour
     [Header("ML Inference Engine Integration")]
     public ModelAsset modelAsset;               // Target: PR_Coating_Model.onnx asset container
     private Worker engine;                      // FIXED: Replaced IWorker with concrete Worker class
+    private Model runtimeModel;
     private Texture2D mlDataLookupTexture;
     private const int RADIAL_SAMPLES = 256;
     public HotplateController hotplateEquipmentInstance;
@@ -78,13 +79,14 @@ public class SpinCoaterController : MonoBehaviour
         // Initialize the modern Inference Engine Engine Architecture
         if (modelAsset != null)
         {
-            Model model = ModelLoader.Load(modelAsset);
+            runtimeModel = ModelLoader.Load(modelAsset);
             
             // FIXED: Replaced WorkerFactory.CreateWorker with a direct constructor call
 #if UNITY_WEBGL && !UNITY_EDITOR
-            engine = new Worker(model, BackendType.GPUPixel);
+            BackendType webglBackend = (SystemInfo.graphicsShaderLevel < 35 || SystemInfo.graphicsMemorySize < 512) ? BackendType.CPU : BackendType.GPUPixel;
+            engine = new Worker(runtimeModel, webglBackend);
 #else
-            engine = new Worker(model, BackendType.GPUCompute);
+            engine = new Worker(runtimeModel, BackendType.GPUCompute);
 #endif
         }
         else
@@ -301,10 +303,20 @@ public class SpinCoaterController : MonoBehaviour
         
         // 2. Wrap inputs and schedule execution asynchronously on GPU
         using Tensor<float> inputTensor = new Tensor<float>(shape, inputs);
-        engine.Schedule(inputTensor);
-
-        // 3. Peek the raw output tensor reference from the engine
-        Tensor<float> gpuOutputTensor = engine.PeekOutput() as Tensor<float>;
+        Tensor<float> gpuOutputTensor = null;
+        try
+        {
+            engine.Schedule(inputTensor);
+            gpuOutputTensor = engine.PeekOutput() as Tensor<float>;
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"[SpinController] GPU inference failed ({ex.Message}). Automatically switching to CPU SIMD backend!");
+            engine?.Dispose();
+            engine = new Worker(runtimeModel, BackendType.CPU);
+            engine.Schedule(inputTensor);
+            gpuOutputTensor = engine.PeekOutput() as Tensor<float>;
+        }
         
         if (gpuOutputTensor != null)
         {

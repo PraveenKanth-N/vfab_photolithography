@@ -69,8 +69,9 @@ public class LithoInferenceEngine : MonoBehaviour
         runtimeChemicalModel = ModelLoader.Load(chemicalModelAsset);
 
 #if UNITY_WEBGL && !UNITY_EDITOR
-        inferenceWorker = new Worker(runtimeModel, BackendType.GPUPixel);
-        chemicalInferenceWorker = new Worker(runtimeChemicalModel, BackendType.GPUPixel);
+        BackendType webglBackend = (SystemInfo.graphicsShaderLevel < 35 || SystemInfo.graphicsMemorySize < 512) ? BackendType.CPU : BackendType.GPUPixel;
+        inferenceWorker = new Worker(runtimeModel, webglBackend);
+        chemicalInferenceWorker = new Worker(runtimeChemicalModel, webglBackend);
 #else
         inferenceWorker = new Worker(runtimeModel, BackendType.GPUCompute);
         chemicalInferenceWorker = new Worker(runtimeChemicalModel, BackendType.GPUCompute);
@@ -236,14 +237,32 @@ public class LithoInferenceEngine : MonoBehaviour
         TensorShape engineInputShape = new TensorShape(1, channels, resolution, resolution);
         using Tensor<float> engineInputTensor = new Tensor<float>(engineInputShape, nchwInputArray);
         
-        inferenceWorker.Schedule(engineInputTensor);
-        using Tensor<float> gpuOutputTensor = inferenceWorker.PeekOutput() as Tensor<float>;
-        
-        if (gpuOutputTensor != null)
+        try
         {
-            using Tensor<float> cpuCopyTensor = gpuOutputTensor.ReadbackAndClone() as Tensor<float>;
-            outputResultsData = cpuCopyTensor.DownloadToArray(); 
-
+            inferenceWorker.Schedule(engineInputTensor);
+            using Tensor<float> gpuOutputTensor = inferenceWorker.PeekOutput() as Tensor<float>;
+            if (gpuOutputTensor != null)
+            {
+                using Tensor<float> cpuCopyTensor = gpuOutputTensor.ReadbackAndClone() as Tensor<float>;
+                outputResultsData = cpuCopyTensor.DownloadToArray(); 
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"[Litho AI Engine] GPU inference failed ({ex.Message}). Automatically switching to CPU SIMD backend!");
+            inferenceWorker?.Dispose();
+            inferenceWorker = new Worker(runtimeModel, BackendType.CPU);
+            inferenceWorker.Schedule(engineInputTensor);
+            using Tensor<float> gpuOutputTensor = inferenceWorker.PeekOutput() as Tensor<float>;
+            if (gpuOutputTensor != null)
+            {
+                using Tensor<float> cpuCopyTensor = gpuOutputTensor.ReadbackAndClone() as Tensor<float>;
+                outputResultsData = cpuCopyTensor.DownloadToArray(); 
+            }
+        }
+        
+        if (outputResultsData != null)
+        {
             // --- STAGE 2 PRE-COMPUTE: CONSTRUCT 2-CHANNEL PASSTHROUGH FOOTPRINT FOR CHEMICAL SURROGATE ---
             float normDose = currentDose / 38.0f;
             int planeSize = resolution * resolution;
@@ -258,13 +277,28 @@ public class LithoInferenceEngine : MonoBehaviour
             TensorShape chemShape = new TensorShape(1, 2, resolution, resolution);
             using Tensor<float> chemInputTensor = new Tensor<float>(chemShape, chemicalInputBuffer);
 
-            chemicalInferenceWorker.Schedule(chemInputTensor);
-            using Tensor<float> gpuChemOutput = chemicalInferenceWorker.PeekOutput() as Tensor<float>;
-
-            if (gpuChemOutput != null)
+            try
             {
-                using Tensor<float> cpuChemCopy = gpuChemOutput.ReadbackAndClone() as Tensor<float>;
-                chemicalResultsData = cpuChemCopy.DownloadToArray(); // Stashed and ready for Hotplate retrieval
+                chemicalInferenceWorker.Schedule(chemInputTensor);
+                using Tensor<float> gpuChemOutput = chemicalInferenceWorker.PeekOutput() as Tensor<float>;
+                if (gpuChemOutput != null)
+                {
+                    using Tensor<float> cpuChemCopy = gpuChemOutput.ReadbackAndClone() as Tensor<float>;
+                    chemicalResultsData = cpuChemCopy.DownloadToArray(); // Stashed and ready for Hotplate retrieval
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[Litho AI Engine] GPU chemical inference failed ({ex.Message}). Automatically switching to CPU SIMD backend!");
+                chemicalInferenceWorker?.Dispose();
+                chemicalInferenceWorker = new Worker(runtimeChemicalModel, BackendType.CPU);
+                chemicalInferenceWorker.Schedule(chemInputTensor);
+                using Tensor<float> gpuChemOutput = chemicalInferenceWorker.PeekOutput() as Tensor<float>;
+                if (gpuChemOutput != null)
+                {
+                    using Tensor<float> cpuChemCopy = gpuChemOutput.ReadbackAndClone() as Tensor<float>;
+                    chemicalResultsData = cpuChemCopy.DownloadToArray(); // Stashed and ready for Hotplate retrieval
+                }
             }
 
             // ─── NOTIFY EXTERNAL VISUALIZER SCRIPT FOR SCREEN 1 ───

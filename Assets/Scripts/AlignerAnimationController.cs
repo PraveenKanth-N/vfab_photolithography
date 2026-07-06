@@ -20,7 +20,6 @@ public class AlignerAnimationSequencer : MonoBehaviour
     public bool isRunning = false;
     public bool isTrayInserted = false;
 
-    // MASTER TRIGGER: Hook this directly to your UI "Toggle Mask Tray" Button click
     public void ToggleMaskTray()
     {
         if (isRunning) return;
@@ -35,25 +34,16 @@ public class AlignerAnimationSequencer : MonoBehaviour
         }
     }
 
-    // MASTER TRIGGER: Hook this directly to your UI "Execute Exposure" Button click
     public void ExecuteExposureSequence(System.Action onUVTrigger, System.Action onModelCompute)
     {
-        Debug.Log($"[SEQUENCER] ExecuteExposureSequence Triggered. isRunning: {isRunning}, isTrayInserted: {isTrayInserted}");
-        if (isRunning) { Debug.LogError("[SEQUENCER] Aborting: Sequencer is already running another task!"); return; }
-        if (!isTrayInserted) { Debug.LogError("[SEQUENCER] Aborting: isTrayInserted is FALSE!"); return; }
-        
-        Debug.Log("[SEQUENCER] Starting Async Cycle...");
         StartCoroutine(ExecuteExposureCycleAsync(onUVTrigger, onModelCompute));
     }
 
-    // =====================================================================
     // 1. INSERTION SEQUENCE
-    // =====================================================================
     private IEnumerator ExecuteTrayInsertionSequence()
     {
         isRunning = true;
         isTrayInserted = true;
-        Debug.Log("[Sequencer] Running Tray Insertion...");
 
         // Step 1: Rotate tray in
         PlayAnimation(trayHingeAnimator, "Tray_Rotate_In");
@@ -76,17 +66,13 @@ public class AlignerAnimationSequencer : MonoBehaviour
         yield return new WaitForSeconds(microscopeDuration);
 
         isRunning = false;
-        Debug.Log("[Sequencer] Insertion Complete. Optics Engaged.");
     }
 
-    // =====================================================================
     // 2. EJECTION SEQUENCE
-    // =====================================================================
     private IEnumerator ExecuteTrayEjectionSequence()
     {
         isRunning = true;
         isTrayInserted = false;
-        Debug.Log("[Sequencer] Running Tray Ejection...");
 
         // Step 1: Microscope up
         PlayAnimation(microscopeAnimator, "Microscope_Up");

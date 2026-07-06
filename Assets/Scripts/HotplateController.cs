@@ -43,6 +43,7 @@ public class HotplateController : MonoBehaviour
     public bool debugSpeedUp = false;
 
     private Worker worker; 
+    private Model runtimeModel;
     private const int Resolution = 512;
 
     // Local variable cache holding the physical baseline passed directly from the spin coater
@@ -53,9 +54,10 @@ public class HotplateController : MonoBehaviour
     {
         if (onnxModelAsset != null)
         {
-            Model runtimeModel = ModelLoader.Load(onnxModelAsset);
+            runtimeModel = ModelLoader.Load(onnxModelAsset);
 #if UNITY_WEBGL && !UNITY_EDITOR
-            worker = new Worker(runtimeModel, BackendType.GPUPixel);
+            BackendType webglBackend = (SystemInfo.graphicsShaderLevel < 35 || SystemInfo.graphicsMemorySize < 512) ? BackendType.CPU : BackendType.GPUPixel;
+            worker = new Worker(runtimeModel, webglBackend);
 #else
             worker = new Worker(runtimeModel, BackendType.GPUCompute);
 #endif
@@ -221,11 +223,23 @@ public class HotplateController : MonoBehaviour
             TensorShape shape = new TensorShape(totalPixels, 3);
             using Tensor<float> inputTensor = new Tensor<float>(shape, inputs);
             
-            worker.Schedule(inputTensor);
-
-            // Fetch the independent layer outputs cleanly by their explicit string descriptors
-            Tensor<float> thickTensor = worker.PeekOutput("predicted_thickness") as Tensor<float>;
-            Tensor<float> solventTensor = worker.PeekOutput("predicted_solvent") as Tensor<float>;
+            Tensor<float> thickTensor = null;
+            Tensor<float> solventTensor = null;
+            try
+            {
+                worker.Schedule(inputTensor);
+                thickTensor = worker.PeekOutput("predicted_thickness") as Tensor<float>;
+                solventTensor = worker.PeekOutput("predicted_solvent") as Tensor<float>;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[Hotplate] GPU inference failed ({ex.Message}). Automatically switching to CPU SIMD backend!");
+                worker?.Dispose();
+                worker = new Worker(runtimeModel, BackendType.CPU);
+                worker.Schedule(inputTensor);
+                thickTensor = worker.PeekOutput("predicted_thickness") as Tensor<float>;
+                solventTensor = worker.PeekOutput("predicted_solvent") as Tensor<float>;
+            }
 
             if (thickTensor != null && solventTensor != null)
             {

@@ -21,7 +21,9 @@ public class PlayerInteraction : MonoBehaviour
 
     // --- HARD COORDINATE RESISTANCE TRACKING    // Memory for restoring rinse bottle
     private Transform originalBottleParent;
+    private Vector3 originalBottleLocalPosition;
     private Vector3 originalBottleLocalScale;
+    private Vector3 originalBottleWorldScale;
     private Quaternion originalBottleRotation; // Prevent weird orientations
 
     void Start()
@@ -172,11 +174,23 @@ public class PlayerInteraction : MonoBehaviour
                 if (foundWafer != null) { target = foundWafer.gameObject; nameLower = target.name.ToLower(); }
             }
 
-            // --- 3. RINSE BOTTLE PICKUP (HIERARCHY WRAPPER CONTEXT) ---
-            if (nameLower.Contains("bottle") && !nameLower.Contains("dock") && !nameLower.Contains("station"))
+            // --- 3. BOTTLE PICKUP (DIRECT & DOCK WRAPPER INTERCEPT) ---
+            if (nameLower.Contains("dock") || nameLower.Contains("station") || nameLower.Contains("area") || nameLower.Contains("wet") || nameLower.Contains("bench") || nameLower.Contains("table") || nameLower.Contains("clean"))
+            {
+                foreach (Transform child in target.GetComponentsInChildren<Transform>())
+                {
+                    if (child != target.transform && (child.name.ToLower().Contains("bottle") || child.name.ToLower().Contains("rca") || child.name.ToLower().Contains("clean") || child.name.ToLower().Contains("dev") || child.name.ToLower().Contains("di")) && !child.name.ToLower().Contains("dock") && !child.name.ToLower().Contains("station") && !child.name.ToLower().Contains("area"))
+                    {
+                        PickUpHeldObject(child.gameObject);
+                        return;
+                    }
+                }
+            }
+
+            if ((nameLower.Contains("bottle") || nameLower.Contains("rca") || nameLower.Contains("clean") || nameLower.Contains("dev") || nameLower.Contains("di")) && !nameLower.Contains("dock") && !nameLower.Contains("station") && !nameLower.Contains("area") && !nameLower.Contains("wet") && !nameLower.Contains("bench") && !nameLower.Contains("table"))
             {
                 GameObject parentWrapper = target;
-                if (target.transform.parent != null && target.transform.parent.name.ToLower().Contains("bottle") && !target.transform.parent.name.ToLower().Contains("dock"))
+                if (target.transform.parent != null && (target.transform.parent.name.ToLower().Contains("bottle") || target.transform.parent.name.ToLower().Contains("rca") || target.transform.parent.name.ToLower().Contains("clean")) && !target.transform.parent.name.ToLower().Contains("dock"))
                 {
                     parentWrapper = target.transform.parent.gameObject;
                 }
@@ -365,7 +379,9 @@ public class PlayerInteraction : MonoBehaviour
         }
 
         originalBottleParent = heldObject.transform.parent;
+        originalBottleLocalPosition = heldObject.transform.localPosition;
         originalBottleLocalScale = heldObject.transform.localScale;
+        originalBottleWorldScale = heldObject.transform.lossyScale;
         originalBottleRotation = heldObject.transform.rotation; // Capture exact world rotation
 
         Vector3 tableWorldScale = heldObject.transform.lossyScale;
@@ -373,7 +389,8 @@ public class PlayerInteraction : MonoBehaviour
 
         heldObject.transform.SetParent(waferHolderSocket, false);
 
-        if (heldObject.name.ToLower().Contains("substrate"))
+        bool isBottleOrBeaker = heldObject.name.ToLower().Contains("bottle") || heldObject.name.ToLower().Contains("beaker") || heldObject.name.ToLower().Contains("flask") || heldObject.name.ToLower().Contains("rca");
+        if (heldObject.name.ToLower().Contains("substrate") && !isBottleOrBeaker)
         {
             heldObject.transform.localPosition = new Vector3(0.2f, -0.25f, 0.45f); 
             heldObject.transform.rotation = tableWorldRotation;
@@ -391,6 +408,16 @@ public class PlayerInteraction : MonoBehaviour
             heldObject.transform.localRotation = Quaternion.identity;
             
             // Reconstruct absolute world scale matching
+            heldObject.transform.localScale = new Vector3(
+                tableWorldScale.x / waferHolderSocket.lossyScale.x,
+                tableWorldScale.y / waferHolderSocket.lossyScale.y,
+                tableWorldScale.z / waferHolderSocket.lossyScale.z
+            );
+        }
+        else if (isBottleOrBeaker)
+        {
+            heldObject.transform.localPosition = new Vector3(0.2f, -0.2f, 0.5f);
+            heldObject.transform.rotation = tableWorldRotation;
             heldObject.transform.localScale = new Vector3(
                 tableWorldScale.x / waferHolderSocket.lossyScale.x,
                 tableWorldScale.y / waferHolderSocket.lossyScale.y,
@@ -468,16 +495,20 @@ public class PlayerInteraction : MonoBehaviour
                 }
 
                 // CASE B: Workbench landing target triggers
-                if (targetName.Contains("developer") || targetName.Contains("station") || targetName.Contains("table") || targetName.Contains("desk") || targetName.Contains("bench"))
+                if (targetName.Contains("developer") || targetName.Contains("station") || targetName.Contains("table") || targetName.Contains("desk") || targetName.Contains("bench") || targetName.Contains("dock") || targetName.Contains("clean") || targetName.Contains("rca") || targetName.Contains("area") || targetName.Contains("wet"))
                 {
                     RestoreHeldObjectLayer();
                     DetachHeldObject(); 
+
+                    bool isDev = heldObject.name.ToLower().Contains("dev") || heldObject.name.ToLower().Contains("developer");
+                    bool isSC1 = heldObject.name.ToLower().Contains("sc") || heldObject.name.ToLower().Contains("clean") || heldObject.name.ToLower().Contains("solvent") || heldObject.name.ToLower().Contains("piranha") || heldObject.name.ToLower().Contains("acetone") || heldObject.name.ToLower().Contains("rca");
 
                     GameObject dockObj = null;
                     foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
                     {
                         if (isDI && t.name.Equals("DI_Water_Station_Dock", System.StringComparison.OrdinalIgnoreCase)) { dockObj = t.gameObject; break; }
-                        else if (!isDI && t.name.Equals("Dev_Bottle_Station_Dock", System.StringComparison.OrdinalIgnoreCase)) { dockObj = t.gameObject; break; }
+                        else if (isDev && t.name.Equals("Dev_Bottle_Station_Dock", System.StringComparison.OrdinalIgnoreCase)) { dockObj = t.gameObject; break; }
+                        else if (isSC1 && !t.name.ToLower().Contains("carrier") && !t.name.ToLower().Contains("wafer") && (t.name.IndexOf("SC1", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Clean", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Solvent", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Acetone", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Piranha", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("RCA", System.StringComparison.OrdinalIgnoreCase) >= 0) && t.name.IndexOf("Dock", System.StringComparison.OrdinalIgnoreCase) >= 0) { dockObj = t.gameObject; break; }
                     }
 
                     if (dockObj != null)
@@ -485,7 +516,6 @@ public class PlayerInteraction : MonoBehaviour
                         heldObject.transform.SetParent(dockObj.transform, true); // Keep world transform during parent swap
                         heldObject.transform.rotation = originalBottleRotation;  // Snap to exact original upright rotation
                         heldObject.transform.localPosition = Vector3.zero;       // Snap exactly to the dock's center
-                        heldObject.transform.localScale = originalBottleLocalScale;
                         
                         // Stop physics engine from tipping the bottle over!
                         Rigidbody rb = heldObject.GetComponent<Rigidbody>();
@@ -498,8 +528,7 @@ public class PlayerInteraction : MonoBehaviour
                     {
                         heldObject.transform.SetParent(originalBottleParent, true);
                         heldObject.transform.rotation = originalBottleRotation;
-                        heldObject.transform.localPosition = Vector3.zero;
-                        heldObject.transform.localScale = originalBottleLocalScale;
+                        heldObject.transform.localPosition = originalBottleLocalPosition;
                         
                         Rigidbody rb = heldObject.GetComponent<Rigidbody>();
                         if (rb == null) rb = heldObject.GetComponentInParent<Rigidbody>();
