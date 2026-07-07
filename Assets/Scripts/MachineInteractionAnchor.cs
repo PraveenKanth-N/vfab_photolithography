@@ -94,12 +94,11 @@ public class MachineInteractionAnchor : MonoBehaviour
 
         if (lowerName.Contains("clean") || lowerName.Contains("sc1") || lowerName.Contains("rca"))
         {
-            // Only pulse if we are in a designated cleaning sequence step (to be assigned in WorkflowManager)
-            return step >= 100 && step <= 120;
+            return step == 103 || step == 104;
         }
         if (lowerName.Contains("oven") || lowerName.Contains("dehydrat"))
         {
-            return step >= 100 && step <= 140;
+            return step == 113 || step == 114;
         }
         if (lowerName.Contains("spin"))
         {

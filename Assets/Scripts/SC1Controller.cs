@@ -37,6 +37,18 @@ public class SC1Controller : MonoBehaviour
     private Vector3 waferHome;
     private bool running = false;
     private float elapsed = 0f;
+    public bool isComplete = false;
+
+    void Awake()
+    {
+        // Remove any duplicated HotplateController on the cleaner hotplate so it doesn't conflict with processing hotplates
+        foreach (HotplateController hp in GetComponentsInChildren<HotplateController>(true))
+        {
+            Destroy(hp);
+        }
+        HotplateController parentHp = GetComponentInParent<HotplateController>();
+        if (parentHp != null) Destroy(parentHp);
+    }
 
     void Start()
     {
@@ -185,6 +197,7 @@ public class SC1Controller : MonoBehaviour
             return;
         }
 
+        isComplete = false;
         running = true;
         elapsed = 0f;
         if (startButton != null) startButton.interactable = false;
@@ -200,6 +213,7 @@ public class SC1Controller : MonoBehaviour
 
     void CleanDone()
     {
+        isComplete = true;
         running = false;
         if (outputText != null)
         {

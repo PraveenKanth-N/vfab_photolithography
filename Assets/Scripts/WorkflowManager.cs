@@ -31,6 +31,8 @@ public class WorkflowManager : MonoBehaviour
     private DeveloperUIManager developerUI;
     private ExposureStationController exposureStation;
     private MainWindowController mainWindowController;
+    private SC1Controller sc1Controller;
+    private DehydrationOvenController ovenController;
     private float stepTimer = 0f;
 
     // UI Syncing
@@ -42,10 +44,12 @@ public class WorkflowManager : MonoBehaviour
         // Try to find the required managers/controllers automatically
         spinCoater = Object.FindAnyObjectByType<SpinCoaterController>();
         playerInteraction = Object.FindAnyObjectByType<PlayerInteraction>();
-        hotplate = Object.FindAnyObjectByType<HotplateController>();
+        hotplate = HotplateController.GetProcessingHotplate();
         developerUI = Object.FindAnyObjectByType<DeveloperUIManager>();
         exposureStation = Object.FindAnyObjectByType<ExposureStationController>();
         mainWindowController = Object.FindAnyObjectByType<MainWindowController>();
+        sc1Controller = Object.FindAnyObjectByType<SC1Controller>();
+        ovenController = Object.FindAnyObjectByType<DehydrationOvenController>();
         
         if (hudText != null)
         {
@@ -255,6 +259,7 @@ public class WorkflowManager : MonoBehaviour
                 SetText("Remove the wafer from the Spin Coater");
                 if (spinCoater != null && spinCoater.currentCoaterState == SpinCoaterController.CoaterState.Empty)
                 {
+                    if (GetProcessingHotplate() != null) GetProcessingHotplate().currentState = HotplateController.HotplateState.Idle;
                     currentStep = 15;
                 }
                 break;
@@ -263,7 +268,7 @@ public class WorkflowManager : MonoBehaviour
 
             case 15:
                 SetText("Place the PR coated wafer on top of the Hotplate to your left");
-                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.WaferLoaded)
+                if (GetProcessingHotplate() != null && GetProcessingHotplate().currentState == HotplateController.HotplateState.WaferLoaded)
                 {
                     currentStep = 16;
                 }
@@ -282,7 +287,7 @@ public class WorkflowManager : MonoBehaviour
 
             case 17:
                 SetText("Adjust the hotplate's set temperature and time if required, then start PREBAKE");
-                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.Baking)
+                if (GetProcessingHotplate() != null && GetProcessingHotplate().currentState == HotplateController.HotplateState.Baking)
                 {
                     currentStep = 18;
                 }
@@ -290,7 +295,7 @@ public class WorkflowManager : MonoBehaviour
 
             case 18:
                 SetText("Observe metrics displayed on the ellipsometry visual at the top right of the menu");
-                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.Complete)
+                if (GetProcessingHotplate() != null && GetProcessingHotplate().currentState == HotplateController.HotplateState.Complete)
                 {
                     stepTimer = 4f; 
                     currentStep = 19;
@@ -317,7 +322,7 @@ public class WorkflowManager : MonoBehaviour
                 // Instantly advance if they physically grab the wafer off the hotplate
                 if (IsHoldingWaferOrSubstrate())
                 {
-                    if (hotplate != null) hotplate.currentState = HotplateController.HotplateState.Idle; // Fallback safety
+                    if (GetProcessingHotplate() != null) GetProcessingHotplate().currentState = HotplateController.HotplateState.Idle; // Fallback safety
                     currentStep = 21;
                 }
                 break;
@@ -326,7 +331,7 @@ public class WorkflowManager : MonoBehaviour
                 SetText("Take the wafer from the hotplate");
                 if (IsHoldingWaferOrSubstrate())
                 {
-                    if (hotplate != null) hotplate.currentState = HotplateController.HotplateState.Idle;
+                    if (GetProcessingHotplate() != null) GetProcessingHotplate().currentState = HotplateController.HotplateState.Idle;
                     currentStep = 21;
                 }
                 break;
@@ -678,7 +683,7 @@ public class WorkflowManager : MonoBehaviour
 
             case 54:
                 SetText("Click on top of the hotplate to place it");
-                if (hotplate != null && hotplate.currentState == HotplateController.HotplateState.WaferLoaded)
+                if (GetProcessingHotplate() != null && GetProcessingHotplate().currentState == HotplateController.HotplateState.WaferLoaded)
                 {
                     currentStep = 55;
                 }
@@ -775,13 +780,17 @@ public class WorkflowManager : MonoBehaviour
                     // Strict check: Must be placed on dock 3 (Developer Station), NOT put back on dock 1!
                     if (playerInteraction.lastDockPlacedName.ToLower().Contains("dock3"))
                     {
-                        currentStep = 64;
+                        if (developerUI != null && developerUI.diFluid != null)
+                        {
+                            developerUI.diFluid.hasPoured = true;
+                        }
+                        currentStep = 64; // Proceed to pour developer solution; DI water pouring (steps 67-69) is omitted
                     }
                 }
                 break;
 
             case 64:
-                SetText("Click on the developer solution bottle on the right (2nd bottle) to hold it");
+                SetText("Click on the developer solution bottle on the far right (3nd bottle) to hold it");
                 if (playerInteraction != null && playerInteraction.heldObject != null)
                 {
                     string objName = playerInteraction.heldObject.name.ToLower();
@@ -804,36 +813,19 @@ public class WorkflowManager : MonoBehaviour
                 SetText("Place the bottle back");
                 if (playerInteraction != null && playerInteraction.heldObject == null)
                 {
-                    currentStep = 67;
+                    if (developerUI != null && developerUI.diFluid != null) developerUI.diFluid.hasPoured = true;
+                    currentStep = 70; // Skip DI bottle pouring steps 67-69
                 }
                 break;
 
             case 67:
-                SetText("Click on the DI water bottle on the left to hold it");
-                if (playerInteraction != null && playerInteraction.heldObject != null)
-                {
-                    string objName = playerInteraction.heldObject.name.ToLower();
-                    if (objName.Contains("bottle") && objName.Contains("di"))
-                    {
-                        currentStep = 68;
-                    }
-                }
-                break;
-
             case 68:
-                SetText("Click on the left beaker to pour the solution");
-                if (developerUI != null && developerUI.diFluid != null && developerUI.diFluid.hasPoured)
-                {
-                    currentStep = 69;
-                }
-                break;
-
             case 69:
-                SetText("Place the bottle back");
-                if (playerInteraction != null && playerInteraction.heldObject == null)
+                if (developerUI != null && developerUI.diFluid != null)
                 {
-                    currentStep = 70;
+                    developerUI.diFluid.hasPoured = true;
                 }
+                currentStep = 70;
                 break;
 
             case 70:
@@ -986,6 +978,200 @@ public class WorkflowManager : MonoBehaviour
                     SetText("<color=#008800><b>Refresh the page to start the sequence all over again!</b></color>");
                 }
                 break;
+
+            // --- PHASE 1: SC1 CLEANING & DEHYDRATION BAKE WORKFLOW ---
+            case 100:
+                SetText("Approach the wet bench infront, and click on the leftmost bottle (SC-1)");
+                if (playerInteraction != null && playerInteraction.heldObject != null)
+                {
+                    string n = playerInteraction.heldObject.name.ToLower();
+                    if (n.Contains("sc") || n.Contains("clean") || n.Contains("rca") || (n.Contains("bottle") && !n.Contains("di")))
+                    {
+                        currentStep = 101;
+                    }
+                }
+                break;
+
+            case 101:
+                SetText("Click the beaker placed on top of the Hotplate to pour the solution");
+                if (sc1Controller == null) sc1Controller = Object.FindAnyObjectByType<SC1Controller>();
+                if (sc1Controller != null && sc1Controller.cleaningBeakerFluid != null && sc1Controller.cleaningBeakerFluid.hasPoured)
+                {
+                    currentStep = 102;
+                }
+                break;
+
+            case 102:
+                SetText("Place the bottle back");
+                if (playerInteraction != null && (playerInteraction.heldObject == null || (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.sc1CleanerUIPanel != null && CleanroomUIManager.Instance.sc1CleanerUIPanel.activeSelf)))
+                {
+                    currentStep = 103;
+                }
+                break;
+
+            case 103:
+                SetText("Click on the yellow highlighted portion on the cleaner hotplate to open its controls");
+                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.sc1CleanerUIPanel != null && CleanroomUIManager.Instance.sc1CleanerUIPanel.activeSelf)
+                {
+                    currentStep = 104;
+                }
+                break;
+
+            case 104:
+                SetText("Start the cleaning process by clicking 'Start Clean'");
+                if (sc1Controller == null) sc1Controller = Object.FindAnyObjectByType<SC1Controller>();
+                if (sc1Controller != null && sc1Controller.isComplete)
+                {
+                    currentStep = 105;
+                }
+                break;
+
+            case 105:
+                SetText("Close the cleaning menu");
+                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
+                {
+                    currentStep = 106;
+                }
+                break;
+
+            case 106:
+                SetText("Click on the distilled water bottle (2nd bottle) to hold it");
+                if (playerInteraction != null && playerInteraction.heldObject != null)
+                {
+                    string n = playerInteraction.heldObject.name.ToLower();
+                    if (n.Contains("di") || n.Contains("water") || n.Contains("rinse") || n.Contains("2") || (n.Contains("bottle") && !n.Contains("sc") && !n.Contains("clean")))
+                    {
+                        currentStep = 107;
+                    }
+                }
+                break;
+
+            case 107:
+                SetText("Click the beaker in front of that bottle to pour the distilled water");
+                FluidInteractionController diBeaker = GetSC1DIFluid();
+                if (diBeaker != null && diBeaker.hasPoured)
+                {
+                    currentStep = 108;
+                }
+                break;
+
+            case 108:
+                SetText("Place the bottle back");
+                if (playerInteraction != null && playerInteraction.heldObject == null)
+                {
+                    if (ovenController == null) ovenController = Object.FindAnyObjectByType<DehydrationOvenController>();
+                    if (ovenController != null && ovenController.hasWafer)
+                    {
+                        currentStep = 113;
+                    }
+                    else if (IsWaferInDIBeaker())
+                    {
+                        currentStep = 111;
+                    }
+                    else if (IsHoldingWaferOrSubstrate())
+                    {
+                        currentStep = 110;
+                    }
+                    else
+                    {
+                        currentStep = 109;
+                    }
+                }
+                break;
+
+            case 109:
+                SetText("Click on the wafer to retrieve it");
+                if (ovenController == null) ovenController = Object.FindAnyObjectByType<DehydrationOvenController>();
+                if (ovenController != null && ovenController.hasWafer)
+                {
+                    currentStep = 113;
+                }
+                else if (IsWaferInDIBeaker())
+                {
+                    currentStep = 111;
+                }
+                else if (IsHoldingWaferOrSubstrate())
+                {
+                    currentStep = 110;
+                }
+                break;
+
+            case 110:
+                SetText("Place the wafer onto the beaker with the distilled water solution");
+                if (ovenController == null) ovenController = Object.FindAnyObjectByType<DehydrationOvenController>();
+                if (ovenController != null && ovenController.hasWafer)
+                {
+                    currentStep = 113;
+                }
+                else if (IsWaferInDIBeaker() || (playerInteraction != null && playerInteraction.heldObject == null))
+                {
+                    currentStep = 111;
+                }
+                break;
+
+            case 111:
+                SetText("Click on the wafer to retrieve it");
+                if (ovenController == null) ovenController = Object.FindAnyObjectByType<DehydrationOvenController>();
+                if (ovenController != null && ovenController.hasWafer)
+                {
+                    currentStep = 113;
+                }
+                else if (IsHoldingWaferOrSubstrate())
+                {
+                    currentStep = 112;
+                }
+                break;
+
+            case 112:
+                SetText("Bring the wafer to the oven just opposite to this station and click the oven to insert it");
+                if (ovenController == null) ovenController = Object.FindAnyObjectByType<DehydrationOvenController>();
+                if (ovenController != null && ovenController.hasWafer && (playerInteraction == null || playerInteraction.heldObject == null))
+                {
+                    currentStep = 113;
+                }
+                break;
+
+            case 113:
+                SetText("Click on the highlighted portion to the left of the oven to access its controls");
+                if (CleanroomUIManager.Instance != null && CleanroomUIManager.Instance.dehydrationOvenUIPanel != null && CleanroomUIManager.Instance.dehydrationOvenUIPanel.activeSelf)
+                {
+                    currentStep = 114;
+                }
+                break;
+
+            case 114:
+                SetText("Adjust temperature and time if required, then click on 'Start Bake'");
+                DehydrationOvenUIController ovenUI = Object.FindAnyObjectByType<DehydrationOvenUIController>();
+                if (ovenUI != null && ovenUI.isComplete)
+                {
+                    currentStep = 115;
+                }
+                break;
+
+            case 115:
+                SetText("Close the dehydration oven menu");
+                if (CleanroomUIManager.Instance != null && !CleanroomUIManager.Instance.IsAnyPanelOpen())
+                {
+                    currentStep = 116;
+                }
+                break;
+
+            case 116:
+                SetText("Click on the oven doors to open and retrieve the baked wafer");
+                if (IsHoldingWaferOrSubstrate())
+                {
+                    currentStep = 117;
+                }
+                break;
+
+            case 117:
+                SetText("Place the wafer on the hotplate next to the oven");
+                if (playerInteraction != null && playerInteraction.heldObject == null)
+                {
+                    if (developerUI != null && developerUI.diFluid != null) developerUI.diFluid.hasPoured = false;
+                    currentStep = 2; // Proceed to Spincoater sequence!
+                }
+                break;
         }
     }
     
@@ -1069,5 +1255,49 @@ public class WorkflowManager : MonoBehaviour
     {
         if (playerInteraction == null || playerInteraction.heldObject == null) return false;
         return IsWaferOrSubstrateName(playerInteraction.heldObject.name.ToLower());
+    }
+
+    private bool IsWaferInDIBeaker()
+    {
+        FluidInteractionController diBeaker = GetSC1DIFluid();
+        if (diBeaker != null)
+        {
+            foreach (Transform child in diBeaker.GetComponentsInChildren<Transform>(true))
+            {
+                if (child != diBeaker.transform && IsWaferOrSubstrateName(child.name.ToLower()))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private FluidInteractionController GetSC1DIFluid()
+    {
+        if (developerUI != null && developerUI.diFluid != null) return developerUI.diFluid;
+
+        foreach (FluidInteractionController fic in Object.FindObjectsByType<FluidInteractionController>(FindObjectsSortMode.None))
+        {
+            if (developerUI != null && fic == developerUI.developerFluid) continue;
+            if (sc1Controller != null && fic == sc1Controller.cleaningBeakerFluid) continue;
+
+            string fname = (fic.name + " " + fic.gameObject.name).ToLower();
+            if (fname.Contains("di") || fname.Contains("water") || fname.Contains("rinse") || fname.Contains("2") || fname.Contains("beaker"))
+            {
+                if (!fname.Contains("dev") && !fname.Contains("sc1") && !fname.Contains("clean"))
+                {
+                    return fic;
+                }
+            }
+        }
+        return null;
+    }
+
+    private HotplateController GetProcessingHotplate()
+    {
+        if (hotplate != null && !HotplateController.IsCleanerHotplate(hotplate)) return hotplate;
+        hotplate = HotplateController.GetProcessingHotplate();
+        return hotplate;
     }
 }

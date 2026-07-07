@@ -1,3 +1,29 @@
+<size=36><b><u>SC-1 Wafer Cleaning</u></b></size>
+
+1. Approach the cleaning station and click on the leftmost bottle (SC-1 solution) to grab it
+2. Click the beaker placed on top of the cleaning hotplate to pour the SC-1 solution, then place the bottle back
+3. Click on the highlighted region on the cleaning hotplate's knob to open its menu
+4. Start the SC-1 cleaning process and observe the timer
+5. Once cleaning is complete, close the UI menu
+6. Click on the Distilled Water (DI Water) bottle (2nd bottle) to grab it
+7. Click the beaker in front of the DI water bottle to pour the rinse solution, then place the bottle back
+8. Click on the cleaned wafer inside the SC-1 beaker to retrieve it
+9. Place the wafer into the DI water beaker to rinse it
+10. Once rinsed, click on the wafer inside the DI beaker to retrieve it
+
+
+<size=36><b><u>Dehydration Bake</u></b></size>
+
+[IMAGE: ovenImg]
+
+1. Bring the rinsed wafer over to the Dehydration Oven opposite the cleaning station
+2. Click on the oven door to open it and load the wafer inside
+3. Click on the highlighted region on the oven's control panel to open its UI menu
+4. Adjust temperature and time settings if required, then start the Dehydration Bake
+5. Once dehydration is complete, close the menu and click on the wafer inside the oven to retrieve it
+6. Bring the dehydrated wafer to the PR Pre-Bake hotplate bench next to the oven and place it down
+
+
 <size=36><b><u>Spincoater</u></b></size>
 
 [IMAGE: spincoaterImg]

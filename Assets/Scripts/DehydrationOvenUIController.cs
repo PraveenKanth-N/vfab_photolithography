@@ -33,6 +33,7 @@ public class DehydrationOvenUIController : MonoBehaviour
 
     private bool isBaking = false;
     private float elapsed = 0f;
+    public bool isComplete = false;
 
     void Start()
     {
@@ -50,15 +51,15 @@ public class DehydrationOvenUIController : MonoBehaviour
 
         if (tempSlider != null)
         {
-            tempSlider.minValue = 100f;
-            tempSlider.maxValue = 200f;
+            tempSlider.minValue = 90f;
+            tempSlider.maxValue = 160f;
             tempSlider.value = targetTemperature;
             tempSlider.onValueChanged.AddListener(OnTempChanged);
         }
 
         if (bakeTimeSlider != null)
         {
-            bakeTimeSlider.minValue = 30f;
+            bakeTimeSlider.minValue = 20f;
             bakeTimeSlider.maxValue = 300f;
             bakeTimeSlider.value = targetBakeTime;
             bakeTimeSlider.onValueChanged.AddListener(OnTimeChanged);
@@ -89,12 +90,14 @@ public class DehydrationOvenUIController : MonoBehaviour
     {
         targetTemperature = val;
         UpdateSliderReadouts();
+        if (!isBaking) ShowStandby();
     }
 
     void OnTimeChanged(float val)
     {
         targetBakeTime = val;
         UpdateSliderReadouts();
+        if (!isBaking) ShowStandby();
     }
 
     void UpdateSliderReadouts()
@@ -104,6 +107,15 @@ public class DehydrationOvenUIController : MonoBehaviour
 
         if (tempSliderReadout != null) tempSliderReadout.text = $"Temperature: {targetTemperature:F0} °C";
         if (timeSliderReadout != null) timeSliderReadout.text = $"Bake Time: {targetBakeTime:F0} s";
+    }
+
+    // UTD DOE HMDS contact angle model
+    private float ContactAngle(float temp, float time)
+    {
+        float flashAngle = 58.0f + (temp - 90.0f) * 0.066f;
+        float maxAngle = 78.0f + (temp - 150.0f) * 0.05f;
+        float tau = 100.0f;
+        return flashAngle + (maxAngle - flashAngle) * (1.0f - Mathf.Exp(-time / tau));
     }
 
     void Update()
@@ -120,9 +132,9 @@ public class DehydrationOvenUIController : MonoBehaviour
                 if (statusText != null && !statusText.text.Contains("OVEN EMPTY"))
                 {
                     statusText.text =
-                        "DEHYDRATION OVEN\n" +
+                        "HMDS Vapour Prime Oven\n" +
                         "─────────────────────────────\n" +
-                        "Purpose : Drive off surface moisture before HMDS prime\n" +
+                        "Purpose : Dehydration bake followed by HMDS reaction to increase hydrophobicity\n" +
                         "─────────────────────────────\n" +
                         "OVEN EMPTY: Please place a wafer inside the dehydration oven before starting bake.";
                 }
@@ -143,16 +155,14 @@ public class DehydrationOvenUIController : MonoBehaviour
 
         if (statusText != null)
         {
-            float remaining = Mathf.Max(0f, targetBakeTime - elapsed);
             float progress = Mathf.Clamp01(elapsed / targetBakeTime) * 100f;
             statusText.text =
-                "DEHYDRATION OVEN  —  Baking\n" +
+                "HMDS Vapour Prime Oven -- Baking\n" +
                 "─────────────────────────────\n" +
-                $"Temperature   : {targetTemperature:F0} °C (Constant)\n" +
-                $"Elapsed Time  : {elapsed:F0} / {targetBakeTime:F0} s\n" +
-                $"Dehydration   : {progress:F1} %\n" +
+                $"Temperature    : {targetTemperature:F0} °C (Constant)\n" +
+                $"Elapsed Time   : {elapsed:F0} / {targetBakeTime:F0} s ({progress:F0} %)\n" +
                 "─────────────────────────────\n" +
-                "Thermal dehydration in progress...";
+                "Status: HMDS vapor priming in progress...";
         }
 
         if (elapsed >= targetBakeTime)
@@ -174,9 +184,9 @@ public class DehydrationOvenUIController : MonoBehaviour
             if (statusText != null)
             {
                 statusText.text =
-                    "DEHYDRATION OVEN\n" +
+                    "HMDS Vapour Prime Oven\n" +
                     "─────────────────────────────\n" +
-                    "Purpose : Drive off surface moisture before HMDS prime\n" +
+                    "Purpose : Dehydration bake followed by HMDS reaction to increase hydrophobicity\n" +
                     "─────────────────────────────\n" +
                     "OVEN EMPTY: Please place a wafer inside the dehydration oven before starting bake.";
             }
@@ -186,11 +196,12 @@ public class DehydrationOvenUIController : MonoBehaviour
             if (statusText != null)
             {
                 statusText.text =
-                    "DEHYDRATION OVEN\n" +
+                    "HMDS Vapour Prime Oven\n" +
                     "─────────────────────────────\n" +
-                    "Purpose : Drive off surface moisture before HMDS prime\n" +
+                    $"Temperature    : {targetTemperature:F0} °C\n" +
+                    $"Prime Time     : {targetBakeTime:F0} s\n" +
                     "─────────────────────────────\n" +
-                    "Wafer loaded in dock. Adjust sliders and press Bake.";
+                    "Status: Wafer loaded. Adjust parameters and press Bake to start HMDS vapor prime.";
             }
         }
     }
@@ -204,6 +215,7 @@ public class DehydrationOvenUIController : MonoBehaviour
             return;
         }
 
+        isComplete = false;
         isBaking = true;
         elapsed = 0f;
         if (bakeButton != null) bakeButton.interactable = false;
@@ -215,16 +227,28 @@ public class DehydrationOvenUIController : MonoBehaviour
 
     void BakeDone()
     {
+        isComplete = true;
         isBaking = false;
         if (statusText != null)
         {
+            float finalTheta = ContactAngle(targetTemperature, targetBakeTime);
+            bool pass = finalTheta >= 65f;
+            string resultStatus = pass
+                ? $"PASS ({finalTheta:F1} deg >= 65.0 deg)\nBAKE COMPLETE: Click oven doors to retrieve wafer and proceed to Spin Coater."
+                : $"FAIL ({finalTheta:F1} deg < 65.0 deg)\nAdjust temperature or time and retry bake.";
+
             statusText.text =
-                "DEHYDRATION OVEN  —  Complete\n" +
+                "HMDS Vapour Prime Oven -- Complete\n" +
+                "─────────────────────────────\n" +
                 $"Temperature    : {targetTemperature:F0} °C\n" +
                 $"Duration       : {targetBakeTime:F0} s\n" +
-                "Surface State  : Hydrophobic / Anhydrous\n" +
                 "─────────────────────────────\n" +
-                "BAKE COMPLETE: Click oven doors to retrieve wafer.";
+                "Contact Angle Stats (UTD DOE):\n" +
+                "Pre-Prime Angle: 6.0 deg (Si-OH)\n" +
+                $"Post-Prime Angle: {finalTheta:F1} deg (Si-O-Si(CH3)3)\n" +
+                "Adhesion Gate  : 65.0 deg\n" +
+                "─────────────────────────────\n" +
+                $"Status: {resultStatus}";
         }
 
         if (bakeButton != null) bakeButton.interactable = true;

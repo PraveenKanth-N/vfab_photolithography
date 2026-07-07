@@ -28,7 +28,7 @@ public class WelcomeScreenController : MonoBehaviour
         if (workflowManager != null)
         {
             workflowManager.workflowActive = true;
-            workflowManager.currentStep = 2; // Jump directly to Spincoater
+            workflowManager.currentStep = 100; // Start at SC-1 Wet Bench Cleaning stage
         }
 
         // Disable the UI object immediately so MouseLook's activeInHierarchy sensor lets the lock pass through!

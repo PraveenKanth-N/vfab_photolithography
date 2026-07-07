@@ -240,9 +240,9 @@ public class PlayerInteraction : MonoBehaviour
             if (nameLower.Contains("hotplate") || (nameLower.Contains("top") && !nameLower.Contains("toplid")))
             {
                 HotplateController hp = target.GetComponentInParent<HotplateController>();
-                if (hp == null) hp = Object.FindAnyObjectByType<HotplateController>();
+                if (hp == null || HotplateController.IsCleanerHotplate(hp)) hp = HotplateController.GetProcessingHotplate();
                 
-                if (hp != null && (hp.currentState == HotplateController.HotplateState.Complete || hp.currentState == HotplateController.HotplateState.WaferLoaded))
+                if (hp != null && !HotplateController.IsCleanerHotplate(hp) && (hp.currentState == HotplateController.HotplateState.Complete || hp.currentState == HotplateController.HotplateState.WaferLoaded))
                 {
                     Transform anchor = hp.hotplateWaferAnchor;
                     if (anchor != null && anchor.childCount > 0)
@@ -524,31 +524,10 @@ public class PlayerInteraction : MonoBehaviour
                     RestoreHeldObjectLayer();
                     DetachHeldObject(); 
 
-                    bool isDev = heldObject.name.ToLower().Contains("dev") || heldObject.name.ToLower().Contains("developer");
                     bool isSC1 = heldObject.name.ToLower().Contains("sc") || heldObject.name.ToLower().Contains("clean") || heldObject.name.ToLower().Contains("solvent") || heldObject.name.ToLower().Contains("piranha") || heldObject.name.ToLower().Contains("acetone") || heldObject.name.ToLower().Contains("rca");
+                    bool isDev = !isSC1 && (heldObject.name.ToLower().Contains("dev") || heldObject.name.ToLower().Contains("developer"));
 
-                    GameObject dockObj = null;
-                    foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
-                    {
-                        if (isDI && t.name.Equals("DI_Water_Station_Dock", System.StringComparison.OrdinalIgnoreCase)) { dockObj = t.gameObject; break; }
-                        else if (isDev && t.name.Equals("Dev_Bottle_Station_Dock", System.StringComparison.OrdinalIgnoreCase)) { dockObj = t.gameObject; break; }
-                        else if (isSC1 && !t.name.ToLower().Contains("carrier") && !t.name.ToLower().Contains("wafer") && (t.name.IndexOf("SC1", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Clean", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Solvent", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Acetone", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Piranha", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("RCA", System.StringComparison.OrdinalIgnoreCase) >= 0) && t.name.IndexOf("Dock", System.StringComparison.OrdinalIgnoreCase) >= 0) { dockObj = t.gameObject; break; }
-                    }
-
-                    if (dockObj != null)
-                    {
-                        heldObject.transform.SetParent(dockObj.transform, true); // Keep world transform during parent swap
-                        heldObject.transform.rotation = originalBottleRotation;  // Snap to exact original upright rotation
-                        heldObject.transform.localPosition = Vector3.zero;       // Snap exactly to the dock's center
-                        
-                        // Stop physics engine from tipping the bottle over!
-                        Rigidbody rb = heldObject.GetComponent<Rigidbody>();
-                        if (rb == null) rb = heldObject.GetComponentInParent<Rigidbody>();
-                        if (rb != null) rb.isKinematic = true;
-
-                        Debug.Log($"[Direct Return Success] Restored {heldObject.name} back to {dockObj.name}.");
-                    }
-                    else
+                    if (originalBottleParent != null)
                     {
                         heldObject.transform.SetParent(originalBottleParent, true);
                         heldObject.transform.rotation = originalBottleRotation;
@@ -557,6 +536,32 @@ public class PlayerInteraction : MonoBehaviour
                         Rigidbody rb = heldObject.GetComponent<Rigidbody>();
                         if (rb == null) rb = heldObject.GetComponentInParent<Rigidbody>();
                         if (rb != null) rb.isKinematic = true;
+
+                        Debug.Log($"[Direct Return Success] Restored {heldObject.name} back to original parent {originalBottleParent.name}.");
+                    }
+                    else
+                    {
+                        GameObject dockObj = null;
+                        foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+                        {
+                            if (isDI && t.name.Equals("DI_Water_Station_Dock", System.StringComparison.OrdinalIgnoreCase)) { dockObj = t.gameObject; break; }
+                            else if (isSC1 && !t.name.ToLower().Contains("carrier") && !t.name.ToLower().Contains("wafer") && (t.name.IndexOf("SC1", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Clean", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Solvent", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Acetone", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("Piranha", System.StringComparison.OrdinalIgnoreCase) >= 0 || t.name.IndexOf("RCA", System.StringComparison.OrdinalIgnoreCase) >= 0) && t.name.IndexOf("Dock", System.StringComparison.OrdinalIgnoreCase) >= 0) { dockObj = t.gameObject; break; }
+                            else if (isDev && t.name.Equals("Dev_Bottle_Station_Dock", System.StringComparison.OrdinalIgnoreCase)) { dockObj = t.gameObject; break; }
+                        }
+
+                        if (dockObj != null)
+                        {
+                            heldObject.transform.SetParent(dockObj.transform, true); // Keep world transform during parent swap
+                            heldObject.transform.rotation = originalBottleRotation;  // Snap to exact original upright rotation
+                            heldObject.transform.localPosition = Vector3.zero;       // Snap exactly to the dock's center
+                            
+                            // Stop physics engine from tipping the bottle over!
+                            Rigidbody rb = heldObject.GetComponent<Rigidbody>();
+                            if (rb == null) rb = heldObject.GetComponentInParent<Rigidbody>();
+                            if (rb != null) rb.isKinematic = true;
+
+                            Debug.Log($"[Direct Return Success] Restored {heldObject.name} back to {dockObj.name}.");
+                        }
                     }
 
                     heldObject = null; 
@@ -571,11 +576,12 @@ public class PlayerInteraction : MonoBehaviour
             SpinCoaterController targetCoater = target.GetComponentInParent<SpinCoaterController>();
             ExposureStationController targetAligner = target.GetComponentInParent<ExposureStationController>();
             HotplateController targetHotplate = target.GetComponentInParent<HotplateController>();
+            if (HotplateController.IsCleanerHotplate(targetHotplate)) targetHotplate = null;
 
             // Hotplate targeting fallback parser
             if (targetHotplate == null && (targetName.Contains("hotplate") || (targetName.Contains("top") && !targetName.Contains("toplid"))))
             {
-                targetHotplate = Object.FindAnyObjectByType<HotplateController>();
+                targetHotplate = HotplateController.GetProcessingHotplate();
             }
 
             if (targetName.Contains("spin") || targetName.Contains("coater")) targetAligner = null;

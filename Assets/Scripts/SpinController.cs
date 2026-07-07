@@ -375,6 +375,11 @@ public class SpinCoaterController : MonoBehaviour
         }
 
         // FIRE THE DATA BRIDGE OVER TO THE HOTPLATE
+        if (hotplateEquipmentInstance == null || HotplateController.IsCleanerHotplate(hotplateEquipmentInstance))
+        {
+            hotplateEquipmentInstance = HotplateController.GetProcessingHotplate();
+        }
+
         if (hotplateEquipmentInstance != null)
         {
             hotplateEquipmentInstance.ReceiveWaferStateFromSpinCoater(finalHCenter, appliedRPM);

@@ -52,6 +52,7 @@ public class HotplateController : MonoBehaviour
 
     void Start()
     {
+        currentState = HotplateState.Idle;
         if (onnxModelAsset != null)
         {
             runtimeModel = ModelLoader.Load(onnxModelAsset);
@@ -290,5 +291,26 @@ public class HotplateController : MonoBehaviour
     void OnDestroy()
     {
         worker?.Dispose();
+    }
+
+    public static bool IsCleanerHotplate(HotplateController hp)
+    {
+        if (hp == null) return false;
+        if (hp.GetComponentInParent<SC1Controller>() != null || hp.GetComponentInChildren<SC1Controller>() != null) return true;
+        string nameLower = (hp.gameObject.name + " " + (hp.transform.parent != null ? hp.transform.parent.name : "")).ToLower();
+        return nameLower.Contains("clean") || nameLower.Contains("sc1") || nameLower.Contains("wet") || nameLower.Contains("bench");
+    }
+
+    public static HotplateController GetProcessingHotplate()
+    {
+        HotplateController[] allHotplates = Object.FindObjectsByType<HotplateController>(FindObjectsSortMode.None);
+        HotplateController fallback = null;
+        foreach (HotplateController hp in allHotplates)
+        {
+            if (IsCleanerHotplate(hp)) continue;
+            if (fallback == null) fallback = hp;
+            return hp;
+        }
+        return fallback != null ? fallback : (allHotplates.Length > 0 ? allHotplates[0] : null);
     }
 }
