@@ -19,7 +19,7 @@ public class PlayerInteraction : MonoBehaviour
     private int originalLayer; 
     private int ignoreRaycastLayer;
 
-    // --- HARD COORDINATE RESISTANCE TRACKING    // Memory for restoring rinse bottle
+    // HARD COORDINATE RESISTANCE TRACKING    // Memory for restoring rinse bottle
     private Transform originalBottleParent;
     private Vector3 originalBottleLocalPosition;
     private Vector3 originalBottleLocalScale;
@@ -174,7 +174,7 @@ public class PlayerInteraction : MonoBehaviour
                 if (foundWafer != null) { target = foundWafer.gameObject; nameLower = target.name.ToLower(); }
             }
 
-            // --- 3. BOTTLE PICKUP (DIRECT & DOCK WRAPPER INTERCEPT) ---
+            // 3. BOTTLE PICKUP (DIRECT & DOCK WRAPPER INTERCEPT)
             if (nameLower.Contains("dock") || nameLower.Contains("station") || nameLower.Contains("area") || nameLower.Contains("wet") || nameLower.Contains("bench") || nameLower.Contains("table") || nameLower.Contains("clean"))
             {
                 foreach (Transform child in target.GetComponentsInChildren<Transform>())
@@ -199,7 +199,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- 4. SPIN COATER GENUINE SUBSTRATE EXTRACTION ---
+            // 4. SPIN COATER GENUINE SUBSTRATE EXTRACTION
             if (nameLower.Contains("wafer") && !nameLower.Contains("carrier"))
             {
                 SpinCoaterController coater = Object.FindAnyObjectByType<SpinCoaterController>();
@@ -217,7 +217,7 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
-            // --- 5. MASK ALIGNER SUBSTRATE/MASK HOVER PICKUP EXTRACTION ---
+            // 5. MASK ALIGNER SUBSTRATE/MASK HOVER PICKUP EXTRACTION
             if ((nameLower.Contains("wafer") && !nameLower.Contains("carrier")) || nameLower.Contains("mask") || nameLower.Contains("tray"))
             {
                 ExposureStationController alignerController = Object.FindAnyObjectByType<ExposureStationController>();
@@ -236,7 +236,7 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
-            // --- 4b. HOTPLATE SUBSTRATE EXTRACTION (clicking the hotplate top) ---
+            // 4b. HOTPLATE SUBSTRATE EXTRACTION (clicking the hotplate top)
             if (nameLower.Contains("hotplate") || (nameLower.Contains("top") && !nameLower.Contains("toplid")))
             {
                 HotplateController hp = target.GetComponentInParent<HotplateController>();
@@ -255,7 +255,7 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
-            // --- 1. STANDALONE WAFER PICKUP ---
+            // 1. STANDALONE WAFER PICKUP
             if (nameLower.Contains("wafer") && !nameLower.Contains("carrier")) 
             {
                 PickUpHeldObject(target);
@@ -267,7 +267,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
             
-            // --- 2. PHOTOMASK PICKUP ---
+            // 2. PHOTOMASK PICKUP
             if (nameLower.Contains("mask") || nameLower.Contains("tray"))
             {
                 bool isSittingOnStorageCube = target.transform.parent != null && 
@@ -285,7 +285,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- 7. WAFER CARRIER SEQUENCE ---
+            // 7. WAFER CARRIER SEQUENCE
             WaferCarrierController carrier = target.GetComponent<WaferCarrierController>();
             if (carrier == null) carrier = target.GetComponentInParent<WaferCarrierController>();
 
@@ -308,7 +308,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- 6. TOPLID PICKUP ---
+            // 6. TOPLID PICKUP
             if (nameLower.Contains("toplid"))
             {
                 GameObject lidToPickup = target;
@@ -348,7 +348,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- 8. DEHYDRATION OVEN INTERACTION ---
+            // 8. DEHYDRATION OVEN INTERACTION
             DehydrationOvenController oven = target.GetComponent<DehydrationOvenController>();
             if (oven == null) oven = target.GetComponentInParent<DehydrationOvenController>();
             if (oven == null && target.transform.parent != null) oven = target.transform.parent.GetComponentInParent<DehydrationOvenController>();
@@ -475,9 +475,7 @@ public class PlayerInteraction : MonoBehaviour
             GameObject target = hit.collider.gameObject;
             string targetName = target.name.ToLower();
 
-            // =====================================================================
             // 1. RINSE BOTTLE SECTOR PROCESSING TRACK
-            // =====================================================================
             bool isBottle = heldObject.name.ToLower().Contains("bottle");
             bool isDI = heldObject.name.ToLower().Contains("di");
             
@@ -570,9 +568,7 @@ public class PlayerInteraction : MonoBehaviour
                 return; 
             }
 
-            // =====================================================================
             // 2. HARDWARE EQUIPMENT INTERLOCK ROUTES (WAFER / MASKS)
-            // =====================================================================
             SpinCoaterController targetCoater = target.GetComponentInParent<SpinCoaterController>();
             ExposureStationController targetAligner = target.GetComponentInParent<ExposureStationController>();
             HotplateController targetHotplate = target.GetComponentInParent<HotplateController>();
@@ -588,7 +584,7 @@ public class PlayerInteraction : MonoBehaviour
 
             bool isHeldWafer = heldObject.name.ToLower().Contains("wafer") && !heldObject.name.ToLower().Contains("carrier");
 
-            // --- ROUTE A: EXPOSURE ALIGNER STATION ---
+            // ROUTE A: EXPOSURE ALIGNER STATION
             if (targetAligner != null)
             {
                 Transform sharedWaferAnchorNode = targetAligner.transform.Find("Hinge/Rotator/Chuck/Aligner_Wafer_Anchor");
@@ -639,7 +635,7 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
-            // --- ROUTE C: WAFER CARRIER SEQUENCE ---
+            // ROUTE C: WAFER CARRIER SEQUENCE
             WaferCarrierController carrier = target.GetComponent<WaferCarrierController>();
             if (carrier == null) carrier = target.GetComponentInParent<WaferCarrierController>();
 
@@ -684,7 +680,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- ROUTE B: PHOTOMASK HOUSING RACKS ---
+            // ROUTE B: PHOTOMASK HOUSING RACKS
             if ((targetName.Contains("storage") || targetName.Contains("dock")) && (heldObject.name.ToLower().Contains("mask") || heldObject.name.ToLower().Contains("tray")))
             {
                 RestoreHeldObjectLayer(); DetachHeldObject();
@@ -700,7 +696,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- ROUTE C: POLOS SPIN COATER ---
+            // ROUTE C: POLOS SPIN COATER
             if (targetCoater != null && isHeldWafer)
             {
                 RestoreHeldObjectLayer();
@@ -714,7 +710,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- ROUTE D: POLOS HOTPLATE UNIT ---
+            // ROUTE D: POLOS HOTPLATE UNIT
             if (targetHotplate != null && isHeldWafer)
             {
                 if (targetHotplate.currentState == HotplateController.HotplateState.Baking) return;
@@ -724,7 +720,7 @@ public class PlayerInteraction : MonoBehaviour
                 return;
             }
 
-            // --- ROUTE D2: DEHYDRATION OVEN INTERACTION ---
+            // ROUTE D2: DEHYDRATION OVEN INTERACTION
             DehydrationOvenController targetOven = target.GetComponentInParent<DehydrationOvenController>();
             if (targetOven == null && (targetName.Contains("oven") || targetName.Contains("dehydrat")) && !targetName.Contains("interaction") && target.GetComponent<MachineInteractionAnchor>() == null)
             {
@@ -750,7 +746,7 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
-            // --- ROUTE E: CHEMICAL DEVELOPMENT BEAKER DISPLACEMENT ---
+            // ROUTE E: CHEMICAL DEVELOPMENT BEAKER DISPLACEMENT
             bool isWafer = isHeldWafer || (heldObject.name.ToLower().Contains("substrate") && !isBottle);
             
             if (isWafer)
@@ -774,7 +770,7 @@ public class PlayerInteraction : MonoBehaviour
                 }
             }
 
-            // --- ROUTE F: TOPLID STORAGE ---
+            // ROUTE F: TOPLID STORAGE
             if (targetName.Contains("toplidstorage") && heldObject.name.ToLower().Contains("toplid"))
             {
                 RestoreHeldObjectLayer(); DetachHeldObject();

@@ -161,7 +161,7 @@ public class SpinCoaterController : MonoBehaviour
         string prName = prDropdown != null ? prDropdown.options[prDropdown.value].text : "PR";
         UpdateCoaterUI($"Dispensing chemical matrix: {prName}...");
 
-        // --- INTEGRATION TRIGGER: STEP 1 (Post-Dispense / Wet Matrix Generation) ---
+        // INTEGRATION TRIGGER: STEP 1 (Post-Dispense / Wet Matrix Generation)
         if (MicroscopeInterfaceManager.Instance != null)
         {
             // 1. Awaken the hidden microscope chamber subsystem
@@ -243,7 +243,7 @@ public class SpinCoaterController : MonoBehaviour
         float targetSpinSpeed = speedSlider != null ? speedSlider.value : 3000f;
         float targetSpinTime = timeSlider != null ? timeSlider.value : 30f;
 
-        // --- STAGE 1: AUTOMATED SPREADING PHASE ---
+        // STAGE 1: AUTOMATED SPREADING PHASE
         currentPhaseName = "SPREADING";
         recipeTimer = 0f;
         float spreadDuration = 5f;
@@ -258,7 +258,7 @@ public class SpinCoaterController : MonoBehaviour
             yield return null;
         }
 
-        // --- STAGE 2: AUTOMATED CASTING PHASE (Inference Engine Driven) ---
+        // STAGE 2: AUTOMATED CASTING PHASE (Inference Engine Driven)
         currentPhaseName = "CASTING";
         recipeTimer = 0f;
         // if (fluidSplatterParticles != null) fluidSplatterParticles.Play(); // Removed PR sprinkle/splatter emitter
@@ -393,8 +393,8 @@ public class SpinCoaterController : MonoBehaviour
         UpdateCoaterUI("Spin cycle complete.");
     }
 
-    // --- RESTORED ORIGINAL PLACEMENT METHOD ---
-    // --- UPDATED PLACEMENT TRACKING METHOD ---
+    // RESTORED ORIGINAL PLACEMENT METHOD
+    // UPDATED PLACEMENT TRACKING METHOD
     public bool RegisterWaferPlacement(GameObject wafer)
     {
         // 1. Double check our state machine blocks cleanly
@@ -446,7 +446,7 @@ public class SpinCoaterController : MonoBehaviour
         return true;
     }
 
-    // --- UPDATED EXTRACTION HANDOFF METHOD ---
+    // UPDATED EXTRACTION HANDOFF METHOD
     public GameObject RemoveWafer()
     {
         if (currentCoaterState == CoaterState.Spinning || currentCoaterState == CoaterState.PRDispensing)

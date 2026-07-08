@@ -71,9 +71,7 @@ public class LithoDevelopmentEngine : MonoBehaviour
         ExecuteDevelopmentPass();
     }
 
-    // =====================================================================
     // HIGH-PERFORMANCE PARALLEL DISSOLUTION PASS
-    // =====================================================================
     public void ExecuteDevelopmentPass()
     {
         if (inferenceEngine == null || inferenceEngine.chemicalResultsData == null) 
@@ -88,7 +86,7 @@ public class LithoDevelopmentEngine : MonoBehaviour
 
         if (polymerArrayM.Length != totalPixels) return;
 
-        // --- DEEP DIVE VALIDATION LOGS (FULLY RETAINED) ---
+        // DEEP DIVE VALIDATION LOGS (FULLY RETAINED)
         Debug.Log("================ DEVELOPMENT DIAGNOSTICS ================");
         Debug.Log($"1. Incoming Hotplate Film Thickness: {initialThicknessNm:F2} nm");
         Debug.Log($"2. Swerve Wash Time (from UI): {currentWashTime:F2} seconds");
@@ -153,7 +151,7 @@ public class LithoDevelopmentEngine : MonoBehaviour
         
         Debug.Log("[Litho Dev Engine] Development calculation and visualization arrays synchronized successfully.");
 
-        // --- DISPATCHER HANDSHAKE TRIGGER ---
+        // DISPATCHER HANDSHAKE TRIGGER
         // Automatically dispatches the uncorrupted data map to your standalone metrology modules
         if (inferenceEngine != null)
         {

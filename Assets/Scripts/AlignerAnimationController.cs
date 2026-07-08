@@ -98,9 +98,7 @@ public class AlignerAnimationSequencer : MonoBehaviour
         Debug.Log("[Sequencer] Ejection Complete. Tray Clear.");
     }
 
-    // =====================================================================
     // 3. EXPOSURE CYCLE SEQUENCE
-    // =====================================================================
     private IEnumerator ExecuteExposureCycleAsync(System.Action onUVTrigger, System.Action onModelCompute)
     {
         isRunning = true;

@@ -225,7 +225,7 @@ public class LithoInferenceEngine : MonoBehaviour
         }
     }
 
-    // --- EXECUTES AT THE MASK ALIGNER (Pipes data natively into Stage 2 buffer) ---
+    // EXECUTES AT THE MASK ALIGNER (Pipes data natively into Stage 2 buffer)
     public void ExecuteModelExposurePipeline()
     {
         if (inferenceWorker == null) { Debug.LogError("[Litho AI Engine] inferenceWorker is null!"); return; }
@@ -263,7 +263,7 @@ public class LithoInferenceEngine : MonoBehaviour
         
         if (outputResultsData != null)
         {
-            // --- STAGE 2 PRE-COMPUTE: CONSTRUCT 2-CHANNEL PASSTHROUGH FOOTPRINT FOR CHEMICAL SURROGATE ---
+            // STAGE 2 PRE-COMPUTE: CONSTRUCT 2-CHANNEL PASSTHROUGH FOOTPRINT FOR CHEMICAL SURROGATE
             float normDose = currentDose / 38.0f;
             int planeSize = resolution * resolution;
             float[] chemicalInputBuffer = new float[1 * 2 * resolution * resolution];
@@ -301,7 +301,7 @@ public class LithoInferenceEngine : MonoBehaviour
                 }
             }
 
-            // ─── NOTIFY EXTERNAL VISUALIZER SCRIPT FOR SCREEN 1 ───
+            // NOTIFY EXTERNAL VISUALIZER SCRIPT FOR SCREEN 1
             LithoVisualizer aerialPlot = GetComponent<LithoVisualizer>();
             if (aerialPlot == null) aerialPlot = GetComponentInParent<LithoVisualizer>();
             if (aerialPlot == null) aerialPlot = GetComponentInChildren<LithoVisualizer>();
@@ -316,7 +316,7 @@ public class LithoInferenceEngine : MonoBehaviour
         }
     }
 
-    // --- INTERACTIVE SUB-ROUTINE: INVOKED BY HOTPLATE TERMINAL INTERLOCK BINDINGS ---
+    // INTERACTIVE SUB-ROUTINE: INVOKED BY HOTPLATE TERMINAL INTERLOCK BINDINGS
     public void ExecutePostBakeChemicalPipeline()
     {
         if (chemicalResultsData == null)
@@ -335,7 +335,7 @@ public class LithoInferenceEngine : MonoBehaviour
         // Removed forced development execution here.
         // It should ONLY trigger when the user explicitly presses SwerveDev on the UI!
 
-        // --- DATA ANALYSIS DEBUG FOR HORIZONTAL SLICE (EDGE FOCUS) ---
+        // DATA ANALYSIS DEBUG FOR HORIZONTAL SLICE (EDGE FOCUS)
         int midRow = resolution / 2;
         int startIndex = midRow * resolution;
         System.Text.StringBuilder sb = new System.Text.StringBuilder();

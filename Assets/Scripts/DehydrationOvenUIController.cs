@@ -1,4 +1,4 @@
-// DehydrationOvenUIController.cs  —  UI Controller for Dehydration Oven
+// DehydrationOvenUIController.cs  -  UI Controller for Dehydration Oven
 // Hooks up to screen-space Canvas UI for setting temperature, bake time, and starting dehydration bake.
 // Attach to: Dehydration Oven UI Panel GameObject
 // Assign in Inspector: statusText, tempSlider, bakeTimeSlider, bakeButton, closeButton

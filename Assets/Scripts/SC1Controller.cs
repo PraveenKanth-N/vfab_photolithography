@@ -1,4 +1,4 @@
-// SC1Controller.cs  —  Machine 1: SC1 Wet Bench / Cleaner_hotplate
+// SC1Controller.cs  -  Machine 1: SC1 Wet Bench / Cleaner_hotplate
 // Hooks up to screen-space Canvas UI.
 // Attach to: SC1 UI Panel or Cleaner Controller GameObject
 // Assign in Inspector: outputText, startButton (optional: wafer, cleaningBeakerFluid)

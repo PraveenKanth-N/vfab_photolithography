@@ -13,7 +13,7 @@ public class LithoVisualizer : MonoBehaviour
     private Texture2D aerialTexture2D;
     private int resolution = 512;
 
-    // Inferno colour ramp milestones — same as before
+    // Inferno colour ramp milestones - same as before
     private static readonly Color32 ColorBlack  = new Color32(3,   2,   12,  255);
     private static readonly Color32 ColorPurple = new Color32(85,  15,  115, 255);
     private static readonly Color32 ColorPink   = new Color32(165, 30,  135, 255);
@@ -39,8 +39,8 @@ public class LithoVisualizer : MonoBehaviour
         float[] outputArray = inferenceEngine.GetExposureOutputData();
         if (outputArray == null || outputArray.Length == 0) return;
 
-        // ── 1. Find the true data range so we normalise against real optical values,
-        //       not a hardcoded 0-1 assumption. Your data runs ~-0.01 → ~0.81.
+        // 1. Find the true data range so we normalise against real optical values,
+        //       not a hardcoded 0-1 assumption. Your data runs ~-0.01  ~0.81.
         float dataMin = float.MaxValue;
         float dataMax = float.MinValue;
         for (int i = 0; i < outputArray.Length; i++)
@@ -61,11 +61,11 @@ public class LithoVisualizer : MonoBehaviour
                 int unityIdx  = (resolution - 1 - y) * resolution + x;
                 int tensorIdx = y * resolution + x;
 
-                // ── 2. Normalise the raw ML float directly — no fake sine wave.
+                // 2. Normalise the raw ML float directly - no fake sine wave.
                 float t = (outputArray[tensorIdx] - dataMin) / dataRange;
                 t = Mathf.Clamp01(t);
 
-                // ── 3. Drive the same inferno ramp with the REAL gradient value.
+                // 3. Drive the same inferno ramp with the REAL gradient value.
                 colorBuffer[unityIdx] = InfernoRamp(t);
             }
         }

@@ -264,7 +264,7 @@ public class WorkflowManager : MonoBehaviour
                 }
                 break;
 
-            // ========================= HOTPLATE WORKFLOW =========================
+            // HOTPLATE WORKFLOW
 
             case 15:
                 SetText("Place the PR coated wafer on top of the Hotplate to your left");
@@ -979,7 +979,7 @@ public class WorkflowManager : MonoBehaviour
                 }
                 break;
 
-            // --- PHASE 1: SC1 CLEANING & DEHYDRATION BAKE WORKFLOW ---
+            // PHASE 1: SC1 CLEANING & DEHYDRATION BAKE WORKFLOW
             case 100:
                 SetText("Approach the wet bench infront, and click on the leftmost bottle (SC-1)");
                 if (playerInteraction != null && playerInteraction.heldObject != null)

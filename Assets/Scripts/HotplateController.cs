@@ -191,7 +191,7 @@ public class HotplateController : MonoBehaviour
             }
         }
 
-        // --- INFERENCE EXTRACTION USING EXPLICIT NAMED OUTPUT PORTS ---
+        // INFERENCE EXTRACTION USING EXPLICIT NAMED OUTPUT PORTS
         if (worker != null)
         {
             int totalPixels = Resolution * Resolution;

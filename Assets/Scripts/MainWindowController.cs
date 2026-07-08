@@ -103,9 +103,7 @@ public class MainWindowController : MonoBehaviour
         var continueBtn = mainRoot.Q<Button>("continueButton");
         BindButton(continueBtn, AdvanceMachineState);
 
-        // =========================================================
         // DEV CONTROLS WIRING
-        // =========================================================
         var devToggleTrayBtn = mainRoot.Q<Button>("devToggleTrayBtn");
         var devToggleVacuumBtn = mainRoot.Q<Button>("devToggleVacuumBtn");
         var devExecuteExposureBtn = mainRoot.Q<Button>("devExecuteExposureBtn");
@@ -129,12 +127,12 @@ public class MainWindowController : MonoBehaviour
         var closeMaskPopupBtn = mainRoot.Q<Button>("closeMaskPopupBtn");
         BindButton(closeMaskPopupBtn, HideMaskPopup);
 
-        // --- RECIPE SLIDER HOOKUPS (SCREEN 2) ---
+        // RECIPE SLIDER HOOKUPS (SCREEN 2)
         var doseSlider = mainRoot.Q<Slider>("doseSlider");
         var defocusSlider = mainRoot.Q<Slider>("defocusSlider");
         var naSlider = mainRoot.Q<Slider>("naSlider");
 
-        // --- SIDEBAR UI ELEMENTS (SCREEN 3) ---
+        // SIDEBAR UI ELEMENTS (SCREEN 3)
         var uiDoseLabel = mainRoot.Q<Label>("uiDoseLabel");
         var uiDefocusLabel = mainRoot.Q<Label>("uiDefocusLabel");
         var uiNALabel = mainRoot.Q<Label>("uiNALabel");
@@ -568,7 +566,7 @@ public class MainWindowController : MonoBehaviour
         
         yield return new WaitForSeconds(0.8f);
         
-        // --- 1. RIGHT ALIGNMENT ---
+        // 1. RIGHT ALIGNMENT
         btnR.style.backgroundColor = new StyleColor(new Color(0.5f, 0.8f, 0.5f));
         btnR.style.color = new StyleColor(Color.black);
 
@@ -617,7 +615,7 @@ public class MainWindowController : MonoBehaviour
         
         yield return new WaitForSeconds(0.4f);
         
-        // --- 2. LEFT ALIGNMENT ---
+        // 2. LEFT ALIGNMENT
         btnL.style.backgroundColor = new StyleColor(new Color(0.5f, 0.8f, 0.5f));
         btnL.style.color = new StyleColor(Color.black);
 

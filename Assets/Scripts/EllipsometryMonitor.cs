@@ -31,13 +31,10 @@ public class EllipsometryMonitor : MonoBehaviour
         Color[] pixelColorBuffer = new Color[Res * Res];
         float[] physicalThicknessGrid = new float[Res * Res];
         
-        // =====================================================================
         // TRIPLE-VERIFIED MODEL TARGET DENORMALIZATION CONSTANTS
-        // =====================================================================
 
         const float cMean = 0.05266726f;    // Mean solvent volume fraction 
         const float cStd  = 0.05717264f;    // Solvent volume fraction standard deviation
-        // =====================================================================
 
         float hMax = float.MinValue;
         float hMin = float.MaxValue;
