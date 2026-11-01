@@ -86,6 +86,90 @@ Optical Metrology & Brightfield inspection \& critical dimension scanning & Norm
 \end{tabularx}
 \end{table*}
 
+\subsubsection*{System module architecture and dataflow integration}
+To establish deterministic state synchronization and decouple physical modeling from graphical rendering, the system architecture operates across ten interconnected functional modules, anchored by a foundational physical parameter library (Fig.~\ref{fig:architecture}):
+
+\paragraph{Module 0: Data and Physics Foundation}
+\begin{itemize}
+  \item \textbf{Inputs:} Empirical chemical coefficients ($\eta = 28.5\,\text{mPa}\cdot\text{s}$, solids fraction $S = 0.22$, refractive index $n = 1.62$), substrate geometry ($100\,\text{mm}$ p-type (100) silicon, $500\,\mu\text{m}$ thickness), equipment hardware envelopes ($13.56\,\text{MHz}$ RF power, $0\text{--}100\,\text{sccm}$ mass flow controllers), and analytical physics formulations (Meyerhofer, Rayleigh, Arrhenius thermal diffusion, kinetic ion-radical transport).
+  \item \textbf{Function:} Serves as the immutable parameter repository storing fabrication rules, rate kinetics, material property matrices, and baseline semiconductor physics equations required for simulation.
+  \item \textbf{Outputs:} Calibrated physical constants, operational boundary envelopes, chemical rate constants, and numerical solver baselines.
+  \item \textbf{Downstream integration:} Direct parameterization of the Physics Simulation Engine (Module 5) and tolerance threshold provisioning to the Consequence Rule Engine (Module 6).
+\end{itemize}
+
+\paragraph{Module 1: VR Cleanroom \& Onboarding FSM}
+\begin{itemize}
+  \item \textbf{Inputs:} 6-DoF head-mounted display (HMD) and dual controller tracking poses (OpenXR runtime), grip/trigger interaction events, user session credentials, and scenario selection.
+  \item \textbf{Function:} Initializes the photorealistic ISO Class 5 cleanroom virtual environment in Unity 6 LTS. It manages spatial equipment anchors (\texttt{EquipmentAnchor.cs}), desktop fallback controls (\texttt{XRPlayer.cs}), and executes a 6-step onboarding finite state machine (\texttt{OnboardingStateMachine.cs}) enforcing PPE gowning verification, air shower cycling, substrate transfer handling, and controller calibration.
+  \item \textbf{Outputs:} Interactive cleanroom environment, active user tracking session, Step 6 tutorial completion event, and raw user recipe parameters adjusted on virtual equipment consoles.
+  \item \textbf{Downstream integration:} Routes the Step 6 completion signal to Equipment Digital Twins (Module 2) to unlock workstation access, streams user process parameters to the Physics Simulation Engine (Module 5), and receives Socratic HUD dialogue overlays from the Socratic AI Tutor (Module 10).
+\end{itemize}
+
+\paragraph{Module 2: Equipment Digital Twins}
+\begin{itemize}
+  \item \textbf{Inputs:} Step 6 completion event from Module 1, physical wafer collider docking events, front-panel virtual dial and toggle manipulations, and machine hardware specifications.
+  \item \textbf{Function:} Simulates interactive, physically grounded virtual replicas of fabrication equipment (chemical bench, spin coater, proximity hotplate, UV contact mask aligner, reactive ion etching chamber, and optical inspection microscope). Each tool executes an internal finite state machine (Idle, Ready, Loading, Processing, Complete, Fault) governing vacuum chuck latches, pneumatic chamber lids, and real-time console displays.
+  \item \textbf{Outputs:} Interactive tool operational states, front-panel sensory readouts, vacuum/interlock clamp signals, and validated recipe settings ($\omega$, $T_{\text{sb}}$, $D$, $P_{\text{RF}}$, $p_{\text{ch}}$, $Q_{\text{gas}}$).
+  \item \textbf{Downstream integration:} Dispatches configured recipe settings to the Process Sequencer (Module 4) to initiate step gating, and streams machine contact and clamp states to the Wafer Digital Twin (Module 3) as substrates transfer across workstations.
+\end{itemize}
+
+\paragraph{Module 3: Wafer Digital Twin}
+\begin{itemize}
+  \item \textbf{Inputs:} Baseline substrate parameters from Module 0, step execution commands from the Process Sequencer (Module 4), localized defect injection tuples from the Consequence Rule Engine (Module 6), and spatial tracking colliders.
+  \item \textbf{Function:} Maintains the authoritative single source of truth for the physical silicon wafer. It tracks global wafer identity (\texttt{WaferId.cs}), dynamic vertical layer stack (\texttt{WaferLayer.cs} recording film material, thickness in nanometers, and refractive index), localized 3D spatial defect records (\texttt{WaferDefect.cs} logging coordinates $(x, y, z)$, defect type, and severity score $\sigma \in [0.0, 1.0]$), and generates deep-copy historical snapshots (\texttt{WaferStateSnapshot.cs}).
+  \item \textbf{Outputs:} Authoritative wafer state data (\texttt{WaferStateData}), current layer stack profiles, 3D defect coordinates, and chronological state snapshot logs.
+  \item \textbf{Downstream integration:} Feeds current layer topography to Process Visualization (Module 7) for rendering, transmits state snapshots to the Explainable Socratic AI Tutor (Module 10) for pedagogical tracking, and exposes historical state snapshots to Time-Travel \& Cloud Telemetry (Modules 8 \& 9).
+\end{itemize}
+
+\paragraph{Module 4: Process Sequencer}
+\begin{itemize}
+  \item \textbf{Inputs:} Recipe settings from Equipment Digital Twins (Module 2), current wafer state from Module 3, and operator actuation triggers.
+  \item \textbf{Function:} Enforces strict physical cleanroom fabrication sequencing (surface preparation $\rightarrow$ photoresist spin coating $\rightarrow$ soft baking $\rightarrow$ mask alignment $\rightarrow$ UV exposure $\rightarrow$ development $\rightarrow$ hard baking $\rightarrow$ RIE plasma etching $\rightarrow$ metrology); validates parameter recipe envelopes and manages chemical reaction state machines, preventing out-of-sequence unit operations.
+  \item \textbf{Outputs:} Gated step execution commands, chemical reaction timers, interlock trigger events, and sequential execution audit logs.
+  \item \textbf{Downstream integration:} Dispatches the authorized Execute Step command to the Wafer Digital Twin (Module 3) to advance fabrication phase, and signals the Physics Simulation Engine (Module 5) to initiate mathematical transformation.
+\end{itemize}
+
+\paragraph{Module 5: Physics Simulation Engine}
+\begin{itemize}
+  \item \textbf{Inputs:} Process parameters from Module 1, step execution commands from Module 4, physical equations and material coefficients from Module 0.
+  \item \textbf{Function:} Executes continuous numerical and analytical physics formulations in under 4.2 ms per step: Meyerhofer spin dynamics for photoresist thickness ($t_{\text{pr}} \propto \omega^{-1/2} \eta^{1/3}$), thermal diffusion equations during convective baking, Rayleigh diffraction for photolithographic critical dimension ($CD = k_1 \lambda / NA$), and kinetic ion-radical transport for RIE anisotropy ($A_{\text{etch}} = 1 - (R_{\text{lateral}} / R_{\text{vertical}})$).
+  \item \textbf{Outputs:} Computed physical wafer metrics, including radial resist thickness profile, latent chemical image gradient, optical line CD, etch depth, sidewall taper angle, and line edge roughness ($3\sigma$).
+  \item \textbf{Downstream integration:} Supplies deterministic physical outputs to the Consequence Rule Engine (Module 6) for boundary checking and defect determination.
+\end{itemize}
+
+\paragraph{Module 6: Consequence Rule Engine}
+\begin{itemize}
+  \item \textbf{Inputs:} Physical outputs from Module 5, process parameter envelopes, empirical semiconductor design rules, and tolerance threshold boundaries.
+  \item \textbf{Function:} Compares physical outputs against strict lithographic and plasma etching tolerance boundaries ($\pm 5\%$ resist uniformity, sub-$0.15\,\mu\text{m}$ alignment offset, sub-$120\,\text{mTorr}$ chamber pressure); classifies operational outcomes into successful runs, marginal drift, or catastrophic failure, and synthesizes localized wafer defect records.
+  \item \textbf{Outputs:} Injected defect entries (pinholes, thermal blistering, pattern collapse, mask faceting, isotropic undercutting), continuous defect severity scores, safety interlock trips, and defect triggers.
+  \item \textbf{Downstream integration:} Injects generated defect records directly into the Wafer Digital Twin (Module 3) for spatial storage, routes defect triggers to Time-Travel \& Cloud Telemetry (Modules 8 \& 9), and signals the Socratic AI Tutor (Module 10).
+\end{itemize}
+
+\paragraph{Module 7: Process Visualization}
+\begin{itemize}
+  \item \textbf{Inputs:} Wafer Digital Twin state (Module 3), historical timeline replay feeds (Modules 8 \& 9), and Socratic HUD dialogue (Module 10).
+  \item \textbf{Function:} Renders real-time multi-scale visual phenomena in Unity 6 LTS using the Universal Render Pipeline (URP); executes custom thin-film optical interference shaders reflecting resist thickness changes, dynamic particle systems for capacitive RF plasma glow discharges, and high-magnification optical microscope views for micro-scale inspection.
+  \item \textbf{Outputs:} Interactive multi-scale 3D cleanroom views, micro-metrology microscope displays, visual defect markers, and heads-up instructional overlays.
+  \item \textbf{Downstream integration:} Renders directly to the student's VR headset display and feeds visual focus metrics back to the Socratic AI Tutor (Module 10).
+\end{itemize}
+
+\paragraph{Modules 8 \& 9: Time-Travel Debugging \& Cloud Telemetry}
+\begin{itemize}
+  \item \textbf{Inputs:} Defect trigger notifications from Module 6, wafer state snapshot streams from Module 3, and timestamped user interaction logs.
+  \item \textbf{Function:} Module 8 provides an interactive temporal scrubbing interface enabling students to step backward through past unit operations to isolate root causes of defects; Module 9 ingests serialized \texttt{WaferStateData} payloads via asynchronous RESTful endpoints into a persistent PostgreSQL database, logging complete fabrication trajectories and cohort telemetry.
+  \item \textbf{Outputs:} Historical process state streams, temporal timeline scrub data, longitudinal performance analytics, and persistent run records.
+  \item \textbf{Downstream integration:} Supplies timeline replay streams to Process Visualization (Module 7) for retrospective rendering, and delivers comprehensive diagnostic state history to the Explainable Socratic AI Tutor (Module 10).
+\end{itemize}
+
+\paragraph{Module 10: Explainable Socratic AI Tutor}
+\begin{itemize}
+  \item \textbf{Inputs:} Instantaneous wafer state snapshots from Module 3, diagnostic historical state from Modules 8 \& 9, student interaction logs, and Bayesian Knowledge Tracing (BKT) probability vectors.
+  \item \textbf{Function:} Executes an explainable, pedagogical inquiry model structured across a 3-tier scaffolding hierarchy (Tier 1: Phenomenological Observation; Tier 2: Physical Root-Cause Deduction; Tier 3: Formulative Recipe Remediation); updates individual cognitive mastery probabilities $P(L_t)$ per cleanroom concept, prompting learners to diagnose flaws through guided questions rather than direct answers.
+  \item \textbf{Outputs:} Context-aware Socratic dialogue prompts, targeted cognitive scaffolding questions, real-time remediation hints, and competency assessment scores.
+  \item \textbf{Downstream integration:} Delivers Socratic HUD dialogue directly to the VR display overlay in Module 1 and Module 7, guiding the student through real-time troubleshooting.
+\end{itemize}
+
+
 \subsection*{Wafer defect genesis and morphology across boundary violations}
 In contrast to traditional pedagogical software, our platform eliminates pre-scripted outcome animations. Wafer properties are represented as a multi-layer state snapshot carrying physical thickness fields, chemical cross-linking fractions, photoactive compound concentrations, and discrete defect coordinate arrays. When a user runs a process, the physics engine takes the configured recipe parameters (spin speed, bake temperature, exposure dose, chamber pressure, RF power, gas ratios) and calculates the resulting physical transformations.
 

@@ -247,7 +247,7 @@
     font-size: 6.3pt;
     line-height: 1.22;
     color: #222;
-    padding-left: 10px;
+    padding-left: 20px;
     margin-top: 2.5pt;
   }
   .ref-list li {
@@ -287,7 +287,7 @@
   <p>Immersive Virtual Reality (VR) and Digital Twin (DT) frameworks offer a practical path toward democratizing cleanroom education<sup>8–11</sup>. However, an analysis of current literature reveals three critical shortcomings in existing tools:
   <br>1. <i>Scripted, Consequence-Free Virtual Environments</i>: Most VR cleanroom software is restricted to fixed procedural checklist walkthroughs. Student actions simply trigger pre-rendered animations. If a user sets an incompatible spin speed or excessive chamber pressure, the simulation either displays a generic failure message or advances regardless, preventing students from understanding how their input values caused the defect<sup>12,13</sup>.
   <br>2. <i>Industrial Rather Than Pedagogical Digital Twins</i>: Contemporary digital twins in microelectronics focus almost exclusively on yield management, wafer dispatching, and predictive tool maintenance in commercial fabs<sup>14–17</sup>. These systems are engineered for industrial plant operators rather than students seeking foundational mental models.
-  <br>3. <i>Prescriptive Rather Than Inquisitive AI Tutoring</i>: Recent artificial intelligence tools in engineering education typically operate as direct answer engines. When a student errs, the software immediately presents the corrective value, promoting rote execution rather than diagnostic troubleshooting<sup>18–21</sup>.</p>
+  <br>3. <i>Prescriptive Rather Than Inquisitive AI Tutoring</i>: Recent artificial intelligence tools in engineering education typically operate as direct answer engines. When a student errs, the software immediately presents the corrective value, promoting rote execution rather than diagnostic troubleshooting<sup>1&ndash;8–21</sup>.</p>
 
   <p>To overcome these instructional limitations, this paper introduces an AI-Driven Virtual Reality Digital Twin for Semiconductor Photolithography and Plasma Etching Training. Developed on Unity 6 LTS and OpenXR, the system places students inside an interactive virtual cleanroom where they operate virtual machines, adjust recipe parameters, observe real-time defect formation governed by numerical physical equations, and troubleshoot mistakes using an Explainable Socratic AI Tutor.</p>
 
@@ -304,7 +304,7 @@
 
   <p><b>Digital Twin Technology in Industry and Education</b>: Digital Twin methodologies have expanded rapidly across industrial production workflows. Havard and Jeanne<sup>13</sup> integrated digital factory tool suites with VR co-simulation to evaluate ergonomic workstation safety. Springer's training study and Karanam et al. conducted meta-analyses demonstrating that pairing digital twins with virtual learning environments increased student problem-solving scores by up to 20%. In semiconductor environments, Kuo et al.<sup>14</sup> coupled deep reinforcement learning with wafer fabrication twins for resilient dynamic scheduling, while Lee and Zhao<sup>15</sup> utilized mixed-reality twins for technician certification in chip packaging. Asad et al.<sup>16</sup> established design taxonomies for human-centric digital twins, and Yildiz et al.<sup>17</sup> demonstrated collaborative virtual factory layouts. In process-level physics modeling, Myung et al.<sup>3</sup> proposed STwinner, combining calibrated TCAD simulations with neural operator surrogates to optimize plasma etching recipes. While industrially potent, such digital twins are formulated exclusively for factory yield maximization and run-time optimization; they lack student-facing interfaces, pedagogical scaffolding, or VR immersion.</p>
 
-  <p><b>AI and Socratic Tutoring Systems</b>: Recent advancements in conversational artificial intelligence have catalyzed interest in pedagogical dialogue agents. Sunil and Thakkar<sup>18</sup> introduced SocraticAI, demonstrating that enforcing structured conversational rules on large language models prompted 75% of undergraduate computer science students to write detailed problem reflections rather than passively copying syntax. Knievel et al.<sup>19</sup> developed an electrical engineering tutor grounding Socratic dialogues in live SPICE circuit simulation data, dramatically outperforming standard text-only baselines. Complementary studies by Shridhar et al.<sup>20</sup>, Ambati et al., and Liu et al.<sup>21</sup> established that reinforcement-learned question generation and cognitive state modeling enable AI agents to personalize problem-solving queries dynamically based on learner competency. Despite these strides, conversational AI tutors have rarely been coupled with real-time physical simulation engines in manufacturing disciplines.</p>
+  <p><b>AI and Socratic Tutoring Systems</b>: Recent advancements in conversational artificial intelligence have catalyzed interest in pedagogical dialogue agents. Sunil and Thakkar<sup>1&ndash;8</sup> introduced SocraticAI, demonstrating that enforcing structured conversational rules on large language models prompted 75% of undergraduate computer science students to write detailed problem reflections rather than passively copying syntax. Knievel et al.<sup>19</sup> developed an electrical engineering tutor grounding Socratic dialogues in live SPICE circuit simulation data, dramatically outperforming standard text-only baselines. Complementary studies by Shridhar et al.<sup>20</sup>, Ambati et al., and Liu et al.<sup>21</sup> established that reinforcement-learned question generation and cognitive state modeling enable AI agents to personalize problem-solving queries dynamically based on learner competency. Despite these strides, conversational AI tutors have rarely been coupled with real-time physical simulation engines in manufacturing disciplines.</p>
 
   <p><b>Semiconductor Process Simulation</b>: Efforts to simulate semiconductor processing have explored both academic instruction and industrial fault detection. An evaluation by the Micro Nano Technology Education Center<sup>7</sup> reported that over 72% of technical students found AI-supported VR lithography simulations engaging. Davis et al.<sup>12</sup> developed an immersive VR framework spanning ingot slicing through photolithography and etching, validating the safety benefits of virtual cleanrooms. In industrial settings, Naghibzadeh-Jalali et al.<sup>24</sup> demonstrated machine-learning prediction of RIE tool degradation with 74.1% accuracy using factory sensor logs, while Sofge<sup>27</sup> designed virtual sensors to estimate critical dimensions and oxide loss from in-situ optical emission spectroscopy.</p>
 
@@ -351,7 +351,7 @@
         <td>No</td>
       </tr>
       <tr>
-        <td>Sunil &amp; Thakkar<sup>18</sup></td>
+        <td>Sunil &amp; Thakkar<sup>1&ndash;8</sup></td>
         <td>Computer Science Edu.</td>
         <td>Scaffolded LLM Prompts</td>
         <td>No</td>
@@ -400,13 +400,26 @@
     </div>
   </div>
 
-  <p><b>Module 1: VR Environment and Onboarding</b>: Implements the cleanroom space in Unity 6 LTS using OpenXR. It provides comfort teleportation, desktop fallback simulation (<code>XRPlayer.cs</code>), spatial machine anchors (<code>EquipmentAnchor.cs</code>), and a 6-step finite state machine (<code>OnboardingStateMachine.cs</code>) that verifies orientation and interaction before granting access to fabrication tools.</p>
+  <h3>3.1 Module Descriptions and Dataflow Integration</h3>
+  <p>To establish deterministic state synchronization and decouple physical modeling from graphical rendering, the system architecture operates across ten interconnected functional modules, anchored by a foundational physical parameter library (Fig. 1):</p>
 
-  <p><b>Module 2: Equipment Digital Twins</b>: Contains virtual replicas of cleanroom equipment. Each machine operates an internal state machine (Idle, Ready, Loading, Processing, Complete, Fault) and includes interactive controls:
-  <br>&bull; <i>Cleaning Station Twin</i>: Megasonic power, chemical bath temperature, deionized rinse cycles.
-  <br>&bull; <i>Photolithography Twin</i>: Programmable spin coater (RPM, acceleration rate, resist volume), proximity hotplate soft-bake temperature/timer, and optical contact mask aligner.
-  <br>&bull; <i>Plasma Etcher Twin</i>: RIE vacuum chamber, RF power generator, pressure control, and CF<sub>4</sub>/SF<sub>6</sub>/O<sub>2</sub> mass flow controllers.
-  <br>&bull; <i>Inspection Twin</i>: Virtual optical microscope with magnification stages and spatial translation.</p>
+  <p><b>Module 0: Data and Physics Foundation</b>
+  <br><i>Inputs:</i> Empirical chemical coefficients (&eta; = 28.5 mPa&middot;s, solids fraction <i>S</i> = 0.22, refractive index <i>n</i> = 1.62), substrate geometry (100 mm p-type (100) silicon, 500 &mu;m thickness), equipment hardware envelopes (13.56 MHz RF power, 0&ndash;100 sccm mass flow controllers), and analytical physics formulations (Meyerhofer, Rayleigh, Arrhenius thermal diffusion, kinetic ion-radical transport).
+  <br><i>Function:</i> Serves as the immutable parameter repository storing fabrication rules, rate kinetics, material property matrices, and baseline semiconductor physics equations required for simulation.
+  <br><i>Outputs:</i> Calibrated physical constants, operational boundary envelopes, chemical rate constants, and numerical solver baselines.
+  <br><i>Downstream integration:</i> Direct parameterization of the Physics Simulation Engine (Module 5) and tolerance threshold provisioning to the Consequence Rule Engine (Module 6).</p>
+
+  <p><b>Module 1: VR Cleanroom &amp; Onboarding FSM</b>
+  <br><i>Inputs:</i> 6-DoF head-mounted display (HMD) and dual controller tracking poses (OpenXR runtime), grip/trigger interaction events, user session credentials, and scenario selection.
+  <br><i>Function:</i> Initializes the photorealistic ISO Class 5 cleanroom virtual environment in Unity 6 LTS. It manages spatial equipment anchors (<code>EquipmentAnchor.cs</code>), desktop fallback controls (<code>XRPlayer.cs</code>), and executes a 6-step onboarding finite state machine (<code>OnboardingStateMachine.cs</code>) enforcing PPE gowning verification, air shower cycling, substrate transfer handling, and controller calibration.
+  <br><i>Outputs:</i> Interactive cleanroom environment, active user tracking session, Step 6 tutorial completion event, and raw user recipe parameters adjusted on virtual equipment consoles.
+  <br><i>Downstream integration:</i> Routes the Step 6 completion signal to Equipment Digital Twins (Module 2) to unlock workstation access, streams user process parameters to the Physics Simulation Engine (Module 5), and receives Socratic HUD dialogue overlays from the Socratic AI Tutor (Module 10).</p>
+
+  <p><b>Module 2: Equipment Digital Twins</b>
+  <br><i>Inputs:</i> Step 6 completion event from Module 1, physical wafer collider docking events, front-panel virtual dial and toggle manipulations, and machine hardware specifications.
+  <br><i>Function:</i> Simulates interactive, physically grounded virtual replicas of fabrication equipment (chemical bench, spin coater, proximity hotplate, UV contact mask aligner, reactive ion etching chamber, and optical inspection microscope). Each tool executes an internal finite state machine (Idle, Ready, Loading, Processing, Complete, Fault) governing vacuum chuck latches, pneumatic chamber lids, and real-time console displays.
+  <br><i>Outputs:</i> Interactive tool operational states, front-panel sensory readouts, vacuum/interlock clamp signals, and validated recipe settings (&omega;, <i>T</i><sub>sb</sub>, <i>D</i>, <i>P</i><sub>RF</sub>, <i>p</i><sub>ch</sub>, <i>Q</i><sub>gas</sub>).
+  <br><i>Downstream integration:</i> Dispatches configured recipe settings to the Process Sequencer (Module 4) to initiate step gating, and streams machine contact and clamp states to the Wafer Digital Twin (Module 3) as substrates transfer across workstations.</p>
 
   <div class="figure-box">
     <div class="figure-grid">
@@ -418,13 +431,23 @@
     </div>
   </div>
 
-  <p><b>Module 3: Wafer Digital Twin State Architecture</b>: The Wafer Digital Twin acts as the authoritative single source of truth for the physical silicon substrate. It maintains:
-  <br>&bull; <i>Identity (<code>WaferId.cs</code>)</i>: Tracks global unique lot identifiers and creation timestamps.
-  <br>&bull; <i>Layer Stack (<code>WaferLayer.cs</code>)</i>: Maintains layer order, material compositions, and thicknesses in nanometers.
-  <br>&bull; <i>Defect Registry (<code>WaferDefect.cs</code>)</i>: Records localized flaws with 3D coordinates (<i>x, y, z</i>), defect typology, and continuous severity scores &sigma; &in; [0.0, 1.0].
-  <br>&bull; <i>Snapshots (<code>WaferStateSnapshot.cs</code>)</i>: Stores immutable deep-copy backups after each step for time-travel analysis and inspection.</p>
+  <p><b>Module 3: Wafer Digital Twin</b>
+  <br><i>Inputs:</i> Baseline substrate parameters from Module 0, step execution commands from the Process Sequencer (Module 4), localized defect injection tuples from the Consequence Rule Engine (Module 6), and spatial tracking colliders.
+  <br><i>Function:</i> Maintains the authoritative single source of truth for the physical silicon wafer. It tracks global wafer identity (<code>WaferId.cs</code>), dynamic vertical layer stack (<code>WaferLayer.cs</code> recording film material, thickness in nanometers, and refractive index), localized 3D spatial defect records (<code>WaferDefect.cs</code> logging coordinates (<i>x, y, z</i>), defect type, and severity score &sigma; &in; [0.0, 1.0]), and generates deep-copy historical snapshots (<code>WaferStateSnapshot.cs</code>).
+  <br><i>Outputs:</i> Authoritative wafer state data (<code>WaferStateData</code>), current layer stack profiles, 3D defect coordinates, and chronological state snapshot logs.
+  <br><i>Downstream integration:</i> Feeds current layer topography to Process Visualization (Module 7) for rendering, transmits state snapshots to the Explainable Socratic AI Tutor (Module 10) for pedagogical tracking, and exposes historical state snapshots to Time-Travel &amp; Cloud Telemetry (Modules 8 &amp; 9).</p>
 
-  <p><b>Modules 4 to 9: Process, Physics, Consequence, UI, and Cloud Telemetry</b>: Module 4 validates processing sequences. Module 5 executes deterministic physics calculations. Module 6 compares results to operational envelopes, injecting defect entries into the Wafer Digital Twin if parameters violate tolerances. Module 7 renders thin-film optical interference through custom URP shaders. Module 8 provides an interactive time-travel replay timeline, tightly integrated with Module 9 (Cloud Backend and Telemetry Pipeline) which ingests serialized <code>WaferStateData</code> payloads and sensor streams via asynchronous REST endpoints into a persistent PostgreSQL repository to maintain authoritative run history for the Socratic AI tutor (Module 10).</p>
+  <p><b>Module 4: Process Sequencer</b>
+  <br><i>Inputs:</i> Recipe settings from Equipment Digital Twins (Module 2), current wafer state from Module 3, and operator actuation triggers.
+  <br><i>Function:</i> Enforces strict physical cleanroom fabrication sequencing (surface preparation &rarr; photoresist spin coating &rarr; soft baking &rarr; mask alignment &rarr; UV exposure &rarr; development &rarr; hard baking &rarr; RIE plasma etching &rarr; metrology); validates parameter recipe envelopes and manages chemical reaction state machines, preventing out-of-sequence unit operations.
+  <br><i>Outputs:</i> Gated step execution commands, chemical reaction timers, interlock trigger events, and sequential execution audit logs.
+  <br><i>Downstream integration:</i> Dispatches the authorized Execute Step command to the Wafer Digital Twin (Module 3) to advance fabrication phase, and signals the Physics Simulation Engine (Module 5) to initiate mathematical transformation.</p>
+
+  <p><b>Module 5: Physics Simulation Engine</b>
+  <br><i>Inputs:</i> Process parameters from Module 1, step execution commands from Module 4, physical equations and material coefficients from Module 0.
+  <br><i>Function:</i> Executes continuous numerical and analytical physics formulations in under 4.2 ms per step: Meyerhofer spin dynamics for photoresist thickness (<i>t</i><sub>pr</sub> &prop; &omega;<sup>&minus;1/2</sup> &eta;<sup>1/3</sup>), thermal diffusion equations during convective baking, Rayleigh diffraction for photolithographic critical dimension (<i>CD</i> = <i>k</i><sub>1</sub> &lambda; / <i>NA</i>), and kinetic ion-radical transport for RIE anisotropy (<i>A</i><sub>etch</sub> = 1 &minus; (<i>R</i><sub>lateral</sub> / <i>R</i><sub>vertical</sub>)).
+  <br><i>Outputs:</i> Computed physical wafer metrics, including radial resist thickness profile, latent chemical image gradient, optical line CD, etch depth, sidewall taper angle, and line edge roughness (3&sigma;).
+  <br><i>Downstream integration:</i> Supplies deterministic physical outputs to the Consequence Rule Engine (Module 6) for boundary checking and defect determination.</p>
 
   <div class="figure-box">
     <div class="figure-grid">
@@ -436,6 +459,30 @@
     </div>
   </div>
 
+  <p><b>Module 6: Consequence Rule Engine</b>
+  <br><i>Inputs:</i> Physical outputs from Module 5, process parameter envelopes, empirical semiconductor design rules, and tolerance threshold boundaries.
+  <br><i>Function:</i> Compares physical outputs against strict lithographic and plasma etching tolerance boundaries (&plusmn;5% resist uniformity, sub-0.15 &mu;m alignment offset, sub-120 mTorr chamber pressure); classifies operational outcomes into successful runs, marginal drift, or catastrophic failure, and synthesizes localized wafer defect records.
+  <br><i>Outputs:</i> Injected defect entries (pinholes, thermal blistering, pattern collapse, mask faceting, isotropic undercutting), continuous defect severity scores, safety interlock trips, and defect triggers.
+  <br><i>Downstream integration:</i> Injects generated defect records directly into the Wafer Digital Twin (Module 3) for spatial storage, routes defect triggers to Time-Travel &amp; Cloud Telemetry (Modules 8 &amp; 9), and signals the Socratic AI Tutor (Module 10).</p>
+
+  <p><b>Module 7: Process Visualization</b>
+  <br><i>Inputs:</i> Wafer Digital Twin state (Module 3), historical timeline replay feeds (Modules 8 &amp; 9), and Socratic HUD dialogue (Module 10).
+  <br><i>Function:</i> Renders real-time multi-scale visual phenomena in Unity 6 LTS using the Universal Render Pipeline (URP); executes custom thin-film optical interference shaders reflecting resist thickness changes, dynamic particle systems for capacitive RF plasma glow discharges, and high-magnification optical microscope views for micro-scale inspection.
+  <br><i>Outputs:</i> Interactive multi-scale 3D cleanroom views, micro-metrology microscope displays, visual defect markers, and heads-up instructional overlays.
+  <br><i>Downstream integration:</i> Renders directly to the student's VR headset display and feeds visual focus metrics back to the Socratic AI Tutor (Module 10).</p>
+
+  <p><b>Modules 8 &amp; 9: Time-Travel Debugging &amp; Cloud Telemetry</b>
+  <br><i>Inputs:</i> Defect trigger notifications from Module 6, wafer state snapshot streams from Module 3, and timestamped user interaction logs.
+  <br><i>Function:</i> Module 8 provides an interactive temporal scrubbing interface enabling students to step backward through past unit operations to isolate root causes of defects; Module 9 ingests serialized <code>WaferStateData</code> payloads via asynchronous RESTful endpoints into a persistent PostgreSQL database, logging complete fabrication trajectories and cohort telemetry.
+  <br><i>Outputs:</i> Historical process state streams, temporal timeline scrub data, longitudinal performance analytics, and persistent run records.
+  <br><i>Downstream integration:</i> Supplies timeline replay streams to Process Visualization (Module 7) for retrospective rendering, and delivers comprehensive diagnostic state history to the Explainable Socratic AI Tutor (Module 10).</p>
+
+  <p><b>Module 10: Explainable Socratic AI Tutor</b>
+  <br><i>Inputs:</i> Instantaneous wafer state snapshots from Module 3, diagnostic historical state from Modules 8 &amp; 9, student interaction logs, and Bayesian Knowledge Tracing (BKT) probability vectors.
+  <br><i>Function:</i> Executes an explainable, pedagogical inquiry model structured across a 3-tier scaffolding hierarchy (Tier 1: Phenomenological Observation; Tier 2: Physical Root-Cause Deduction; Tier 3: Formulative Recipe Remediation); updates individual cognitive mastery probabilities <i>P</i>(<i>L<sub>t</sub></i>) per cleanroom concept, prompting learners to diagnose flaws through guided questions rather than direct answers.
+  <br><i>Outputs:</i> Context-aware Socratic dialogue prompts, targeted cognitive scaffolding questions, real-time remediation hints, and competency assessment scores.
+  <br><i>Downstream integration:</i> Delivers Socratic HUD dialogue directly to the VR display overlay in Module 1 and Module 7, guiding the student through real-time troubleshooting.</p>
+
   <h2>Physical Formulations and Consequence-Based Defect Dynamics</h2>
   <p>Rather than displaying static animations, the simulation engine calculates wafer physical transformations dynamically using deterministic numerical models.</p>
 
@@ -445,7 +492,7 @@
     <div class="eq-content"><i>t</i><sub>pr</sub> = [ 3&eta;<i>r</i><sub>0</sub><sup>2</sup> / (4&rho;&omega;<sup>2</sup><i>t</i><sub>spin</sub>) ]<sup>1/2</sup> &approx; <i>K</i><sub>0</sub> &middot; [ &mu;<sup>&alpha;</sup> / &omega;<sup>1/2</sup> ]</div>
     <div class="eq-num">(1)</div>
   </div>
-  <p>where &omega; represents rotational speed in RPM, &eta; is fluid viscosity, &rho; is density, and <i>K</i><sub>0</sub>, &alpha; are resist-specific empirical constants. If a student selects an insufficient rotational velocity (&omega; &lt; 1800 RPM), the model calculates a radial thickness variance exceeding &plusmn;18%, injecting radial striation defects into the wafer state registry. Conversely, excessive spin speeds (&omega; &gt; 5500 RPM) yield an overly thin film susceptible to pinholes during plasma etching.</p>
+  <p>where &omega; represents rotational speed in RPM, &eta; is fluid viscosity, &rho; is density, and <i>K</i><sub>0</sub>, &alpha; are resist-specific empirical constants. If a student selects an insufficient rotational velocity (&omega; &lt; 1&ndash;800 RPM), the model calculates a radial thickness variance exceeding &plusmn;1&ndash;8%, injecting radial striation defects into the wafer state registry. Conversely, excessive spin speeds (&omega; &gt; 5500 RPM) yield an overly thin film susceptible to pinholes during plasma etching.</p>
 
   <h3>Diffraction Limits and Exposure Kinetics</h3>
   <p>The minimum printable critical dimension (<i>CD</i>) and usable depth of focus (<i>DOF</i>) during UV photolithography are governed by the Rayleigh criteria:</p>
@@ -508,7 +555,7 @@
       <tr>
         <td><b>Photoresist Coating</b></td>
         <td>Spin Speed (&omega;)</td>
-        <td>Low speed (&omega; &lt; 1800 RPM)<br>High speed (&omega; &gt; 5500 RPM)</td>
+        <td>Low speed (&omega; &lt; 1&ndash;800 RPM)<br>High speed (&omega; &gt; 5500 RPM)</td>
         <td>Radial thickness non-uniformity; striations; uneven exposure depth.<br>Overly thin film; edge cracking; pinhole breakthrough during etching.</td>
       </tr>
       <tr>
@@ -655,10 +702,10 @@
     <li>Mallek, M. et al. A review on cultivating effective learning: Synthesizing educational theories and virtual reality for enhanced educational experiences. <i>Virtual Reality</i> <b>28</b>, 84 (2024).</li>
     <li>Davis, P. et al. An immersive virtual reality framework for semiconductor manufacturing training: Design and evaluation. In <i>Proc. IEEE Conf. Virtual Real. 3D User Interfaces (VR)</i>, 312–320 (2024).</li>
     <li>Havard, V. &amp; Jeanne, B. Digital twin and virtual reality: A co-simulation environment for design and assessment of industrial workstations. <i>Comput. Ind.</i> <b>113</b>, 103134 (2019).</li>
-    <li>Kuo, H. A., Hong, T. Y. &amp; Chien, C. F. A deep reinforcement learning based digital twin framework for resilient production planning in semiconductor wafer fabrication. <i>Comput. Ind. Eng.</i> <b>189</b>, 111389 (2025).</li>
+    <li>Kuo, H. A., Hong, T. Y. &amp; Chien, C. F. A deep reinforcement learning based digital twin framework for resilient production planning in semiconductor wafer fabrication. <i>Comput. Ind. Eng.</i> <b>1&ndash;89</b>, 111389 (2025).</li>
     <li>Lee, L. C. &amp; Zhao, Y. Digital twin for developing and verifying semiconductor packaging license models. <i>MDPI Eng. Proc.</i> <b>89</b>, 45 (2024).</li>
     <li>Asad, U., Khan, M. &amp; Khalid, A. Human-centric digital twins in industry: A comprehensive review of enabling technologies and implementation strategies. <i>Sensors</i> <b>23</b>, 3938 (2023).</li>
-    <li>Yildiz, E., M&oslash;ller, C. &amp; Bilberg, A. Demonstration and evaluation of a digital twin-based virtual factory. <i>Int. J. Adv. Manuf. Technol.</i> <b>114</b>, 185–203 (2021).</li>
+    <li>Yildiz, E., M&oslash;ller, C. &amp; Bilberg, A. Demonstration and evaluation of a digital twin-based virtual factory. <i>Int. J. Adv. Manuf. Technol.</i> <b>114</b>, 1&ndash;85–203 (2021).</li>
     <li>Sunil, K. &amp; Thakkar, A. SocraticAI: Transforming LLMs into guided CS tutors through scaffolded interaction. <i>arXiv:2512.03501</i> (2025).</li>
     <li>Knievel, A. et al. AITEE: Agentic tutor for electrical engineering. <i>arXiv:2505.21582</i> (2025).</li>
     <li>Shridhar, K. et al. Automatic generation of Socratic subquestions for teaching math word problems. In <i>Proc. EMNLP</i>, 4125–4141 (2022).</li>
