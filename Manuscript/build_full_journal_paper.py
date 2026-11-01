@@ -281,11 +281,7 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
 
-<!-- CLEAN SUBMISSION HEADER -->
-<div class="top-banner">
-  <span>COMMUNICATIONS ENGINEERING &mdash; MANUSCRIPT SUBMISSION</span>
-  <span>RESEARCH ARTICLE</span>
-</div>
+
 
 <div class="article-title">
   An AI-Driven Virtual Reality Digital Twin for Semiconductor Photolithography and Plasma Etching Training
@@ -658,6 +654,12 @@ html_content = f"""<!DOCTYPE html>
 
   <p>Future work will expand the digital twin to include chemical mechanical planarization (CMP) and atomic layer deposition (ALD) modules, integrate multi-user cooperative fab scenarios, and deploy real-time large multimodal models (LMM) for spatial gaze-directed Socratic tutoring.</p>
 
+  <h2>Data Availability</h2>
+  <p>All empirical telemetry datasets, anonymized student cohort evaluation logs, and simulation benchmark results supporting the findings of this study are openly accessible in the public GitHub repository at <a href="https://github.com/PraveenKanth-N/vfab_photolithography" style="color:#006699; text-decoration:none;">https://github.com/PraveenKanth-N/vfab_photolithography</a>.</p>
+
+  <h2>Code Availability</h2>
+  <p>The complete digital twin source code, including Unity 6 LTS C# client modules, URP interference shaders, 3D equipment models, deterministic physics simulation engines, FastAPI backend microservices, and automated test scripts, is publicly available under the MIT license at <a href="https://github.com/PraveenKanth-N/vfab_photolithography" style="color:#006699; text-decoration:none;">https://github.com/PraveenKanth-N/vfab_photolithography</a>.</p>
+
   <h2>References</h2>
   <ol class="ref-list">
     <li>Chen, H.-Y. &amp; Chen, C. Review of applications of regression and predictive modeling in wafer manufacturing. <i>MDPI Electronics</i> <b>14</b>, 4083 (2023).</li>
@@ -706,10 +708,7 @@ html_content = f"""<!DOCTYPE html>
   <sup>*</sup> Corresponding author e-mail: <a href="mailto:rrajkumar@vit.ac.in" style="color:#006699; text-decoration:none;">rrajkumar@vit.ac.in</a>
 </div>
 
-<div class="submission-footer">
-  <span>Communications Engineering &mdash; Peer Review Manuscript Submission</span>
-  <span>SCOPE &bull; Vellore Institute of Technology</span>
-</div>
+
 
 </body>
 </html>
