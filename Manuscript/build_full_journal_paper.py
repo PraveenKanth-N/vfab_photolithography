@@ -2,13 +2,14 @@ import base64
 import os
 import subprocess
 
-def get_b64(filename):
-    p = os.path.join(r'D:\vfab_photolithography\Screenshots', filename)
+def get_b64(filename, folder=r'D:\vfab_photolithography\Screenshots'):
+    p = os.path.join(folder, filename)
     ext = os.path.splitext(filename)[1].lower()
     mime = 'image/jpeg' if ext in ['.jpg', '.jpeg'] else 'image/png'
     with open(p, 'rb') as f:
         return f"data:{mime};base64,{base64.b64encode(f.read()).decode('utf-8')}"
 
+arch_b64 = get_b64('fig1_system_architecture.png', folder=r'D:\vfab_photolithography\Manuscript')
 pic1 = get_b64('Picture1.jpg')
 pic2 = get_b64('Picture2.jpg')
 pic3 = get_b64('Picture3.jpg')
@@ -25,7 +26,7 @@ html_content = f"""<!DOCTYPE html>
 <style>
   @page {{
     size: A4;
-    margin: 12mm 14mm 14mm 14mm;
+    margin: 11mm 13mm 13mm 13mm;
   }}
 
   * {{
@@ -36,96 +37,44 @@ html_content = f"""<!DOCTYPE html>
 
   body {{
     font-family: "Minion Pro", "Georgia", "Times New Roman", serif;
-    font-size: 8.4pt;
-    line-height: 1.30;
+    font-size: 8.0pt;
+    line-height: 1.23;
     color: #111;
     margin: 0;
     padding: 0;
   }}
 
-  /* Header banner */
-  .journal-header {{
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+  /* Top manuscript submission banner */
+  .top-banner {{
     border-bottom: 2px solid #000;
     padding-bottom: 4px;
-    margin-bottom: 8px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }}
-  .journal-title {{
-    font-size: 13.5pt;
-    font-weight: 900;
-    letter-spacing: -0.2px;
-  }}
-  .journal-title span {{
-    font-weight: 400;
-    margin-left: 8px;
-    font-size: 11pt;
-    color: #444;
-  }}
-  .journal-sub {{
-    font-size: 7.5pt;
-    color: #555;
-    margin-top: 1px;
-  }}
-  .doi-link {{
-    font-size: 7.5pt;
-    color: #006699;
-    text-decoration: none;
-    margin-top: 2px;
-    display: block;
-  }}
-  .oa-badge {{
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: #e26b00;
-    color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-weight: bold;
-    font-size: 13pt;
+    margin-bottom: 10px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    line-height: 1;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 8pt;
+    font-weight: 700;
+    color: #222;
+    letter-spacing: 0.5px;
   }}
 
   .article-title {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 19.5pt;
+    font-size: 19pt;
     font-weight: 800;
     line-height: 1.15;
     letter-spacing: -0.3px;
     color: #000;
-    margin: 10px 0 8px 0;
-  }}
-
-  .check-updates {{
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    padding: 2px 7px;
-    font-size: 6.8pt;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #444;
-    margin-bottom: 8px;
-    background: #fff;
-  }}
-  .check-updates svg {{
-    width: 10px;
-    height: 10px;
-    margin-right: 5px;
-    fill: #2e7d32;
+    margin: 8px 0 6px 0;
   }}
 
   .author-list {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 9.5pt;
+    font-size: 9.2pt;
     font-weight: 700;
     color: #222;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }}
   .author-list sup {{
     font-size: 6.8pt;
@@ -135,11 +84,11 @@ html_content = f"""<!DOCTYPE html>
 
   .abstract-container {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 8.6pt;
-    line-height: 1.38;
+    font-size: 8.5pt;
+    line-height: 1.35;
     color: #1a1a1a;
     font-weight: 400;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     padding-bottom: 8px;
     border-bottom: 0.5pt solid #ddd;
     text-align: justify;
@@ -148,7 +97,7 @@ html_content = f"""<!DOCTYPE html>
     font-weight: 700;
   }}
 
-  /* Columns Layout */
+  /* Two column layout */
   .two-column {{
     column-count: 2;
     column-gap: 5mm;
@@ -157,34 +106,34 @@ html_content = f"""<!DOCTYPE html>
   }}
 
   p {{
-    margin: 0 0 5.5pt 0;
+    margin: 0 0 5pt 0;
     text-indent: 0;
   }}
 
   h2 {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 10.5pt;
+    font-size: 10.2pt;
     font-weight: 800;
     color: #000;
-    margin: 9pt 0 3pt 0;
+    margin: 6.5pt 0 2pt 0;
     break-after: avoid;
   }}
 
   h3 {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 8.8pt;
+    font-size: 8.6pt;
     font-weight: 700;
     color: #111;
-    margin: 7pt 0 2pt 0;
+    margin: 5pt 0 1.5pt 0;
     break-after: avoid;
   }}
 
   h4 {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 8.2pt;
+    font-size: 8pt;
     font-weight: 700;
     color: #222;
-    margin: 5pt 0 2pt 0;
+    margin: 4.5pt 0 1.5pt 0;
     break-after: avoid;
   }}
 
@@ -193,33 +142,40 @@ html_content = f"""<!DOCTYPE html>
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 4.5pt 0;
+    margin: 3.5pt 0;
     padding: 0 2px;
     font-family: "Times New Roman", Times, serif;
     font-style: italic;
-    font-size: 8.6pt;
+    font-size: 8.2pt;
+    white-space: nowrap;
   }}
   .eq-content {{
     flex-grow: 1;
     text-align: center;
+    overflow: hidden;
   }}
   .eq-num {{
     font-style: normal;
-    font-size: 7.8pt;
+    font-size: 7.5pt;
     color: #333;
     padding-left: 4px;
+    flex-shrink: 0;
   }}
 
   /* Figures */
   .figure-box {{
-    margin: 6pt 0;
+    margin: 3.5pt 0;
     break-inside: avoid;
     width: 100%;
+  }}
+  .figure-box.full-width {{
+    column-span: all;
+    margin: 7pt 0 9pt 0;
   }}
   .figure-grid {{
     display: flex;
     gap: 4px;
-    margin-bottom: 3px;
+    margin-bottom: 2.5pt;
   }}
   .figure-grid img {{
     width: 50%;
@@ -232,12 +188,12 @@ html_content = f"""<!DOCTYPE html>
     height: auto;
     border: 0.5pt solid #ccc;
     border-radius: 2px;
-    margin-bottom: 3px;
+    margin-bottom: 2.5pt;
   }}
   .figure-caption {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 6.9pt;
-    line-height: 1.28;
+    font-size: 6.8pt;
+    line-height: 1.25;
     color: #222;
     text-align: justify;
   }}
@@ -251,20 +207,24 @@ html_content = f"""<!DOCTYPE html>
     width: 100%;
     border-collapse: collapse;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 6.8pt;
-    line-height: 1.22;
-    margin: 6pt 0;
+    font-size: 6.7pt;
+    line-height: 1.20;
+    margin: 3.5pt 0;
     break-inside: avoid;
+  }}
+  table.nature-table.full-width {{
+    column-span: all;
+    margin: 7pt 0;
   }}
   table.nature-table th {{
     border-top: 1.2pt solid #000;
     border-bottom: 0.6pt solid #000;
-    padding: 2.5pt 3pt;
+    padding: 2pt 2.5pt;
     text-align: left;
     font-weight: 700;
   }}
   table.nature-table td {{
-    padding: 2.5pt 3pt;
+    padding: 2pt 2.5pt;
     border-bottom: 0.5pt solid #eee;
     vertical-align: top;
   }}
@@ -272,32 +232,28 @@ html_content = f"""<!DOCTYPE html>
     border-bottom: 1.2pt solid #000;
   }}
 
-  /* Footnote Affiliations */
-  .affiliations {{
-    column-span: all;
-    width: 100%;
+  /* Full-width Affiliations & Submission Footer (outside columns to avoid wrapping) */
+  .affiliations-box {{
     margin-top: 10pt;
     padding-top: 4pt;
     border-top: 0.5pt solid #aaa;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 6.8pt;
-    line-height: 1.32;
+    line-height: 1.30;
     color: #333;
+    width: 100%;
   }}
-  .affiliations sup {{
+  .affiliations-box sup {{
     color: #006699;
     font-weight: bold;
   }}
 
-  /* Running footer */
-  .running-footer {{
-    column-span: all;
-    width: 100%;
-    margin-top: 8pt;
+  .submission-footer {{
+    margin-top: 6pt;
     border-top: 0.5pt solid #ccc;
     padding-top: 3pt;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 6.6pt;
+    font-size: 6.8pt;
     color: #555;
     display: flex;
     justify-content: space-between;
@@ -308,14 +264,14 @@ html_content = f"""<!DOCTYPE html>
 
   .ref-list {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 6.4pt;
-    line-height: 1.24;
+    font-size: 6.3pt;
+    line-height: 1.22;
     color: #222;
-    padding-left: 11px;
-    margin-top: 3px;
+    padding-left: 10px;
+    margin-top: 2.5pt;
   }}
   .ref-list li {{
-    margin-bottom: 2.8px;
+    margin-bottom: 2.5px;
   }}
   .ref-list a {{
     color: #006699;
@@ -325,8 +281,8 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
 
-<!-- CLEAN TOP SUBMISSION BANNER -->
-<div style="border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 12px; display: flex; justify-content: space-between; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 8.5pt; font-weight: 700; color: #222; letter-spacing: 0.5px;">
+<!-- CLEAN SUBMISSION HEADER -->
+<div class="top-banner">
   <span>COMMUNICATIONS ENGINEERING &mdash; MANUSCRIPT SUBMISSION</span>
   <span>RESEARCH ARTICLE</span>
 </div>
@@ -334,8 +290,6 @@ html_content = f"""<!DOCTYPE html>
 <div class="article-title">
   An AI-Driven Virtual Reality Digital Twin for Semiconductor Photolithography and Plasma Etching Training
 </div>
-
-
 
 <div class="author-list">
   Praveen Kanth N <sup>1</sup>, Om Aravindhashan S <sup>1</sup> &amp; Dr. Rajkumar R <sup>1,*</sup>
@@ -368,7 +322,7 @@ html_content = f"""<!DOCTYPE html>
   <br>&bull; <b>Empirical Implementation and Verification</b>: We detail the software architecture, state-machine synchronization, and empirical performance metrics in Unity 6, including pilot cohort data (<i>N</i> = 32) demonstrating an 84.2 System Usability Scale (SUS) score and a 74.5% procedural error reduction.</p>
 
   <h2>Systematic Literature Survey and Research Gaps</h2>
-  <p>To anchor this research in current academic literature, a systematic review encompassing 27 peer-reviewed studies published between 2019 and 2026 was conducted. Research was surveyed across four core thematic domains: (i) Immersive VR in Engineering Education, (ii) Industrial and Educational Digital Twins, (iii) AI-Assisted Socratic Tutoring, and (iv) Semiconductor Process Modeling.</p>
+  <p>To anchor this research in current academic literature, a systematic review encompassing 27 peer-reviewed studies published between 2019 and 2026 was conducted across four core thematic domains: (i) Immersive VR in Engineering Education, (ii) Industrial and Educational Digital Twins, (iii) AI-Assisted Socratic Tutoring, and (iv) Semiconductor Process Modeling.</p>
 
   <p><b>VR in Engineering Education</b>: Bibliometric reviews by Riaji et al.<sup>8</sup> and Lampropoulos et al.<sup>9</sup> established that immersive VR environments consistently improve student engagement, procedural recall, and spatial awareness across STEM disciplines. Muzata et al.<sup>10</sup> demonstrated that project-based learning embedded within immersive Cave Automatic Virtual Environments (CAVE) significantly elevated cumulative assessment scores. Mallek et al.<sup>11</sup> emphasized that VR platforms achieve higher learning gains when aligned with constructivist multimedia learning theories. In cleanroom-specific education, early prototypes by Letavish et al.<sup>4</sup> confirmed that pre-lab VR exposure enhanced student self-confidence before entering cleanrooms. Similarly, Wang et al.<sup>6</sup> reported measurable reductions in procedural errors during photolithography steps, and ASEE PEER 2025 findings<sup>5</sup> highlighted the benefit of action tracking. However, existing cleanroom VR frameworks remain fundamentally descriptive: they operate on hard-coded transitions where student actions trigger canned animations regardless of parameter variations.</p>
 
@@ -460,15 +414,13 @@ html_content = f"""<!DOCTYPE html>
   </table>
 
   <h2>System Architecture and Functional Design</h2>
-  <p>The proposed virtual cleanroom platform is organized into a decoupled, ten-module architecture that separates visualization, physical calculation, wafer state management, and external persistence (Fig. 1).</p>
+  <p>The proposed virtual cleanroom platform is organized into a decoupled, ten-module architecture that separates visualization, physical calculation, wafer state management, and external persistence.</p>
 
-  <div class="figure-box">
-    <div class="figure-grid">
-      <img src="{pic1}" alt="Cleanroom Overview">
-      <img src="{pic2}" alt="Substrate Preparation">
-    </div>
+  <!-- SYSTEM ARCHITECTURE DIAGRAM FIG 1 -->
+  <div class="figure-box full-width">
+    <img src="{arch_b64}" alt="System Architecture Diagram" class="figure-img-single">
     <div class="figure-caption">
-      <strong>Fig. 1 | Virtual cleanroom facility, substrate preparation, and end-to-end digital twin architecture.</strong> <strong>a</strong> Photorealistic ISO Class 5 yellow room simulation showing laminar flow workstations, gowning chambers, and wafer transfer benches rendered in Unity 6 LTS with URP. <strong>b</strong> Substrate cleaning station equipped with SC-1 organic cleaning baths and dehydration bake ovens for surface moisture evacuation.
+      <strong>Fig. 1 | System architecture showing non-overlapping dataflows between user interaction (Module 1), equipment twins (Module 2), physics modeling (Module 5), consequence rules (Module 6), the authoritative wafer state registry (Module 3), time-travel debugging and cloud telemetry (Modules 8 &amp; 9), and Socratic tutoring (Module 10).</strong> Physical user interactions at virtual equipment consoles trigger parameter validation against analytical physics formulations, streaming real-time telemetry to the authoritative wafer registry while driving Socratic pedagogical interventions.
     </div>
   </div>
 
@@ -479,6 +431,16 @@ html_content = f"""<!DOCTYPE html>
   <br>&bull; <i>Photolithography Twin</i>: Programmable spin coater (RPM, acceleration rate, resist volume), proximity hotplate soft-bake temperature/timer, and optical contact mask aligner.
   <br>&bull; <i>Plasma Etcher Twin</i>: RIE vacuum chamber, RF power generator, pressure control, and CF<sub>4</sub>/SF<sub>6</sub>/O<sub>2</sub> mass flow controllers.
   <br>&bull; <i>Inspection Twin</i>: Virtual optical microscope with magnification stages and spatial translation.</p>
+
+  <div class="figure-box">
+    <div class="figure-grid">
+      <img src="{pic1}" alt="Cleanroom Overview">
+      <img src="{pic2}" alt="Substrate Preparation">
+    </div>
+    <div class="figure-caption">
+      <strong>Fig. 2 | Virtual cleanroom facility and substrate preparation workstations.</strong> <strong>a</strong> Photorealistic ISO Class 5 yellow room simulation showing laminar flow workstations, gowning chambers, and wafer transfer benches rendered in Unity 6 LTS with URP. <strong>b</strong> Substrate cleaning station equipped with SC-1 organic cleaning baths and dehydration bake ovens for surface moisture evacuation.
+    </div>
+  </div>
 
   <p><b>Module 3: Wafer Digital Twin State Architecture</b>: The Wafer Digital Twin acts as the authoritative single source of truth for the physical silicon substrate. It maintains:
   <br>&bull; <i>Identity (<code>WaferId.cs</code>)</i>: Tracks global unique lot identifiers and creation timestamps.
@@ -494,7 +456,7 @@ html_content = f"""<!DOCTYPE html>
       <img src="{pic4}" alt="Soft Bake Result">
     </div>
     <div class="figure-caption">
-      <strong>Fig. 2 | AI-driven photoresist spin coating and convective thermal processing.</strong> <strong>a</strong> Spin coater chuck displaying real-time neural network inference (Unity Sentis / ONNX) of radial thickness distributions and thin-film optical interference fringes. <strong>b</strong> Wafer state topography following precision hotplate soft baking and solvent outgassing.
+      <strong>Fig. 3 | AI-driven photoresist spin coating and convective thermal processing.</strong> <strong>a</strong> Spin coater chuck displaying real-time neural network inference (Unity Sentis / ONNX) of radial thickness distributions and thin-film optical interference fringes. <strong>b</strong> Wafer state topography following precision hotplate soft baking and solvent outgassing.
     </div>
   </div>
 
@@ -534,7 +496,7 @@ html_content = f"""<!DOCTYPE html>
       <img src="{pic6}" alt="Exposure Intensity">
     </div>
     <div class="figure-caption">
-      <strong>Fig. 3 | Contact mask alignment and optical exposure intensity profiling.</strong> <strong>a</strong> Precision contact mask alignment stage with mechanical substrate chuck clamp and UV illumination source. <strong>b</strong> Dynamic aerial image intensity distribution computed via Rayleigh diffraction limits and Dill photochemical degradation kinetics.
+      <strong>Fig. 4 | Contact mask alignment and optical exposure intensity profiling.</strong> <strong>a</strong> Precision contact mask alignment stage with mechanical substrate chuck clamp and UV illumination source. <strong>b</strong> Dynamic aerial image intensity distribution computed via Rayleigh diffraction limits and Dill photochemical degradation kinetics.
     </div>
   </div>
 
@@ -611,14 +573,14 @@ html_content = f"""<!DOCTYPE html>
   <div class="figure-box">
     <img src="{pic7}" alt="Optical Metrology Station" class="figure-img-single">
     <div class="figure-caption">
-      <strong>Fig. 4 | Chemical development and optical metrology inspection station.</strong> High-magnification microscope station displaying wafer surface topography, line edge profiles, and Socratic diagnostic prompts after chemical development.
+      <strong>Fig. 5 | Chemical development and optical metrology inspection station.</strong> High-magnification microscope station displaying wafer surface topography, line edge profiles, and Socratic diagnostic prompts after chemical development.
     </div>
   </div>
 
   <h3>Cognitive Knowledge Tracing Architecture</h3>
   <p>The tutoring engine tracks learner understanding using a modified Bayesian Knowledge Tracing (BKT) formulation<sup>25</sup>:</p>
   <div class="equation">
-    <div class="eq-content"><i>P(L<sub>t</sub>)</i> = <i>P(L</i><sub><i>t</i>-1</sub>) &middot; [ (1 - <i>P(S)</i>) / ( <i>P(L</i><sub><i>t</i>-1</sub>)(1 - <i>P(S)</i>) + (1 - <i>P(L</i><sub><i>t</i>-1</sub>))<i>P(G)</i> ) ]</div>
+    <div class="eq-content" style="font-size:7.2pt; white-space:nowrap;"><i>P(L<sub>t</sub>)</i> = <i>P(L</i><sub><i>t</i>-1</sub>) &middot; [ (1 - <i>P(S)</i>) / ( <i>P(L</i><sub><i>t</i>-1</sub>)(1 - <i>P(S)</i>) + (1 - <i>P(L</i><sub><i>t</i>-1</sub>))<i>P(G)</i> ) ]</div>
     <div class="eq-num">(8)</div>
   </div>
   <p>where <i>P(L<sub>t</sub>)</i> is the probability that the student has mastered cleanroom concept <i>L</i> at dialogue turn <i>t</i>, <i>P(S)</i> is the probability of a slip (mistake despite knowing the concept, set to 0.10), and <i>P(G)</i> is the probability of a lucky guess (0.15). If <i>P(L<sub>t</sub>)</i> &lt; 0.45, the tutor increases scaffolding detail. When <i>P(L<sub>t</sub>)</i> &ge; 0.80, the tutor allows independent exploration.</p>
@@ -736,16 +698,17 @@ html_content = f"""<!DOCTYPE html>
   <h2>Competing Interests</h2>
   <p>The authors declare no competing financial or non-financial interests.</p>
 
-  <div class="affiliations">
-    <sup>1</sup> School of Computer Science and Engineering (SCOPE), Vellore Institute of Technology (VIT), Vellore, Tamil Nadu 632014, India.<br>
-    <sup>*</sup> Corresponding author e-mail: <a href="mailto:rrajkumar@vit.ac.in" style="color:#006699;">rrajkumar@vit.ac.in</a>
-  </div>
+</div><!-- end two-column -->
 
-  <div style="margin-top: 12pt; border-top: 0.5pt solid #bbb; padding-top: 4pt; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 7.2pt; color: #555; display: flex; justify-content: space-between; align-items: center; width: 100%;">
-    <span>Communications Engineering &mdash; Peer Review Manuscript Submission</span>
-    <span>SCOPE &bull; Vellore Institute of Technology</span>
-  </div>
+<!-- FULL-WIDTH AFFILIATIONS & FOOTER (completely outside two-column so it never wraps or overlaps) -->
+<div class="affiliations-box">
+  <sup>1</sup> School of Computer Science and Engineering (SCOPE), Vellore Institute of Technology (VIT), Vellore, Tamil Nadu 632014, India.<br>
+  <sup>*</sup> Corresponding author e-mail: <a href="mailto:rrajkumar@vit.ac.in" style="color:#006699; text-decoration:none;">rrajkumar@vit.ac.in</a>
+</div>
 
+<div class="submission-footer">
+  <span>Communications Engineering &mdash; Peer Review Manuscript Submission</span>
+  <span>SCOPE &bull; Vellore Institute of Technology</span>
 </div>
 
 </body>
@@ -758,7 +721,7 @@ pdf_path = r'D:\vfab_photolithography\Manuscript\Communications_Engineering_Jour
 with open(html_path, 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print("Compiling updated PDF with exact title and fixed headers/footers...")
+print("Compiling updated PDF with System Architecture Fig. 1, no gaps, and clean footer...")
 
 chrome = r'C:\Program Files\Google\Chrome\Application\chrome.exe'
 cmd = [
